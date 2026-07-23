@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Канал — прототип публичной витрины</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="proto-flag"><div class="wrap"><b>Прототип T-7.</b> Страница канала. Реальные данные с прода, только чтение.</div></div>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="index.html">
+      <span class="logo-mark">Б</span>
+      <span>БлогерБаза<br><small>рабочее название</small></span>
+    </a>
+    <nav class="nav">
+      <a href="index.html">Каналы</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="root"></main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>Прототип публичной витрины · данные не для распространения</span>
+    <a href="#">О методике сбора</a>
+    <a href="#">Сообщить о неточности</a>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+const id = +new URLSearchParams(location.search).get('id');
+const c = DATA.find(x => x.id === id) || DATA[0];
+document.title = (c.display_name || c.username) + ' — статистика канала, охваты и реклама';
+
+const cov = coverageRatio(c), ash = adShare(c);
+const posts = c.posts || [];
+const advs = c.advertisers || [];
+const hist = (c.history || []).filter(h => h[1]);
+
+// --- sparkline подписчиков
+function chart(h) {
+  if (h.length < 2) return '<div style="color:var(--muted);font-size:13px">данных для графика пока мало</div>';
+  const W = 900, H = 150, pad = 26;
+  const ys = h.map(p => p[1]), min = Math.min(...ys), max = Math.max(...ys), span = (max - min) || 1;
+  const x = i => pad + i * (W - pad * 2) / (h.length - 1);
+  const y = v => H - pad - (v - min) / span * (H - pad * 2);
+  const line = h.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
+  const area = line + ` L${x(h.length - 1).toFixed(1)},${H - pad} L${x(0).toFixed(1)},${H - pad} Z`;
+  const growth = ys[ys.length - 1] - ys[0];
+  return `
+  <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2f6fed" stop-opacity=".22"/><stop offset="100%" stop-color="#2f6fed" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${line}" fill="none" stroke="#2f6fed" stroke-width="2.2" stroke-linejoin="round"/>
+  </svg>
+  <div class="chart-legend">
+    <span>${h[0][0]} — ${h[h.length-1][0]}</span>
+    <span>мин ${num(min)} · макс ${num(max)}</span>
+    <span style="color:${growth >= 0 ? 'var(--ok)' : 'var(--warn)'}">${growth >= 0 ? '+' : ''}${num(growth)} за период</span>
+  </div>`;
+}
+
+// Табы площадок автора: каждая вкладка — отдельный URL, чтобы страницы индексировались по отдельности
+const family = [{id: c.id, platform: c.platform, username: c.username, subs: c.subscribers},
+                ...(c.siblings || [])];
+const tabsHtml = family.length > 1 ? `
+  <div class="author-tabs">
+    <div class="author-tabs-head">
+      <span class="at-label">Площадки автора</span>
+      <b>${esc(c.blogger_name || '')}</b>
+      <span class="at-count">${family.length} ${family.length < 5 ? 'площадки' : 'площадок'}</span>
+    </div>
+    <div class="at-row">
+      ${family.map(f => `
+        <a class="at ${f.id === c.id ? 'on' : ''}" href="channel.html?id=${f.id}">
+          <span class="pf ${f.platform}">${PF[f.platform] || '?'}</span>
+          <span class="at-txt">
+            <b>${PF_NAME[f.platform] || f.platform}</b>
+            <span>${f.subs ? num(f.subs) : 'нет данных'}</span>
+          </span>
+        </a>`).join('')}
+    </div>
+  </div>` : '';
+
+const drop = adReachDrop(c), grw = growth(c), rep = repeatRate(c);
+const extraTiles = `
+  ${c.views_ad == null ? '' : `<div class="tile"><div class="k">Охват рекламного поста</div>
+     <div class="v">${num(c.views_ad)} <small>обычный ${num(c.views_organic)}</small></div></div>`}
+  ${grw == null ? '' : `<div class="tile"><div class="k">Прирост аудитории</div>
+     <div class="v" style="color:${grw >= 0 ? 'var(--ok)' : 'var(--warn)'}">${signed(grw)} <small>за 90 дней</small></div></div>`}
+  ${rep == null ? '' : `<div class="tile"><div class="k">Возврат рекламодателей</div>
+     <div class="v">${pct(rep)} <small>из ${c.adv_total}</small></div></div>`}
+  ${c.views_spread == null ? '' : `<div class="tile"><div class="k">Разброс охвата</div>
+     <div class="v">${pct(c.views_spread)} <small>${c.views_spread < 30 ? 'стабильно' : 'скачет'}</small></div></div>`}`;
+
+const advHtml = advs.length ? `
+  <div class="adv-list">${advs.map(a => {
+    const l = advLabel(a);
+    return `<div class="adv ${l.masked ? 'masked' : ''}">
+      <b>${esc(l.text)}</b>
+      <span>${a.cnt} ${a.cnt === 1 ? 'размещение' : 'размещения'} · последнее ${dateRu(a.last_at)}</span>
+    </div>`;
+  }).join('')}</div>
+  <div class="note">Рекламодатели определяются по обязательной маркировке (ИНН и erid) в тексте самих постов.
+  Индивидуальные предприниматели показаны обезличенно — их наименование содержит ФИО.</div>` :
+  '<div style="color:var(--muted);font-size:13.5px">Рекламных размещений с маркировкой не найдено.</div>';
+
+document.getElementById('root').innerHTML = `
+<div class="crumbs"><a href="index.html">Каталог</a> → <a href="index.html">${PF_NAME[c.platform] || c.platform}</a> → ${esc(c.display_name || c.username)}</div>
+
+<div class="ch-layout">
+  <div>
+    ${tabsHtml}
+    <div class="card">
+      <div class="ch-head">
+        ${avatar(c)}
+        <div style="flex:1">
+          <h1><span class="pf ${c.platform}" style="width:24px;height:24px;font-size:11px">${PF[c.platform]}</span>${esc(c.display_name || c.username)}</h1>
+          <div class="ch-handle">@${esc(c.username)} · ${PF_NAME[c.platform] || c.platform}</div>
+          <div class="chips">${cats(c.categories).map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div>
+        </div>
+        <a class="btn btn-ghost" style="width:150px" href="${c.url || '#'}" target="_blank" rel="noopener">Открыть канал ↗</a>
+      </div>
+      ${c.description ? `<p class="desc">${esc(clip(c.description, 400))}</p>` : ''}
+      <div class="tiles">
+        <div class="tile"><div class="k">Подписчиков</div><div class="v">${num(c.subscribers)}</div></div>
+        <div class="tile"><div class="k">Средний охват поста</div><div class="v">${num(c.views_avg)}</div></div>
+        <div class="tile"><div class="k">Коэф. охвата</div><div class="v">${cov == null ? '—' : pct(cov)}</div></div>
+        <div class="tile"><div class="k">ER</div><div class="v">${pct(c.er_percent)}</div></div>
+        <div class="tile"><div class="k">Постов за месяц</div><div class="v">${num(c.posts_30d || 0)}</div></div>
+        <div class="tile"><div class="k">Доля рекламы</div><div class="v">${ash == null ? '—' : pct(ash)} <small>за 90 дней</small></div></div>
+        ${extraTiles}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Динамика подписчиков <span>· 90 дней</span></h2>
+      ${chart(hist)}
+    </div>
+
+    <div class="card">
+      <h2>Кто рекламировался в канале <span>· ${advs.length ? 'топ ' + advs.length : ''}</span></h2>
+      ${advHtml}
+    </div>
+
+    <div class="card">
+      <h2>Последние публикации</h2>
+      <div class="tabs">
+        <span class="tab on">Все</span>
+        <span class="tab">Только рекламные</span>
+      </div>
+      ${posts.map(p => `
+        <div class="post">
+          <div class="post-head">
+            ${dateRu(p.posted_at)}
+            ${p.is_ad ? '<span class="badge-ad">РЕКЛАМА</span>' : ''}
+            ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" style="margin-left:auto;color:var(--accent)">Открыть оригинал ↗</a>` : ''}
+          </div>
+          <div class="post-text">${esc(clip(p.text, 420))}</div>
+          <div class="post-metrics">
+            <span>👁 ${num(p.views)}</span>
+            ${p.reactions ? `<span>❤ ${num(p.reactions)}</span>` : ''}
+            ${p.comments ? `<span>💬 ${num(p.comments)}</span>` : ''}
+          </div>
+        </div>`).join('') || '<div style="color:var(--muted)">Постов пока нет</div>'}
+    </div>
+  </div>
+
+  <aside class="side">
+    <div class="card cta">
+      <h3>Разместить рекламу</h3>
+      <p>Канал есть на площадке WOWBlogger — условия и стоимость размещения на стороне площадки.</p>
+      <a class="btn" href="#">Перейти к размещению</a>
+    </div>
+
+    <div class="card cta alt">
+      <h3>Это ваш канал?</h3>
+      <p>Подтвердите права, чтобы управлять данными и получать заявки от рекламодателей.</p>
+      <a class="btn" href="#">Заявить права на канал</a>
+    </div>
+
+    ${(c.siblings || []).length ? `
+    <div class="card">
+      <h3>Другие каналы автора</h3>
+      ${c.siblings.map(s => `
+        <a class="sib" href="channel.html?id=${s.id}">
+          <span class="pf ${s.platform}">${PF[s.platform] || '?'}</span>
+          <span>${s.username ? '@' + esc(clip(s.username, 18)) : PF_NAME[s.platform] || s.platform}</span>
+          <span class="s">${s.subs ? num(s.subs) : '—'}</span>
+        </a>`).join('')}
+      <div class="note" style="margin-top:10px">Суммарная аудитория автора —
+        ${num(family.reduce((a, f) => a + (f.subs || 0), 0))} подписчиков на ${family.length} площадках.</div>
+    </div>` : ''}
+
+    <div class="card feedback">
+      <h3>Нашли неточность?</h3>
+      <p style="font-size:13px;color:var(--dim);margin:0 0 10px;line-height:1.5">Подписчики, охваты или рекламодатели указаны неверно — напишите, поправим.</p>
+      <textarea placeholder="Что не так с данными этого канала?"></textarea>
+      <button class="btn btn-primary">Отправить</button>
+    </div>
+
+    <div class="upd">Данные обновлены ${dateRu(c.scraped_at)}</div>
+  </aside>
+</div>`;
+</script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Каталог блогеров и каналов России — прототип публичной витрины</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="proto-flag"><div class="wrap"><b>Прототип T-7.</b> Верстка публичной витрины на реальном срезе данных (14 каналов с прода). Не проиндексирован, боевую витрину не затрагивает.</div></div>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="index.html">
+      <span class="logo-mark">Б</span>
+      <span>БлогерБаза<br><small>рабочее название</small></span>
+    </a>
+    <nav class="nav">
+      <a href="index.html" class="active">Каналы</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Каталог каналов и блогеров России</h1>
+    <p>Открытая база по всем соцсетям: аудитория, охваты, вовлечённость, история рекламных размещений. Данные собираются автоматически и обновляются ежедневно.</p>
+  </section>
+
+  <form class="filters" onsubmit="return false">
+    <div class="search-box">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Название канала или @username">
+    </div>
+    <div class="filter-grid">
+      <div class="field">
+        <label>Соцсеть</label>
+        <select id="f-pf"><option value="">Все</option></select>
+      </div>
+      <div class="field">
+        <label>Категория</label>
+        <select id="f-cat"><option value="">Все категории</option></select>
+      </div>
+      <div class="field">
+        <label>Подписчики</label>
+        <div class="range"><input id="f-sub-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-sub-max" placeholder="до" inputmode="numeric"></div>
+      </div>
+      <div class="field">
+        <label>Средний охват поста</label>
+        <div class="range"><input id="f-view-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-view-max" placeholder="до" inputmode="numeric"></div>
+      </div>
+      <div class="field">
+        <label>ER, %</label>
+        <div class="range"><input id="f-er-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-er-max" placeholder="до" inputmode="numeric"></div>
+      </div>
+      <div class="field">
+        <label>Доля рекламы в ленте, %</label>
+        <div class="range"><input id="f-ad-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-ad-max" placeholder="до" inputmode="numeric"></div>
+      </div>
+    </div>
+    <div class="filters-foot">
+      <label class="checkline"><input type="checkbox" id="f-live"> Только активные (пост за последние 30 дней)</label>
+      <label class="checkline"><input type="checkbox" id="f-adv"> Есть история рекламодателей</label>
+      <label class="checkline"><input type="checkbox" id="f-multi"> Автор ведёт несколько площадок</label>
+      <button type="button" class="btn-reset" id="reset">Сбросить фильтры</button>
+    </div>
+  </form>
+
+  <div class="results-bar">
+    <b id="cnt">—</b><span id="cnt-note"></span>
+    <div class="sort-inline">
+      Сортировка
+      <select id="sort">
+        <option value="subscribers">по подписчикам</option>
+        <option value="views_avg">по охвату</option>
+        <option value="er_percent">по ER</option>
+        <option value="coverage">по коэф. охвата</option>
+        <option value="fresh">по свежести данных</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="rows" id="rows"></div>
+
+  <div class="pager">
+    <a class="cur">1</a><a>2</a><a>3</a><a>…</a><a>1 402</a><a>Вперёд →</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>Прототип публичной витрины · данные не для распространения</span>
+    <a href="#">О методике сбора</a>
+    <a href="#" onclick="openReport(event, null)">Сообщить о неточности</a>
+  </div>
+</footer>
+
+<!-- Модальная форма ОС по качеству данных -->
+<div class="modal-back" id="report-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3>Сообщить о неточности</h3>
+        <p id="report-target">по данным каталога</p>
+      </div>
+      <span class="modal-x" onclick="closeReport()">×</span>
+    </div>
+    <div class="modal-body" id="report-form">
+      <label class="fld">Что не так
+        <select id="rep-kind">
+          <option>Неверное число подписчиков</option>
+          <option>Неверный охват или ER</option>
+          <option>Неверные рекламодатели</option>
+          <option>Канал не существует или закрыт</option>
+          <option>Канал привязан не к тому автору</option>
+          <option>Другое</option>
+        </select>
+      </label>
+      <label class="fld">Подробности
+        <textarea id="rep-text" placeholder="Опишите, что видите неверного и как правильно"></textarea>
+      </label>
+      <label class="fld">Email для ответа <span class="opt">необязательно</span>
+        <input id="rep-mail" placeholder="you@example.com">
+      </label>
+      <button class="btn btn-primary" onclick="sendReport()">Отправить</button>
+      <p class="modal-note">Сообщение попадёт в очередь на проверку. Мы сверим данные с источником и поправим каталог.</p>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+const state = {q:'', pf:'', cat:'', sub:[null,null], view:[null,null], er:[null,null], ad:[null,null],
+               live:false, adv:false, multi:false, sort:'subscribers'};
+
+// populate selects
+const pfs = [...new Set(DATA.map(c => c.platform))];
+document.getElementById('f-pf').insertAdjacentHTML('beforeend',
+  pfs.map(p => `<option value="${p}">${PF_NAME[p] || p}</option>`).join(''));
+const allCats = [...new Set(DATA.flatMap(c => cats(c.categories)))].sort();
+document.getElementById('f-cat').insertAdjacentHTML('beforeend',
+  allCats.map(c => `<option value="${c}">${c}</option>`).join(''));
+
+function inRange(v, r) {
+  if (r[0] != null && (v == null || v < r[0])) return false;
+  if (r[1] != null && (v == null || v > r[1])) return false;
+  return true;
+}
+function apply() {
+  let list = DATA.filter(c => {
+    if (state.q) {
+      const hay = ((c.display_name || '') + ' @' + (c.username || '')).toLowerCase();
+      if (!hay.includes(state.q.toLowerCase())) return false;
+    }
+    if (state.pf && c.platform !== state.pf) return false;
+    if (state.cat && !cats(c.categories).includes(state.cat)) return false;
+    if (!inRange(c.subscribers, state.sub)) return false;
+    if (!inRange(c.views_avg, state.view)) return false;
+    if (!inRange(c.er_percent, state.er)) return false;
+    if (!inRange(adShare(c), state.ad)) return false;
+    if (state.live && !(c.posts_30d > 0)) return false;
+    if (state.adv && !(c.advertisers || []).length) return false;
+    if (state.multi && !(c.siblings || []).length) return false;
+    return true;
+  });
+  const key = state.sort;
+  list.sort((a, b) => {
+    if (key === 'coverage') return (coverageRatio(b) || 0) - (coverageRatio(a) || 0);
+    if (key === 'fresh') return new Date(b.scraped_at) - new Date(a.scraped_at);
+    return (b[key] || 0) - (a[key] || 0);
+  });
+  // демо-прототип: показательный канал закреплён первым
+  const PIN = 26305;
+  const pi = list.findIndex(c => c.id === PIN);
+  if (pi > 0) list.unshift(list.splice(pi, 1)[0]);
+  render(list);
+}
+function render(list) {
+  document.getElementById('cnt').textContent = 'Найдено: ' + num(list.length);
+  document.getElementById('cnt-note').textContent =
+    list.length === DATA.length ? 'канала в срезе прототипа (в базе — 235 тыс.)' : 'из ' + DATA.length + ' в срезе';
+
+  document.getElementById('rows').innerHTML = list.map(c => {
+    const cov = coverageRatio(c), ash = adShare(c), lp = (c.posts || [])[0];
+    const d = daysAgo(c.last_post_at);
+    return `
+    <a class="row" href="channel.html?id=${c.id}">
+      ${avatar(c)}
+      <div>
+        <div class="ch-name"><span class="pf ${c.platform}">${PF[c.platform] || '?'}</span>${esc(c.display_name || c.username)}</div>
+        <div class="ch-handle">@${esc(c.username)}</div>
+        <div class="chips">${cats(c.categories).slice(0,2).map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div>
+        ${(c.siblings || []).length ? `<div class="pf-mini">
+          ${c.siblings.slice(0,5).map(s => `<span class="pf ${s.platform}">${PF[s.platform] || '?'}</span>`).join('')}
+          <span class="more">ещё ${c.siblings.length} у автора</span></div>` : ''}
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="k">Подписчиков</div><div class="v">${num(c.subscribers)}</div></div>
+        <div class="metric"><div class="k">Охват поста</div><div class="v">${num(c.views_avg)}</div></div>
+        <div class="metric"><div class="k">Коэф. охвата</div><div class="v">${cov == null ? '—' : pct(cov)}</div></div>
+        <div class="metric"><div class="k">ER</div><div class="v">${pct(c.er_percent)}</div></div>
+      </div>
+      <div class="activity">
+        <div class="act-line"><span class="dot ${c.posts_30d ? 'on' : 'off'}"></span><b>${num(c.posts_30d || 0)}</b> постов за месяц</div>
+        <div class="act-line">
+          <span class="bar"><i style="width:${Math.min(100, (ash || 0) * 3)}%"></i></span>
+          реклама <b>${ash == null ? '—' : pct(ash)}</b>
+        </div>
+        <div class="act-line">${c.adv_total ? `<b>${c.adv_total}</b> рекламодателей` : 'рекламодатели не найдены'}</div>
+        ${c.views_ad == null ? '' : `<div class="act-line">охват рекламного поста <b>${num(c.views_ad)}</b></div>`}
+        <div class="act-line">${d == null ? '' : 'последний пост ' + (d === 0 ? 'сегодня' : d + ' дн. назад')}</div>
+      </div>
+      <div class="lastpost">
+        ${lp ? `<div class="lp-head">${dateRu(lp.posted_at)} ${lp.is_ad ? '<span class="badge-ad">РЕКЛАМА</span>' : ''} · ${num(lp.views)} просмотров</div>${esc(clip(lp.text, 150))}` : '<span style="color:var(--muted)">нет постов</span>'}
+      </div>
+      <div class="row-cta">
+        <span class="btn btn-primary">Открыть</span>
+        <span class="btn btn-ghost">Разместить</span>
+        <span class="report-link" onclick="openReport(event, ${c.id})" title="Сообщить о неточности в данных">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          Неточность?
+        </span>
+      </div>
+    </a>`;
+  }).join('') || '<div class="card" style="text-align:center;color:var(--dim)">Ничего не найдено — измените фильтры</div>';
+}
+
+// wiring
+const numOrNull = el => { const v = parseFloat(el.value.replace(/\s/g, '')); return isNaN(v) ? null : v; };
+const bind = (id, fn) => document.getElementById(id).addEventListener('input', () => { fn(); apply(); });
+bind('q', () => state.q = document.getElementById('q').value);
+bind('f-pf', () => state.pf = document.getElementById('f-pf').value);
+bind('f-cat', () => state.cat = document.getElementById('f-cat').value);
+['sub','view','er','ad'].forEach(k => {
+  const map = {sub:['f-sub-min','f-sub-max'], view:['f-view-min','f-view-max'], er:['f-er-min','f-er-max'], ad:['f-ad-min','f-ad-max']};
+  map[k].forEach((id, i) => bind(id, () => state[k][i] = numOrNull(document.getElementById(id))));
+});
+bind('f-live', () => state.live = document.getElementById('f-live').checked);
+bind('f-adv', () => state.adv = document.getElementById('f-adv').checked);
+bind('f-multi', () => state.multi = document.getElementById('f-multi').checked);
+bind('sort', () => state.sort = document.getElementById('sort').value);
+document.getElementById('reset').onclick = () => {
+  document.querySelectorAll('.filters input').forEach(i => { i.value = ''; i.checked = false; });
+  document.querySelectorAll('.filters select').forEach(s => s.value = '');
+  Object.assign(state, {q:'', pf:'', cat:'', sub:[null,null], view:[null,null], er:[null,null], ad:[null,null], live:false, adv:false, multi:false});
+  apply();
+};
+apply();
+
+// --- форма ОС по качеству данных
+function openReport(e, id) {
+  e.preventDefault(); e.stopPropagation();
+  const c = DATA.find(x => x.id === id);
+  document.getElementById('report-target').textContent =
+    c ? `${c.display_name || c.username} · @${c.username} · ${PF_NAME[c.platform] || c.platform}` : 'по данным каталога';
+  document.getElementById('report-modal').classList.add('open');
+}
+function closeReport() { document.getElementById('report-modal').classList.remove('open'); }
+function sendReport() {
+  document.getElementById('report-form').innerHTML =
+    `<div class="sent"><div class="sent-ico">✓</div>
+     <b>Спасибо, приняли</b>
+     <p>Проверим данные и поправим каталог. В прототипе отправка не подключена.</p>
+     <button class="btn btn-ghost" onclick="closeReport()">Закрыть</button></div>`;
+}
+document.getElementById('report-modal').addEventListener('click', e => {
+  if (e.target.id === 'report-modal') closeReport();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeReport(); });
+</script>
+</body>
+</html>
