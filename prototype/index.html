@@ -9,7 +9,7 @@
 </head>
 <body>
 
-<div class="proto-flag"><div class="wrap"><b>Прототип T-7.</b> Верстка публичной витрины на реальном срезе данных (14 каналов с прода). Не проиндексирован, боевую витрину не затрагивает.</div></div>
+<div class="proto-flag"><div class="wrap"><b>Прототип T-7.</b> Верстка публичной витрины на реальном срезе данных (25 каналов с прода). Не проиндексирован, боевую витрину не затрагивает.</div></div>
 
 <header class="site-header">
   <div class="wrap">
@@ -19,6 +19,9 @@
     </a>
     <nav class="nav">
       <a href="index.html" class="active">Каналы</a>
+      <a href="#">Категории</a>
+      <a href="#">Топы</a>
+      <a href="#">Методика</a>
     </nav>
   </div>
 </header>
@@ -29,63 +32,84 @@
     <p>Открытая база по всем соцсетям: аудитория, охваты, вовлечённость, история рекламных размещений. Данные собираются автоматически и обновляются ежедневно.</p>
   </section>
 
-  <form class="filters" onsubmit="return false">
-    <div class="search-box">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" placeholder="Название канала или @username">
-    </div>
-    <div class="filter-grid">
-      <div class="field">
-        <label>Соцсеть</label>
-        <select id="f-pf"><option value="">Все</option></select>
-      </div>
-      <div class="field">
-        <label>Категория</label>
-        <select id="f-cat"><option value="">Все категории</option></select>
-      </div>
-      <div class="field">
-        <label>Подписчики</label>
-        <div class="range"><input id="f-sub-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-sub-max" placeholder="до" inputmode="numeric"></div>
-      </div>
-      <div class="field">
-        <label>Средний охват поста</label>
-        <div class="range"><input id="f-view-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-view-max" placeholder="до" inputmode="numeric"></div>
-      </div>
-      <div class="field">
-        <label>ER, %</label>
-        <div class="range"><input id="f-er-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-er-max" placeholder="до" inputmode="numeric"></div>
-      </div>
-      <div class="field">
-        <label>Доля рекламы в ленте, %</label>
-        <div class="range"><input id="f-ad-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-ad-max" placeholder="до" inputmode="numeric"></div>
-      </div>
-    </div>
-    <div class="filters-foot">
-      <label class="checkline"><input type="checkbox" id="f-live"> Только активные (пост за последние 30 дней)</label>
-      <label class="checkline"><input type="checkbox" id="f-adv"> Есть история рекламодателей</label>
-      <label class="checkline"><input type="checkbox" id="f-multi"> Автор ведёт несколько площадок</label>
-      <button type="button" class="btn-reset" id="reset">Сбросить фильтры</button>
-    </div>
-  </form>
+  <div class="catalog-layout" id="catalog">
 
-  <div class="results-bar">
-    <b id="cnt">—</b><span id="cnt-note"></span>
-    <div class="sort-inline">
-      Сортировка
-      <select id="sort">
-        <option value="subscribers">по подписчикам</option>
-        <option value="views_avg">по охвату</option>
-        <option value="er_percent">по ER</option>
-        <option value="coverage">по коэф. охвата</option>
-        <option value="fresh">по свежести данных</option>
-      </select>
+    <aside class="side-filters" id="side-filters">
+      <div class="sf-head">
+        <b>Фильтры</b>
+        <button type="button" class="sf-hide" id="filters-hide" title="Свернуть фильтры">Свернуть ←</button>
+      </div>
+      <form onsubmit="return false">
+        <div class="sf-group">
+          <div class="field">
+            <label>Соцсеть</label>
+            <select id="f-pf"><option value="">Все</option></select>
+          </div>
+          <div class="field">
+            <label>Категория</label>
+            <select id="f-cat"><option value="">Все категории</option></select>
+          </div>
+        </div>
+        <div class="sf-group">
+          <div class="field">
+            <label>Подписчики</label>
+            <div class="range"><input id="f-sub-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-sub-max" placeholder="до" inputmode="numeric"></div>
+          </div>
+          <div class="field">
+            <label>Средний охват поста</label>
+            <div class="range"><input id="f-view-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-view-max" placeholder="до" inputmode="numeric"></div>
+          </div>
+          <div class="field">
+            <label>ER, %</label>
+            <div class="range"><input id="f-er-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-er-max" placeholder="до" inputmode="numeric"></div>
+          </div>
+          <div class="field">
+            <label>Доля рекламы в ленте, %</label>
+            <div class="range"><input id="f-ad-min" placeholder="от" inputmode="numeric"><span>—</span><input id="f-ad-max" placeholder="до" inputmode="numeric"></div>
+          </div>
+        </div>
+        <div class="sf-group">
+          <label class="checkline"><input type="checkbox" id="f-live"> Только активные (пост за 30 дней)</label>
+          <label class="checkline"><input type="checkbox" id="f-adv"> Есть рекламная история</label>
+          <label class="checkline"><input type="checkbox" id="f-multi"> Автор ведёт несколько площадок</label>
+        </div>
+        <button type="button" class="btn-reset" id="reset">Сбросить фильтры</button>
+      </form>
+    </aside>
+
+    <div class="catalog-main">
+      <div class="topline">
+        <button type="button" class="filters-btn" id="filters-show" title="Показать фильтры">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+          Фильтры
+        </button>
+        <div class="search-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" placeholder="Название канала или @username">
+        </div>
+      </div>
+
+      <div class="results-bar">
+        <b id="cnt">—</b><span id="cnt-note"></span>
+        <div class="sort-inline">
+          Сортировка
+          <select id="sort">
+            <option value="subscribers">по подписчикам</option>
+            <option value="views_avg">по охвату</option>
+            <option value="er_percent">по ER</option>
+            <option value="coverage">по коэф. охвата</option>
+            <option value="fresh">по свежести данных</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="rows" id="rows"></div>
+
+      <div class="pager">
+        <a class="cur">1</a><a>2</a><a>3</a><a>…</a><a>1 402</a><a>Вперёд →</a>
+      </div>
     </div>
-  </div>
 
-  <div class="rows" id="rows"></div>
-
-  <div class="pager">
-    <a class="cur">1</a><a>2</a><a>3</a><a>…</a><a>1 402</a><a>Вперёд →</a>
   </div>
 </main>
 
@@ -162,7 +186,7 @@ function apply() {
     if (!inRange(c.er_percent, state.er)) return false;
     if (!inRange(adShare(c), state.ad)) return false;
     if (state.live && !(c.posts_30d > 0)) return false;
-    if (state.adv && !(c.advertisers || []).length) return false;
+    if (state.adv && !(c.ads_90d > 0)) return false;
     if (state.multi && !(c.siblings || []).length) return false;
     return true;
   });
@@ -207,9 +231,9 @@ function render(list) {
         <div class="act-line"><span class="dot ${c.posts_30d ? 'on' : 'off'}"></span><b>${num(c.posts_30d || 0)}</b> постов за месяц</div>
         <div class="act-line">
           <span class="bar"><i style="width:${Math.min(100, (ash || 0) * 3)}%"></i></span>
-          реклама <b>${ash == null ? '—' : pct(ash)}</b>
+          реклама <b>${ash == null ? '—' : pct(ash)}</b> постов
         </div>
-        <div class="act-line">${c.adv_total ? `<b>${c.adv_total}</b> рекламодателей` : 'рекламодатели не найдены'}</div>
+        <div class="act-line">${c.ads_90d ? `<b>${num(c.ads_90d)}</b> рекламных постов за 90 дней` : 'рекламных постов не найдено'}</div>
         ${c.views_ad == null ? '' : `<div class="act-line">охват рекламного поста <b>${num(c.views_ad)}</b></div>`}
         <div class="act-line">${d == null ? '' : 'последний пост ' + (d === 0 ? 'сегодня' : d + ' дн. назад')}</div>
       </div>
@@ -243,12 +267,24 @@ bind('f-adv', () => state.adv = document.getElementById('f-adv').checked);
 bind('f-multi', () => state.multi = document.getElementById('f-multi').checked);
 bind('sort', () => state.sort = document.getElementById('sort').value);
 document.getElementById('reset').onclick = () => {
-  document.querySelectorAll('.filters input').forEach(i => { i.value = ''; i.checked = false; });
-  document.querySelectorAll('.filters select').forEach(s => s.value = '');
+  document.querySelectorAll('.side-filters input').forEach(i => { i.value = ''; i.checked = false; });
+  document.querySelectorAll('.side-filters select').forEach(s => s.value = '');
   Object.assign(state, {q:'', pf:'', cat:'', sub:[null,null], view:[null,null], er:[null,null], ad:[null,null], live:false, adv:false, multi:false});
   apply();
 };
 apply();
+
+// --- сворачивание боковой колонки с фильтрами
+const catalog = document.getElementById('catalog');
+const collapsed = () => catalog.classList.contains('filters-off');
+function setFilters(off) {
+  catalog.classList.toggle('filters-off', off);
+  document.getElementById('filters-show').classList.toggle('on', !off);
+  try { localStorage.setItem('filters-off', off ? '1' : '0'); } catch (e) {}
+}
+document.getElementById('filters-hide').onclick = () => setFilters(true);
+document.getElementById('filters-show').onclick = () => setFilters(!collapsed());
+try { setFilters(localStorage.getItem('filters-off') === '1'); } catch (e) { setFilters(false); }
 
 // --- форма ОС по качеству данных
 function openReport(e, id) {

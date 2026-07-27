@@ -1,4 +1,4 @@
-// Прототип публичной витрины. Данные — реальный срез с прода (14 каналов), только чтение.
+// Прототип публичной витрины. Данные — реальный срез с прода (25 каналов), только чтение.
 const PF = {tg:'TG', vk:'VK', max:'MX', ok:'OK', yt:'YT', zen:'Z', ig:'IG', tt:'TT'};
 const PF_NAME = {tg:'Telegram', vk:'ВКонтакте', max:'MAX', ok:'Одноклассники', yt:'YouTube',
                  zen:'Дзен', ig:'Instagram', tt:'TikTok'};
@@ -53,8 +53,8 @@ function repeatRate(c) {
 }
 const signed = n => (n == null ? '—' : (n > 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + '%');
 
-// Название рекламодателя: юрлицо показываем, ИП/физлицо обезличиваем (персональные данные)
+// Название рекламодателя. Решение PO 27.07: ИП показываем наравне с юрлицами —
+// публикуем то, что и так публично (наименование, ОГРН, ИНН), обезличивание снято.
 function advLabel(a) {
-  if (a.entity_type === 'fl') return {text: 'Индивидуальный предприниматель', masked: true};
-  return {text: a.name_short || a.name_full || '—', masked: false};
+  return a.name_short || a.name_full || '—';
 }
