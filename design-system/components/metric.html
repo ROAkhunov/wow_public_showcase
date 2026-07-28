@@ -1,5 +1,9 @@
 <!-- @dsCard group="Компоненты" -->
-<link rel="stylesheet" href="../tokens.css">
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Блок метрики</title>
 <style>
   /* Метрика = мелкий серый лейбл сверху, значение под ним. Приём BidFox:
@@ -17,7 +21,8 @@
   .down { color: var(--score-low-fg); }
   .adv  { color: var(--ad); }
 </style>
-
+</head>
+<body>
 <div class="ds-preview">
   <h4>В строке выдачи — колонками</h4>
   <div class="m-cols">
@@ -52,3 +57,5 @@
   <p class="ds-note">Состояние «нет данных» выводим явно, серым. Молчаливый пропуск метрики
   выглядит как поломка вёрстки, а на витрине без метрик будет заметная часть каналов.</p>
 </div>
+</body>
+</html>

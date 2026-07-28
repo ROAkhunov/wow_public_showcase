@@ -1,5 +1,9 @@
 <!-- @dsCard group="Компоненты" -->
-<link rel="stylesheet" href="../tokens.css">
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Скоринговый бейдж</title>
 <style>
   /* Бейдж качества канала. Приём подсмотрен у BidFox: одна цифра у названия,
@@ -23,7 +27,8 @@
   .cell { display: flex; flex-direction: column; gap: var(--sp-1); align-items: flex-start; }
   .cell span { font-size: var(--fs-label); color: var(--muted); }
 </style>
-
+</head>
+<body>
 <div class="ds-preview">
   <h4>Шкала — все состояния</h4>
   <div class="strip">
@@ -50,3 +55,5 @@
   <p class="ds-note"><b>Открыто:</b> что именно показывает цифра, задачей не решено. У BidFox это их
   внутренний скоринг. Пока бейдж — форма без содержания, наполнение решаем отдельно.</p>
 </div>
+</body>
+</html>

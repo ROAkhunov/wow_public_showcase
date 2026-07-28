@@ -1,5 +1,9 @@
 <!-- @dsCard group="Основа" -->
-<link rel="stylesheet" href="../tokens.css">
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Типографика</title>
 <style>
   .row { display: grid; grid-template-columns: 190px 1fr; gap: var(--sp-4);
@@ -13,7 +17,8 @@
   .body { font-size: var(--fs-body); }
   .meta { font-size: var(--fs-meta); color: var(--dim); }
 </style>
-
+</head>
+<body>
 <div class="ds-preview">
   <h4>Onest — шкала</h4>
 
@@ -39,6 +44,9 @@
   с положительным (<code>.06em</code>) — без разрядки капс читается как каша. Цифры табличные,
   иначе в колонке выдачи разряды пляшут от строки к строке.</p>
 
-  <p class="ds-note"><b>Перед релизом:</b> Onest положить локально и раздавать со своего домена,
-  сейчас в токенах внешний источник — только чтобы превью рендерились.</p>
+  <p class="ds-note"><b>Файла шрифта пока нет:</b> Onest объявлен в <code>--font</code>, но до тех пор,
+  пока не положим его локально, всё отрисовывается системным стеком. Шкала, трекинг и вёрстка от
+  этого не меняются. Внешних <code>@import</code> в токенах нет намеренно.</p>
 </div>
+</body>
+</html>
