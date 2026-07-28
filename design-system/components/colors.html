@@ -1,0 +1,50 @@
+<!-- @dsCard group="Основа" -->
+<link rel="stylesheet" href="../tokens.css">
+<title>Палитра</title>
+<style>
+  .sw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); }
+  .sw { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+  .sw i { display: block; height: 54px; }
+  .sw b { display: block; padding: var(--sp-2) var(--sp-3) 2px; font-size: var(--fs-meta); font-weight: 600; }
+  .sw code { display: block; padding: 0 var(--sp-3) var(--sp-2); font-size: var(--fs-label); color: var(--dim); }
+</style>
+
+<div class="ds-preview">
+  <h4>Поверхности</h4>
+  <div class="sw-grid">
+    <div class="sw"><i style="background:var(--bg)"></i><b>Фон страницы</b><code>--bg #faf9f7</code></div>
+    <div class="sw"><i style="background:var(--surface)"></i><b>Поверхность</b><code>--surface #ffffff</code></div>
+    <div class="sw"><i style="background:var(--surface-sunk)"></i><b>Утопленная</b><code>--surface-sunk #f4f2ee</code></div>
+    <div class="sw"><i style="background:var(--line)"></i><b>Граница</b><code>--line #e5e1da</code></div>
+  </div>
+
+  <h4>Акцент — приглушённый тил</h4>
+  <div class="sw-grid">
+    <div class="sw"><i style="background:var(--accent)"></i><b>Акцент</b><code>--accent #0d6e63</code></div>
+    <div class="sw"><i style="background:var(--accent-dark)"></i><b>Акцент нажатый</b><code>--accent-dark #0a544b</code></div>
+    <div class="sw"><i style="background:var(--accent-soft)"></i><b>Акцент фон</b><code>--accent-soft #e6f2f0</code></div>
+  </div>
+
+  <h4>Реклама — единственный тёплый насыщенный</h4>
+  <div class="sw-grid">
+    <div class="sw"><i style="background:var(--ad)"></i><b>Реклама</b><code>--ad #9a5209</code></div>
+    <div class="sw"><i style="background:var(--ad-soft)"></i><b>Реклама фон</b><code>--ad-soft #fdf1e3</code></div>
+  </div>
+
+  <h4>Шкала скоринга</h4>
+  <div class="sw-grid">
+    <div class="sw"><i style="background:var(--score-good-bg)"></i><b>Хорошо</b><code>fg #2f6b2c</code></div>
+    <div class="sw"><i style="background:var(--score-mid-bg)"></i><b>Средне</b><code>fg #8a5a06</code></div>
+    <div class="sw"><i style="background:var(--score-low-bg)"></i><b>Плохо</b><code>fg #a03528</code></div>
+  </div>
+
+  <h4>Текст</h4>
+  <div class="sw-grid">
+    <div class="sw"><i style="background:var(--text)"></i><b>Основной</b><code>--text #1c1f1d</code></div>
+    <div class="sw"><i style="background:var(--dim)"></i><b>Вторичный</b><code>--dim #6b716e</code></div>
+    <div class="sw"><i style="background:var(--muted)"></i><b>Лейблы</b><code>--muted #98a09b</code></div>
+  </div>
+
+  <p class="ds-note">Синего в палитре нет намеренно: у BidFox акцент <code>#2f6fed</code>, и наш прежний
+  был такой же. Витрина идёт не под брендом WOW, выглядеть клоном конкурента ей незачем.</p>
+</div>

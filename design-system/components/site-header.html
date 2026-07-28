@@ -1,0 +1,74 @@
+<!-- @dsCard group="Компоненты" -->
+<link rel="stylesheet" href="../tokens.css">
+<title>Шапка сайта</title>
+<style>
+  .hdr { background: var(--surface); border-bottom: 1px solid var(--line); }
+  .hdr .inner { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--sp-5);
+                display: flex; align-items: center; gap: var(--sp-6); height: 60px; }
+  .logo { display: flex; align-items: center; gap: var(--sp-2); font-size: 18px; font-weight: 700;
+          letter-spacing: var(--tracking-head); }
+  .logo-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent);
+               display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; }
+  .nav { display: flex; gap: var(--sp-5); font-size: var(--fs-body); color: var(--dim); margin-left: auto; }
+  .nav a:hover { color: var(--text); }
+  .nav .on { color: var(--text); font-weight: 600; }
+
+  /* разделы вторым рядом — по ним и идут посадочные страницы под низкочастотку */
+  .sections { background: var(--surface); border-bottom: 1px solid var(--line); }
+  .sections .inner { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--sp-5);
+                     display: flex; gap: var(--sp-2); height: 46px; align-items: center; overflow-x: auto; }
+  .sec { height: 30px; padding: 0 var(--sp-3); display: inline-flex; align-items: center;
+         border-radius: var(--r-pill); font-size: var(--fs-meta); color: var(--dim); white-space: nowrap; }
+  .sec:hover { background: var(--surface-sunk); color: var(--text); }
+  .sec.on { background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }
+
+  .hero { max-width: var(--wrap); margin: 0 auto; padding: var(--sp-6) var(--sp-5) var(--sp-5); }
+  .hero h1 { margin: 0 0 var(--sp-2); font-size: var(--fs-h1); line-height: var(--lh-tight);
+             letter-spacing: var(--tracking-head); font-weight: 700; }
+  .hero p { margin: 0; color: var(--dim); max-width: 68ch; }
+  .frame { border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--bg); }
+</style>
+
+<div class="ds-preview" style="padding:0">
+  <div class="frame">
+    <header class="hdr">
+      <div class="inner">
+        <a class="logo" href="#"><span class="logo-mark">Б</span> Блогеры России</a>
+        <nav class="nav">
+          <a class="on" href="#">Каталог</a>
+          <a href="#">Подборки</a>
+          <a href="#">Тематики</a>
+          <a href="#">О проекте</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="sections">
+      <div class="inner">
+        <a class="sec on" href="#">Все площадки</a>
+        <a class="sec" href="#">Telegram</a>
+        <a class="sec" href="#">ВКонтакте</a>
+        <a class="sec" href="#">YouTube</a>
+        <a class="sec" href="#">Дзен</a>
+        <a class="sec" href="#">MAX</a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Каталог блогеров и каналов России</h1>
+      <p>24 615 каналов во всех соцсетях: подписчики, охваты, вовлечённость и доля рекламы в ленте.
+      Данные обновляются ежедневно, поиск и фильтры бесплатны.</p>
+    </div>
+  </div>
+</div>
+
+<div class="ds-preview">
+  <p class="ds-note">Название и логотип — заглушка: домен за Максимом, на 22.07 не куплен. Витрина
+  идёт не под брендом WOWBlogger (решение 01.07), поэтому марка тут своя.</p>
+
+  <p class="ds-note">Разделы вторым рядом, а не в выпадающем меню: это входы на посадочные страницы
+  под низкочастотные запросы и внутренняя перелинковка, ради которой всё и затевается.</p>
+
+  <p class="ds-note">Заголовок и абзац под ним — единственное место, где витрина отличается от кабинета
+  закупщика вроде BidFox: краулеру нужен текст, а не только таблица.</p>
+</div>

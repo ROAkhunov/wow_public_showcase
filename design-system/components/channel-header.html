@@ -1,0 +1,91 @@
+<!-- @dsCard group="Компоненты" -->
+<link rel="stylesheet" href="../tokens.css">
+<title>Шапка канала</title>
+<style>
+  .head { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--sp-5); max-width: 780px; }
+  .top { display: flex; gap: var(--sp-4); align-items: flex-start; }
+  .ava { width: 72px; height: 72px; border-radius: var(--r-md); flex: none; background: var(--surface-sunk);
+         display: grid; place-items: center; font-weight: 700; color: var(--dim); font-size: var(--fs-h2); }
+  .title { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+  .title h1 { margin: 0; font-size: var(--fs-h1); line-height: var(--lh-tight);
+              letter-spacing: var(--tracking-head); font-weight: 700; }
+  .plat { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+          color: #fff; font-size: 10px; font-weight: 700; flex: none; }
+  .plat--tg { background: #229ed9; }
+  .ver { width: 18px; height: 18px; border-radius: 50%; background: var(--ok); color: #fff;
+         display: grid; place-items: center; font-size: 11px; flex: none; }
+  .score { min-width: 52px; height: 30px; padding: 0 var(--sp-2); border-radius: var(--r-md);
+           display: inline-grid; place-items: center; font-size: var(--fs-lead); font-weight: 700;
+           background: var(--score-good-bg); color: var(--score-good-fg); border: 1px solid #cfe3cc; }
+  .breadcrumbs { font-size: var(--fs-meta); color: var(--dim); margin-bottom: var(--sp-3); }
+  .breadcrumbs a:hover { color: var(--accent); }
+  .desc { margin: var(--sp-3) 0 0; color: var(--dim); max-width: 62ch; }
+  .actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); flex-wrap: wrap; }
+  .btn { height: var(--control-h); padding: 0 var(--sp-4); border-radius: var(--r-md);
+         display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body);
+         font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+  .btn--primary { background: var(--accent); color: #fff; }
+  .btn--primary:hover { background: var(--accent-dark); }
+  .btn--ghost { background: var(--surface); color: var(--text); border-color: var(--line); }
+  .btn--ghost:hover { border-color: var(--line-strong); }
+
+  /* другие площадки автора: ссылки, каждая со своим URL, без табов */
+  .sites { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line-soft); }
+  .sites-list { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }
+  .chip { display: inline-flex; align-items: center; gap: var(--sp-2); height: 32px; padding: 0 var(--sp-3);
+          border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-meta); background: var(--surface); }
+  .chip:hover { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-dark); }
+  .chip .dot { width: 14px; height: 14px; border-radius: 4px; display: grid; place-items: center;
+               color: #fff; font-size: 7px; font-weight: 700; }
+  .updated { font-size: var(--fs-meta); color: var(--muted); margin-top: var(--sp-4); }
+</style>
+
+<div class="ds-preview">
+  <h4>Шапка страницы канала</h4>
+
+  <div class="breadcrumbs">
+    <a href="#">Каталог</a> · <a href="#">Telegram</a> · <a href="#">Технологии</a>
+  </div>
+
+  <div class="head">
+    <div class="top">
+      <div class="ava">МТ</div>
+      <div style="min-width:0">
+        <div class="title">
+          <span class="plat plat--tg">TG</span>
+          <h1>Мир трендов</h1>
+          <span class="ver">✓</span>
+          <span class="score">3,6</span>
+        </div>
+        <div style="color:var(--dim); font-size:var(--fs-meta); margin-top:var(--sp-1)">
+          Telegram · Технологии · @mirtrendov
+        </div>
+        <p class="desc">Обзоры техники, разборы новинок и подборки сервисов. 218 постов за месяц,
+        16 из них рекламные.</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn--primary" href="#">Открыть канал</a>
+      <a class="btn btn--ghost" href="#">Разместить рекламу в WOWBlogger</a>
+    </div>
+
+    <div class="sites">
+      <span class="ds-label">Другие площадки автора</span>
+      <div class="sites-list">
+        <a class="chip" href="#"><span class="dot" style="background:#0077ff">VK</span> Мир трендов · 412 тыс.</a>
+        <a class="chip" href="#"><span class="dot" style="background:#ff0000">YT</span> Мир трендов · 89 тыс.</a>
+        <a class="chip" href="#"><span class="dot" style="background:#1c1f1d">DZ</span> Мир трендов · 27 тыс.</a>
+      </div>
+    </div>
+
+    <div class="updated">Данные обновлены 28 июля 2026</div>
+  </div>
+
+  <p class="ds-note">Площадки автора — ссылки на отдельные страницы, а не табы: у каждого канала
+  свой URL (решение 22.07, единица страницы — канал). Это же даёт кросс-ссылки, без которых
+  SEO-каркас не работает.</p>
+
+  <p class="ds-note">WOW капсом во всех надписях — требование директора по маркетингу (созвон 22.07).
+  Блока «это ваш канал» и заявок от владельцев нет: разбирать их некому.</p>
+</div>

@@ -1,0 +1,81 @@
+<!-- @dsCard group="Компоненты" -->
+<link rel="stylesheet" href="../tokens.css">
+<title>Плашка «реклама» и пост в ленте</title>
+<style>
+  .flag {
+    display: inline-flex; align-items: center; gap: var(--sp-1);
+    height: 20px; padding: 0 var(--sp-2);
+    background: var(--ad-soft); color: var(--ad);
+    border: 1px solid var(--ad-line); border-radius: var(--r-sm);
+    font-size: var(--fs-label); font-weight: 600;
+    letter-spacing: var(--tracking-label); text-transform: uppercase;
+  }
+  .flag--solid { background: var(--ad); color: #fff; border-color: var(--ad); }
+
+  .feed { display: flex; flex-direction: column; gap: var(--sp-3); max-width: 620px; }
+  .post {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: var(--sp-4);
+  }
+  /* рекламный пост: тёплая левая грань, а не заливка целиком —
+     заливка на длинной ленте превращает страницу в полосатый ковёр */
+  .post--ad { border-left: 3px solid var(--ad); }
+  .post-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+  .post-date { font-size: var(--fs-meta); color: var(--muted); }
+  .post-text { font-size: var(--fs-body); margin: 0 0 var(--sp-3); }
+  .post-stats { display: flex; gap: var(--sp-4); font-size: var(--fs-meta); color: var(--dim); }
+  .post-stats b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .adv-line {
+    margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line-soft);
+    font-size: var(--fs-meta); color: var(--dim);
+  }
+  .adv-line b { color: var(--text); font-weight: 600; }
+</style>
+
+<div class="ds-preview">
+  <h4>Плашка</h4>
+  <div style="display:flex; gap:var(--sp-3); align-items:center;">
+    <span class="flag">Реклама</span>
+    <span class="flag flag--solid">Реклама</span>
+    <span class="flag">Реклама · erid</span>
+  </div>
+
+  <h4>Лента постов — рекламные помечены</h4>
+  <div class="feed">
+    <article class="post">
+      <div class="post-head"><span class="post-date">24 июля</span></div>
+      <p class="post-text">Разобрали, почему на длинных дистанциях выигрывает не самый быстрый, а тот,
+      кто не сходит. Подробности в посте.</p>
+      <div class="post-stats"><span>Просмотров <b>48 210</b></span><span>Реакций <b>612</b></span></div>
+    </article>
+
+    <article class="post post--ad">
+      <div class="post-head">
+        <span class="flag">Реклама</span>
+        <span class="post-date">22 июля</span>
+      </div>
+      <p class="post-text">Сервис доставки продуктов за 15 минут. Первый заказ без платы за доставку
+      по промокоду.</p>
+      <div class="post-stats"><span>Просмотров <b>61 004</b></span><span>Реакций <b>388</b></span></div>
+      <div class="adv-line">Рекламодатель: <b>ООО «Ромашка»</b> · ИНН 7707083893 · ОГРН 1027700132195</div>
+    </article>
+
+    <article class="post post--ad">
+      <div class="post-head">
+        <span class="flag">Реклама</span>
+        <span class="post-date">19 июля</span>
+      </div>
+      <p class="post-text">Курс по управлению личными финансами, старт потока в августе.</p>
+      <div class="post-stats"><span>Просмотров <b>57 830</b></span><span>Реакций <b>245</b></span></div>
+      <div class="adv-line">Рекламодатель: <b>ИП</b> · ИНН 502707451234 · ОГРНИП 318774600123456</div>
+    </article>
+  </div>
+
+  <p class="ds-note">Рекламный пост помечен плашкой и тёплой левой гранью, а не заливкой целиком:
+  на ленте в сотню постов заливка превращает страницу в полосатый ковёр. Табов «все / только
+  рекламные» нет — правило «табов нет нигде» (решение 27.07).</p>
+
+  <p class="ds-note"><b>Юридика (решение 28.07):</b> у юрлица выводим наименование, ОГРН и ИНН;
+  у ИП — только ИНН и ОГРНИП, наименование не выводим вообще, потому что в реестре оно и есть ФИО
+  («ИП Иванов Иван Иванович»). Разница видна на двух последних постах.</p>
+</div>

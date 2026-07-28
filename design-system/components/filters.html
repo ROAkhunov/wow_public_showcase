@@ -1,0 +1,126 @@
+<!-- @dsCard group="Компоненты" -->
+<link rel="stylesheet" href="../tokens.css">
+<title>Фильтры</title>
+<style>
+  .layout { display: grid; grid-template-columns: 268px 1fr; gap: var(--sp-4); align-items: start; }
+  .layout--off { grid-template-columns: 1fr; }
+  .layout--off .side { display: none; }
+
+  .side { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--sp-4); }
+  .side-head { display: flex; align-items: center; margin-bottom: var(--sp-3); }
+  .side-head b { font-size: var(--fs-lead); }
+  .side-hide { margin-left: auto; background: none; border: 0; color: var(--dim);
+               font-size: var(--fs-meta); cursor: pointer; font-family: inherit; }
+  .side-hide:hover { color: var(--accent); }
+
+  .group { display: flex; flex-direction: column; gap: var(--sp-2);
+           padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); }
+  .group:first-of-type { border-top: 0; padding-top: 0; }
+
+  .field { width: 100%; height: var(--control-h); padding: 0 var(--sp-3);
+           border: 1px solid var(--line); border-radius: var(--r-md);
+           background: var(--surface); font: var(--fs-body)/1 var(--font); color: var(--text); }
+  .field:focus { outline: 2px solid var(--accent-line); outline-offset: -1px; border-color: var(--accent); }
+  .field::placeholder { color: var(--muted); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+
+  .check { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); cursor: pointer; }
+  .check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+  .topline { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+  .fbtn { display: inline-flex; align-items: center; gap: var(--sp-2); height: var(--control-h);
+          padding: 0 var(--sp-4); background: var(--surface); border: 1px solid var(--line);
+          border-radius: var(--r-md); color: var(--dim); font-size: var(--fs-body);
+          font-weight: 600; cursor: pointer; flex: none; font-family: inherit; }
+  .fbtn:hover { border-color: var(--line-strong); color: var(--text); }
+  .fbtn--on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); }
+  .search { flex: 1; }
+
+  .result { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+            padding: var(--sp-5); color: var(--muted); text-align: center; }
+
+  .applied { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .tag { display: inline-flex; align-items: center; gap: var(--sp-2); height: 28px; padding: 0 var(--sp-3);
+         background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-dark);
+         border-radius: var(--r-pill); font-size: var(--fs-meta); font-weight: 500; }
+  .tag button { background: none; border: 0; color: inherit; cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
+</style>
+
+<div class="ds-preview">
+  <h4>Фильтры открыты</h4>
+  <div class="layout">
+    <aside class="side">
+      <div class="side-head"><b>Фильтры</b><button class="side-hide">Скрыть</button></div>
+
+      <div class="group">
+        <span class="ds-label">Площадка</span>
+        <select class="field"><option>Все площадки</option></select>
+      </div>
+
+      <div class="group">
+        <span class="ds-label">Тематика</span>
+        <select class="field"><option>Все тематики</option></select>
+      </div>
+
+      <div class="group">
+        <span class="ds-label">Подписчиков</span>
+        <div class="pair">
+          <input class="field" placeholder="от">
+          <input class="field" placeholder="до">
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="ds-label">Средний охват</span>
+        <div class="pair">
+          <input class="field" placeholder="от">
+          <input class="field" placeholder="до">
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="ds-label">Доля рекламы, %</span>
+        <div class="pair">
+          <input class="field" placeholder="от">
+          <input class="field" placeholder="до">
+        </div>
+      </div>
+
+      <div class="group">
+        <label class="check"><input type="checkbox" checked> Только с метриками</label>
+        <label class="check"><input type="checkbox"> Только верифицированные</label>
+      </div>
+    </aside>
+
+    <div>
+      <div class="topline">
+        <button class="fbtn fbtn--on">Фильтры · 3</button>
+        <input class="field search" placeholder="Поиск по названию канала">
+      </div>
+      <div class="applied">
+        <span class="tag">Telegram <button>✕</button></span>
+        <span class="tag">Технологии <button>✕</button></span>
+        <span class="tag">от 100 000 подписчиков <button>✕</button></span>
+      </div>
+      <div class="result">Здесь идёт выдача · найдено 24 615 каналов</div>
+    </div>
+  </div>
+
+  <h4>Фильтры свёрнуты — выдача во всю ширину</h4>
+  <div class="layout layout--off">
+    <div>
+      <div class="topline">
+        <button class="fbtn">Фильтры</button>
+        <input class="field search" placeholder="Поиск по названию канала">
+      </div>
+      <div class="result">Здесь идёт выдача · найдено 24 615 каналов</div>
+    </div>
+  </div>
+
+  <p class="ds-note">Фильтры в левой скрываемой колонке, разделы сверху (решение 22.07, п.1 T-41):
+  верхняя панель не масштабируется, параметров у нас больше, чем влезает в строку.</p>
+
+  <p class="ds-note">Применённые фильтры вынесены тегами над выдачей. Это не украшение: в 2026 году
+  живая сортировка и фильтрация — сигнал против «тонкой страницы», без неё каталог из шаблонных
+  страниц читается поисковиком как масштабированный мусор.</p>
+</div>

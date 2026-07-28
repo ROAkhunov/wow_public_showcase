@@ -1,0 +1,44 @@
+<!-- @dsCard group="Основа" -->
+<link rel="stylesheet" href="../tokens.css">
+<title>Типографика</title>
+<style>
+  .row { display: grid; grid-template-columns: 190px 1fr; gap: var(--sp-4);
+         padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); align-items: baseline; }
+  .row:first-of-type { border-top: 0; }
+  .row code { font-size: var(--fs-label); color: var(--dim); }
+  .h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); letter-spacing: var(--tracking-head); font-weight: 700; }
+  .h2 { font-size: var(--fs-h2); line-height: var(--lh-tight); letter-spacing: var(--tracking-head); font-weight: 600; }
+  .h3 { font-size: var(--fs-h3); font-weight: 600; }
+  .lead { font-size: var(--fs-lead); font-weight: 600; }
+  .body { font-size: var(--fs-body); }
+  .meta { font-size: var(--fs-meta); color: var(--dim); }
+</style>
+
+<div class="ds-preview">
+  <h4>Onest — шкала</h4>
+
+  <div class="row"><code>--fs-h1 / 30 / 700</code><div class="h1">Каталог блогеров России</div></div>
+  <div class="row"><code>--fs-h2 / 21 / 600</code><div class="h2">Телеграм-каналы про финансы</div></div>
+  <div class="row"><code>--fs-h3 / 17 / 600</code><div class="h3">Рекламные посты за 30 дней</div></div>
+  <div class="row"><code>--fs-lead / 15 / 600</code><div class="lead">Мосты и туннели</div></div>
+  <div class="row"><code>--fs-body / 14 / 400</code><div class="body">Канал ведёт обзоры техники, публикует 18 постов в месяц, доля рекламы 7,4%.</div></div>
+  <div class="row"><code>--fs-meta / 12,5</code><div class="meta">Технологии · Telegram · данные обновлены 28 июля</div></div>
+  <div class="row"><code>--fs-label / 11 / caps</code><div class="ds-label">Средний охват поста</div></div>
+
+  <h4>Цифры — всегда табличные</h4>
+  <div class="row">
+    <code>font-variant-numeric</code>
+    <div>
+      <div class="ds-value">3 087 084</div>
+      <div class="ds-value">1 111 111</div>
+      <div class="ds-value">9 999 999</div>
+    </div>
+  </div>
+
+  <p class="ds-note">Заголовки с отрицательным трекингом (<code>-.02em</code>), лейблы капсом
+  с положительным (<code>.06em</code>) — без разрядки капс читается как каша. Цифры табличные,
+  иначе в колонке выдачи разряды пляшут от строки к строке.</p>
+
+  <p class="ds-note"><b>Перед релизом:</b> Onest положить локально и раздавать со своего домена,
+  сейчас в токенах внешний источник — только чтобы превью рендерились.</p>
+</div>
