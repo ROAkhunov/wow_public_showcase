@@ -9,3 +9,9 @@ __pycache__/
 *.pyc
 node_modules/
 .DS_Store
+
+# Синхронизация с claude.ai/design: скопированные скрипты скилла и собранная
+# выгрузка. Восстанавливаются командой из .design-sync/NOTES.md.
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/

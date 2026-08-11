@@ -5,41 +5,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Плашка «реклама» и пост в ленте</title>
+<link rel="stylesheet" href="../index.css">
+<link rel="stylesheet" href="../preview.css">
 <style>
-  .flag {
-    display: inline-flex; align-items: center; gap: var(--sp-1);
-    height: 20px; padding: 0 var(--sp-2);
-    background: var(--ad-soft); color: var(--ad);
-    border: 1px solid var(--ad-line); border-radius: var(--r-sm);
-    font-size: var(--fs-label); font-weight: 600;
-    letter-spacing: var(--tracking-label); text-transform: uppercase;
-  }
-  .flag--solid { background: var(--ad); color: #fff; border-color: var(--ad); }
-
-  .feed { display: flex; flex-direction: column; gap: var(--sp-3); max-width: 620px; }
-  .post {
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r-lg); padding: var(--sp-4);
-  }
-  /* рекламный пост: тёплая левая грань, а не заливка целиком —
-     заливка на длинной ленте превращает страницу в полосатый ковёр */
-  .post--ad { border-left: 3px solid var(--ad); }
-  .post-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
-  .post-date { font-size: var(--fs-meta); color: var(--muted); }
-  .post-text { font-size: var(--fs-body); margin: 0 0 var(--sp-3); }
-  .post-stats { display: flex; gap: var(--sp-4); font-size: var(--fs-meta); color: var(--dim); }
-  .post-stats b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .adv-line {
-    margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line-soft);
-    font-size: var(--fs-meta); color: var(--dim);
-  }
-  .adv-line b { color: var(--text); font-weight: 600; }
+  /* только для карточки: на странице канала ширину ленты задаёт колонка страницы */
+  .feed { max-width: 620px; }
+  .flag-strip { display: flex; gap: var(--sp-3); align-items: center; }
 </style>
 </head>
 <body>
 <div class="ds-preview">
   <h4>Плашка</h4>
-  <div style="display:flex; gap:var(--sp-3); align-items:center;">
+  <div class="flag-strip">
     <span class="flag">Реклама</span>
     <span class="flag flag--solid">Реклама</span>
     <span class="flag">Реклама · erid</span>

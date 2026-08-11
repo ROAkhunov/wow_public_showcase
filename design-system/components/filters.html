@@ -5,49 +5,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Фильтры</title>
+<link rel="stylesheet" href="../index.css">
+<link rel="stylesheet" href="../preview.css">
 <style>
-  .layout { display: grid; grid-template-columns: 268px 1fr; gap: var(--sp-4); align-items: start; }
-  .layout--off { grid-template-columns: 1fr; }
-  .layout--off .side { display: none; }
-
-  .side { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--sp-4); }
-  .side-head { display: flex; align-items: center; margin-bottom: var(--sp-3); }
-  .side-head b { font-size: var(--fs-lead); }
-  .side-hide { margin-left: auto; background: none; border: 0; color: var(--dim);
-               font-size: var(--fs-meta); cursor: pointer; font-family: inherit; }
-  .side-hide:hover { color: var(--accent); }
-
-  .group { display: flex; flex-direction: column; gap: var(--sp-2);
-           padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); }
-  .group:first-of-type { border-top: 0; padding-top: 0; }
-
-  .field { width: 100%; height: var(--control-h); padding: 0 var(--sp-3);
-           border: 1px solid var(--line); border-radius: var(--r-md);
-           background: var(--surface); font: var(--fs-body)/1 var(--font); color: var(--text); }
-  .field:focus { outline: 2px solid var(--accent-line); outline-offset: -1px; border-color: var(--accent); }
-  .field::placeholder { color: var(--muted); }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
-
-  .check { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); cursor: pointer; }
-  .check input { accent-color: var(--accent); width: 16px; height: 16px; }
-
-  .topline { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
-  .fbtn { display: inline-flex; align-items: center; gap: var(--sp-2); height: var(--control-h);
-          padding: 0 var(--sp-4); background: var(--surface); border: 1px solid var(--line);
-          border-radius: var(--r-md); color: var(--dim); font-size: var(--fs-body);
-          font-weight: 600; cursor: pointer; flex: none; font-family: inherit; }
-  .fbtn:hover { border-color: var(--line-strong); color: var(--text); }
-  .fbtn--on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); }
-  .search { flex: 1; }
-
-  .result { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
-            padding: var(--sp-5); color: var(--muted); text-align: center; }
-
-  .applied { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
-  .tag { display: inline-flex; align-items: center; gap: var(--sp-2); height: 28px; padding: 0 var(--sp-3);
-         background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-dark);
-         border-radius: var(--r-pill); font-size: var(--fs-meta); font-weight: 500; }
-  .tag button { background: none; border: 0; color: inherit; cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
+  /* только для карточки: заглушка на месте выдачи, чтобы видеть раскладку */
+  .result {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: var(--sp-5); color: var(--muted); text-align: center;
+  }
 </style>
 </head>
 <body>

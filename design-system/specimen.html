@@ -1,0 +1,777 @@
+<title>Дизайн-система публичной витрины — T-50</title>
+<style>
+/* ═══ хром страницы ══════════════════════════════════════════════════════
+   Оболочка спецификации. Своя палитра, чтобы не путать её с палитрой
+   продукта: продуктовые токены живут ниже, внутри .canvas. */
+:root {
+  --page:      #eeece7;
+  --page-card: #f8f7f4;
+  --ink:       #191c1b;
+  --ink-dim:   #5c6360;
+  --ink-faint: #8b918d;
+  --rule:      #dcd8d1;
+  --mark:      #0d6e63;
+  --mark-bg:   #e3efed;
+
+  --serif: Georgia, 'Times New Roman', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page:      #141817;
+    --page-card: #1c2120;
+    --ink:       #eceae5;
+    --ink-dim:   #a3a9a5;
+    --ink-faint: #767c78;
+    --rule:      #2c3230;
+    --mark:      #57bfb1;
+    --mark-bg:   #1d2f2c;
+  }
+}
+:root[data-theme="dark"] {
+  --page:      #141817;
+  --page-card: #1c2120;
+  --ink:       #eceae5;
+  --ink-dim:   #a3a9a5;
+  --ink-faint: #767c78;
+  --rule:      #2c3230;
+  --mark:      #57bfb1;
+  --mark-bg:   #1d2f2c;
+}
+:root[data-theme="light"] {
+  --page:      #eeece7;
+  --page-card: #f8f7f4;
+  --ink:       #191c1b;
+  --ink-dim:   #5c6360;
+  --ink-faint: #8b918d;
+  --rule:      #dcd8d1;
+  --mark:      #0d6e63;
+  --mark-bg:   #e3efed;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+.shell { max-width: 1080px; margin: 0 auto; padding: 0 24px 96px; }
+
+/* ─ шапка ─ */
+.masthead { padding: 64px 0 40px; border-bottom: 2px solid var(--ink); }
+.eyebrow {
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--mark); font-weight: 700; margin-bottom: 16px;
+}
+.masthead h1 {
+  font: 700 clamp(34px, 6vw, 56px)/1.05 var(--serif);
+  letter-spacing: -.015em; margin: 0 0 16px; text-wrap: balance;
+}
+.masthead .lead { font-size: 18px; color: var(--ink-dim); max-width: 62ch; margin: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.fact {
+  font: 12px/1 var(--mono); color: var(--ink-dim);
+  background: var(--page-card); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 7px 12px;
+}
+.fact b { color: var(--ink); font-weight: 700; }
+
+/* ─ секции ─ */
+section { padding-top: 56px; }
+.sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
+.sec-head h2 {
+  font: 700 26px/1.2 var(--serif); margin: 0; letter-spacing: -.01em;
+}
+.sec-head .of { font: 12px/1 var(--mono); color: var(--ink-faint); margin-left: auto; }
+.sec-intro { color: var(--ink-dim); max-width: 66ch; margin: 0 0 28px; }
+
+.item { margin-bottom: 44px; }
+.item h3 {
+  font: 600 17px/1.3 var(--sans); margin: 0 0 6px;
+  display: flex; align-items: center; gap: 10px;
+}
+.item h3 code {
+  font: 11px/1 var(--mono); color: var(--ink-faint);
+  border: 1px solid var(--rule); border-radius: 5px; padding: 4px 7px;
+}
+.why { color: var(--ink-dim); font-size: 15px; max-width: 66ch; margin: 0 0 16px; }
+.why b { color: var(--ink); font-weight: 600; }
+
+/* холст: витрина светлая, тёмной темы у неё не будет, поэтому образцы
+   остаются на светлом в обеих темах страницы — это не недосмотр */
+.canvas {
+  border: 1px solid var(--rule); border-radius: 16px; overflow: hidden;
+  background: #faf9f7; color: #1c1f1d;
+  overflow-x: auto;
+}
+.canvas > .inner { padding: 24px; min-width: 720px; }
+.canvas.flush > .inner { padding: 0; min-width: 720px; }
+
+/* решения и хвосты */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.card {
+  background: var(--page-card); border: 1px solid var(--rule);
+  border-radius: 14px; padding: 18px 20px;
+}
+.card h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.card p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+.card--warn { border-left: 3px solid var(--mark); }
+
+.ledger { border-top: 1px solid var(--rule); }
+.ledger div {
+  display: grid; grid-template-columns: 200px 1fr; gap: 20px;
+  padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 15px;
+}
+.ledger b { font-weight: 600; }
+.ledger span { color: var(--ink-dim); }
+@media (max-width: 620px) { .ledger div { grid-template-columns: 1fr; gap: 4px; } }
+
+footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--rule);
+         font-size: 13px; color: var(--ink-faint); }
+
+/* ═══ токены продукта ════════════════════════════════════════════════════
+   Копия design-system/tokens.css. Источник правды — файл в репозитории. */
+.canvas {
+  --bg:#faf9f7; --surface:#fff; --surface-sunk:#f4f2ee;
+  --line:#e5e1da; --line-soft:#efece6; --line-strong:#d5cfc5;
+  --text:#1c1f1d; --dim:#6b716e; --muted:#98a09b;
+  --accent:#0d6e63; --accent-dark:#0a544b; --accent-soft:#e6f2f0; --accent-line:#bcdcd7;
+  --ad:#9a5209; --ad-soft:#fdf1e3; --ad-line:#f0d9bd;
+  --good-bg:#e7f1e5; --good-fg:#2f6b2c;
+  --mid-bg:#fbf1dd;  --mid-fg:#8a5a06;
+  --low-bg:#fbe8e5;  --low-fg:#a03528;
+  --font:'Onest',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --fs-label:11px; --fs-meta:12.5px; --fs-body:14px; --fs-lead:15px;
+  --fs-h3:17px; --fs-h2:21px; --fs-h1:30px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --row-h:76px; --control-h:40px; --avatar:46px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+.canvas a { color: inherit; text-decoration: none; }
+.canvas *, .canvas *::before, .canvas *::after { box-sizing: border-box; }
+
+/* общие приёмы продукта */
+.p-label {
+  font-size: var(--fs-label); line-height: 1.3; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); font-weight: 500;
+}
+.p-value {
+  font-size: var(--fs-body); font-weight: 600; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.p-none { color: var(--muted); font-weight: 500; }
+.p-adv  { color: var(--ad); }
+
+/* ─ палитра ─ */
+.sw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.sw { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+.sw i { display: block; height: 52px; }
+.sw b { display: block; padding: 8px 12px 2px; font-size: var(--fs-meta); font-weight: 600; }
+.sw code { display: block; padding: 0 12px 8px; font-size: 10.5px; color: var(--dim);
+           font-family: var(--mono); }
+.sw-title { margin: 20px 0 10px; }
+.sw-title:first-child { margin-top: 0; }
+
+/* ─ типографика ─ */
+.ty { border-top: 1px solid var(--line-soft); display: grid;
+      grid-template-columns: 168px 1fr; gap: 16px; padding: 12px 0; align-items: baseline; }
+.ty:first-of-type { border-top: 0; }
+.ty code { font: 10.5px/1 var(--mono); color: var(--dim); }
+.ty-h1 { font-size: var(--fs-h1); line-height: 1.2; letter-spacing: -.02em; font-weight: 700; }
+.ty-h2 { font-size: var(--fs-h2); line-height: 1.2; letter-spacing: -.02em; font-weight: 600; }
+.ty-h3 { font-size: var(--fs-h3); font-weight: 600; }
+.ty-lead { font-size: var(--fs-lead); font-weight: 600; }
+.ty-meta { font-size: var(--fs-meta); color: var(--dim); }
+
+/* ─ строка выдачи ─ */
+.ch-list { background: var(--surface); border: 1px solid var(--line);
+           border-radius: var(--r-lg); overflow: hidden; }
+.ch-row {
+  display: grid; grid-template-columns: var(--avatar) minmax(200px, 1fr) 46px repeat(4, 92px);
+  align-items: center; gap: var(--sp-4);
+  min-height: var(--row-h); padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--line-soft);
+}
+.ch-row:first-child { border-top: 0; }
+.ch-ava { width: var(--avatar); height: var(--avatar); border-radius: var(--r-md);
+          background: var(--surface-sunk); display: grid; place-items: center;
+          font-weight: 700; color: var(--dim); font-size: var(--fs-lead); }
+.ch-name { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.ch-name b { font-size: var(--fs-lead); font-weight: 600; letter-spacing: -.02em;
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-sub { font-size: var(--fs-meta); color: var(--dim); margin-top: 1px; }
+.plat { width: 18px; height: 18px; border-radius: 5px; flex: none;
+        display: grid; place-items: center; color: #fff; font-size: 8.5px; font-weight: 700; }
+.ver { width: 14px; height: 14px; flex: none; border-radius: 50%; background: var(--good-fg);
+       display: grid; place-items: center; color: #fff; font-size: 8px; line-height: 1; }
+.mcell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* ─ бейдж ─ */
+.sc { display: inline-flex; align-items: center; justify-content: center;
+      min-width: 38px; height: 22px; padding: 0 var(--sp-2); border-radius: var(--r-sm);
+      font-size: var(--fs-meta); font-weight: 700; font-variant-numeric: tabular-nums;
+      border: 1px solid transparent; }
+.sc--good { background: var(--good-bg); color: var(--good-fg); border-color: #cfe3cc; }
+.sc--mid  { background: var(--mid-bg);  color: var(--mid-fg);  border-color: #eddfc0; }
+.sc--low  { background: var(--low-bg);  color: var(--low-fg);  border-color: #efd2cd; }
+.sc--none { background: var(--surface-sunk); color: var(--muted); border-color: var(--line); }
+.sc--lg { min-width: 52px; height: 30px; font-size: var(--fs-lead); border-radius: var(--r-md); }
+.sc-strip { display: flex; gap: 20px; flex-wrap: wrap; }
+.sc-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.sc-cell span:last-child { font-size: var(--fs-label); color: var(--muted); }
+
+/* ─ метрики ─ */
+.mt-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); max-width: 540px; }
+.mt-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: var(--sp-3); }
+.mt-tiles .mcell { padding: var(--sp-3); background: var(--surface);
+                   border: 1px solid var(--line); border-radius: var(--r-md); }
+.mt-tiles .p-value { font-size: var(--fs-h3); }
+.mt-sub { font-size: var(--fs-label); color: var(--dim); }
+.mt-up { color: var(--good-fg); }
+.mt-down { color: var(--low-fg); }
+
+/* ─ реклама ─ */
+.flag { display: inline-flex; align-items: center; height: 20px; padding: 0 var(--sp-2);
+        background: var(--ad-soft); color: var(--ad); border: 1px solid var(--ad-line);
+        border-radius: var(--r-sm); font-size: var(--fs-label); font-weight: 600;
+        letter-spacing: .06em; text-transform: uppercase; }
+.flag--solid { background: var(--ad); color: #fff; border-color: var(--ad); }
+.feed { display: flex; flex-direction: column; gap: var(--sp-3); max-width: 600px; }
+.post { background: var(--surface); border: 1px solid var(--line);
+        border-radius: var(--r-lg); padding: var(--sp-4); }
+.post--ad { border-left: 3px solid var(--ad); }
+.post-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.post-date { font-size: var(--fs-meta); color: var(--muted); }
+.post p { margin: 0 0 var(--sp-3); font-size: var(--fs-body); }
+.post-stats { display: flex; gap: var(--sp-4); font-size: var(--fs-meta); color: var(--dim); }
+.post-stats b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.adv-line { margin-top: var(--sp-3); padding-top: var(--sp-3);
+            border-top: 1px solid var(--line-soft); font-size: var(--fs-meta); color: var(--dim); }
+.adv-line b { color: var(--text); font-weight: 600; }
+
+/* ─ шапка канала ─ */
+.hd { background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--r-lg); padding: var(--sp-5); max-width: 760px; }
+.hd-crumbs { font-size: var(--fs-meta); color: var(--dim); margin-bottom: var(--sp-3); }
+.hd-top { display: flex; gap: var(--sp-4); align-items: flex-start; }
+.hd-ava { width: 72px; height: 72px; border-radius: var(--r-md); flex: none;
+          background: var(--surface-sunk); display: grid; place-items: center;
+          font-weight: 700; color: var(--dim); font-size: var(--fs-h2); }
+.hd-title { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.hd-title h1 { margin: 0; font-size: var(--fs-h1); line-height: 1.2;
+               letter-spacing: -.02em; font-weight: 700; }
+.hd-desc { margin: var(--sp-3) 0 0; color: var(--dim); max-width: 60ch; font-size: var(--fs-body); }
+.hd-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); flex-wrap: wrap; }
+.btn { height: var(--control-h); padding: 0 var(--sp-4); border-radius: var(--r-md);
+       display: inline-flex; align-items: center; font-size: var(--fs-body);
+       font-weight: 600; border: 1px solid transparent; cursor: pointer; }
+.btn--primary { background: var(--accent); color: #fff; }
+.btn--ghost { background: var(--surface); color: var(--text); border-color: var(--line); }
+.hd-sites { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line-soft); }
+.chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }
+.chip { display: inline-flex; align-items: center; gap: var(--sp-2); height: 32px;
+        padding: 0 var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-pill);
+        font-size: var(--fs-meta); background: var(--surface); }
+.chip i { width: 14px; height: 14px; border-radius: 4px; display: grid; place-items: center;
+          color: #fff; font-size: 7px; font-weight: 700; font-style: normal; }
+.hd-upd { font-size: var(--fs-meta); color: var(--muted); margin-top: var(--sp-4); }
+
+/* ─ фильтры ─ */
+.fl-layout { display: grid; grid-template-columns: 250px 1fr; gap: var(--sp-4); align-items: start; }
+.fl-layout--off { grid-template-columns: 1fr; }
+.fl-side { background: var(--surface); border: 1px solid var(--line);
+           border-radius: var(--r-lg); padding: var(--sp-4); }
+.fl-head { display: flex; align-items: center; margin-bottom: var(--sp-3); }
+.fl-head b { font-size: var(--fs-lead); }
+.fl-hide { margin-left: auto; background: none; border: 0; color: var(--dim);
+           font-size: var(--fs-meta); cursor: pointer; font-family: inherit; }
+.fl-group { display: flex; flex-direction: column; gap: var(--sp-2);
+            padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); }
+.fl-group:first-of-type { border-top: 0; padding-top: 0; }
+.field { width: 100%; height: var(--control-h); padding: 0 var(--sp-3);
+         border: 1px solid var(--line); border-radius: var(--r-md);
+         background: var(--surface); font: var(--fs-body)/1 var(--font); color: var(--text); }
+.field::placeholder { color: var(--muted); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.check { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.fl-top { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.fbtn { display: inline-flex; align-items: center; height: var(--control-h); padding: 0 var(--sp-4);
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+        color: var(--dim); font: 600 var(--fs-body)/1 var(--font); cursor: pointer; flex: none; }
+.fbtn--on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); }
+.tags { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.tag { display: inline-flex; align-items: center; gap: var(--sp-2); height: 28px; padding: 0 var(--sp-3);
+       background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-dark);
+       border-radius: var(--r-pill); font-size: var(--fs-meta); font-weight: 500; }
+.stub { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+        padding: var(--sp-5); color: var(--muted); text-align: center; font-size: var(--fs-meta); }
+
+/* ─ пагинация ─ */
+.bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+       padding: var(--sp-3) var(--sp-4); background: var(--surface);
+       border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: var(--sp-4); }
+.bar .count { font-size: var(--fs-meta); color: var(--dim); margin-left: auto; }
+.bar .count b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sbtn { height: 30px; padding: 0 var(--sp-3); border-radius: var(--r-pill); border: 1px solid var(--line);
+        background: var(--surface); font: var(--fs-meta)/1 var(--font); color: var(--dim); cursor: pointer; }
+.sbtn--on { background: var(--accent-soft); border-color: var(--accent-line);
+            color: var(--accent-dark); font-weight: 600; }
+.pg { display: flex; gap: var(--sp-2); align-items: center; justify-content: center; flex-wrap: wrap; }
+.pg a, .pg span { min-width: 36px; height: 36px; padding: 0 var(--sp-2); border-radius: var(--r-md);
+                  display: inline-flex; align-items: center; justify-content: center;
+                  font-size: var(--fs-body); border: 1px solid var(--line);
+                  background: var(--surface); font-variant-numeric: tabular-nums; }
+.pg .on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.pg .gap { border: 0; background: none; color: var(--muted); min-width: 18px; }
+.pg .off { color: var(--muted); background: var(--surface-sunk); }
+
+/* ─ шапка сайта ─ */
+.sh { background: var(--surface); border-bottom: 1px solid var(--line); }
+.sh-in { max-width: 100%; padding: 0 var(--sp-5); display: flex; align-items: center;
+         gap: var(--sp-6); height: 60px; }
+.sh-logo { display: flex; align-items: center; gap: var(--sp-2); font-size: 18px;
+           font-weight: 700; letter-spacing: -.02em; }
+.sh-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent);
+           display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; }
+.sh-nav { display: flex; gap: var(--sp-5); font-size: var(--fs-body); color: var(--dim); margin-left: auto; }
+.sh-nav .on { color: var(--text); font-weight: 600; }
+.sh-secs { background: var(--surface); border-bottom: 1px solid var(--line); }
+.sh-secs .sh-in { height: 46px; gap: var(--sp-2); }
+.sec-pill { height: 30px; padding: 0 var(--sp-3); display: inline-flex; align-items: center;
+            border-radius: var(--r-pill); font-size: var(--fs-meta); color: var(--dim); white-space: nowrap; }
+.sec-pill.on { background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }
+.sh-hero { padding: var(--sp-6) var(--sp-5) var(--sp-5); }
+.sh-hero h1 { margin: 0 0 var(--sp-2); font-size: var(--fs-h1); line-height: 1.2;
+              letter-spacing: -.02em; font-weight: 700; }
+.sh-hero p { margin: 0; color: var(--dim); max-width: 66ch; font-size: var(--fs-body); }
+</style>
+
+<div class="shell">
+
+  <header class="masthead">
+    <div class="eyebrow">T-50 · 28 июля 2026</div>
+    <h1>Дизайн-система публичной витрины</h1>
+    <p class="lead">Визуальный язык каталога блогеров: токены и компоненты, из которых собираются
+    выдача, страницы каналов и посадочные подборки. Расположение элементов наше, стилевые приёмы
+    взяты у BidFox.</p>
+    <div class="facts">
+      <span class="fact">репозиторий <b>wow_public_showcase</b></span>
+      <span class="fact">ветка <b>t50-design-system</b></span>
+      <span class="fact">источник <b>design-system/tokens.css</b></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><h2>Курс</h2></div>
+    <p class="sec-intro">Четыре решения, из которых следует всё остальное. Каждое принято 28 июля
+    и записано в <code>showcase-release.md</code>.</p>
+    <div class="cards">
+      <div class="card">
+        <h4>Плоский список вместо карточек</h4>
+        <p>Строки на границах, теней нет. Прежний прототип нёс двойную тень на каждой карточке —
+        это и старило вид, и резало плотность.</p>
+      </div>
+      <div class="card">
+        <h4>Уходим с синего</h4>
+        <p>У BidFox акцент <code>#2f6fed</code>, и наш был такой же. Витрина идёт не под брендом
+        WOWBlogger, выглядеть клоном конкурента ей незачем. Акцент — приглушённый тил.</p>
+      </div>
+      <div class="card">
+        <h4>Тёплый фон, белые строки</h4>
+        <p>Фон страницы <code>#faf9f7</code> вместо холодного <code>#f5f7fb</code>. Причина
+        утилитарная: меньше усталости глаз на длинных списках.</p>
+      </div>
+      <div class="card">
+        <h4>Плотность как у кабинета</h4>
+        <p>Строка 76 px, метрики 11 px. На экран влезает выдача, а не пять карточек. Но заголовок
+        и текст остаются — краулеру нужна не только таблица.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Основа</h2><span class="of">2 карточки</span></div>
+
+    <div class="item">
+      <h3>Палитра <code>tokens.css</code></h3>
+      <p class="why">Насыщенный цвет живёт ровно в двух местах: плашка «реклама» и скоринговый
+      бейдж. Всё остальное — тёплые нейтралы и один тил.</p>
+      <div class="canvas"><div class="inner">
+        <div class="p-label sw-title">Поверхности</div>
+        <div class="sw-grid">
+          <div class="sw"><i style="background:#faf9f7"></i><b>Фон страницы</b><code>--bg #faf9f7</code></div>
+          <div class="sw"><i style="background:#ffffff"></i><b>Поверхность</b><code>--surface #ffffff</code></div>
+          <div class="sw"><i style="background:#f4f2ee"></i><b>Утопленная</b><code>--surface-sunk #f4f2ee</code></div>
+          <div class="sw"><i style="background:#e5e1da"></i><b>Граница</b><code>--line #e5e1da</code></div>
+        </div>
+        <div class="p-label sw-title">Акцент</div>
+        <div class="sw-grid">
+          <div class="sw"><i style="background:#0d6e63"></i><b>Акцент</b><code>--accent #0d6e63</code></div>
+          <div class="sw"><i style="background:#0a544b"></i><b>Нажатый</b><code>--accent-dark #0a544b</code></div>
+          <div class="sw"><i style="background:#e6f2f0"></i><b>Фон акцента</b><code>--accent-soft #e6f2f0</code></div>
+        </div>
+        <div class="p-label sw-title">Реклама и скоринг</div>
+        <div class="sw-grid">
+          <div class="sw"><i style="background:#9a5209"></i><b>Реклама</b><code>--ad #9a5209</code></div>
+          <div class="sw"><i style="background:#e7f1e5"></i><b>Скоринг: хорошо</b><code>#2f6b2c на #e7f1e5</code></div>
+          <div class="sw"><i style="background:#fbf1dd"></i><b>Скоринг: средне</b><code>#8a5a06 на #fbf1dd</code></div>
+          <div class="sw"><i style="background:#fbe8e5"></i><b>Скоринг: плохо</b><code>#a03528 на #fbe8e5</code></div>
+        </div>
+        <div class="p-label sw-title">Текст</div>
+        <div class="sw-grid">
+          <div class="sw"><i style="background:#1c1f1d"></i><b>Основной</b><code>--text #1c1f1d</code></div>
+          <div class="sw"><i style="background:#6b716e"></i><b>Вторичный</b><code>--dim #6b716e</code></div>
+          <div class="sw"><i style="background:#98a09b"></i><b>Лейблы</b><code>--muted #98a09b</code></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Типографика <code>Onest</code></h3>
+      <p class="why">Заголовки с отрицательным трекингом, лейблы капсом с положительным: без
+      разрядки капс читается как каша. Цифры везде табличные, иначе разряды пляшут от строки
+      к строке. <b>Файла шрифта пока нет</b> — до тех пор всё рисуется системным стеком, шкала
+      от этого не меняется.</p>
+      <div class="canvas"><div class="inner">
+        <div class="ty"><code>--fs-h1 / 30 / 700</code><div class="ty-h1">Каталог блогеров России</div></div>
+        <div class="ty"><code>--fs-h2 / 21 / 600</code><div class="ty-h2">Телеграм-каналы про финансы</div></div>
+        <div class="ty"><code>--fs-h3 / 17 / 600</code><div class="ty-h3">Рекламные посты за 30 дней</div></div>
+        <div class="ty"><code>--fs-lead / 15 / 600</code><div class="ty-lead">Мир трендов</div></div>
+        <div class="ty"><code>--fs-body / 14 / 400</code><div>Канал ведёт обзоры техники, публикует 218 постов в месяц, доля рекламы 7,4%.</div></div>
+        <div class="ty"><code>--fs-meta / 12,5</code><div class="ty-meta">Технологии · Telegram · данные обновлены 28 июля</div></div>
+        <div class="ty"><code>--fs-label / 11 / caps</code><div class="p-label">Средний охват поста</div></div>
+        <div class="ty"><code>tabular-nums</code><div>
+          <div class="p-value">3 087 084</div>
+          <div class="p-value">1 111 111</div>
+          <div class="p-value">9 999 999</div>
+        </div></div>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Компоненты</h2><span class="of">8 карточек</span></div>
+
+    <div class="item">
+      <h3>Строка выдачи <code>components/row.html</code></h3>
+      <p class="why">Главный компонент витрины. Иконка площадки и галочка стоят у названия — где
+      канал живёт, видно до чтения. Длинное имя режется многоточием, а не переносится: строки
+      должны быть одной высоты, иначе колонки метрик перестают читаться как колонки.</p>
+      <div class="canvas"><div class="inner">
+        <div class="ch-list">
+          <div class="ch-row">
+            <div class="ch-ava">МТ</div>
+            <div>
+              <div class="ch-name"><span class="plat" style="background:#229ed9">TG</span><b>Мир трендов</b><span class="ver">✓</span></div>
+              <div class="ch-sub">Технологии · 218 постов за месяц</div>
+            </div>
+            <span class="sc sc--good">3,6</span>
+            <div class="mcell"><span class="p-label">Подписчиков</span><span class="p-value">3 087 084</span></div>
+            <div class="mcell"><span class="p-label">Средний охват</span><span class="p-value">57 146</span></div>
+            <div class="mcell"><span class="p-label">ER</span><span class="p-value">1,84%</span></div>
+            <div class="mcell"><span class="p-label">Доля рекламы</span><span class="p-value p-adv">7,4%</span></div>
+          </div>
+          <div class="ch-row">
+            <div class="ch-ava">ПХ</div>
+            <div>
+              <div class="ch-name"><span class="plat" style="background:#0077ff">VK</span><b>Полный хохотач</b><span class="ver">✓</span></div>
+              <div class="ch-sub">Юмор и развлечения · 96 постов за месяц</div>
+            </div>
+            <span class="sc sc--mid">2,4</span>
+            <div class="mcell"><span class="p-label">Подписчиков</span><span class="p-value">4 047 628</span></div>
+            <div class="mcell"><span class="p-label">Средний охват</span><span class="p-value">21 071</span></div>
+            <div class="mcell"><span class="p-label">ER</span><span class="p-value">2,33%</span></div>
+            <div class="mcell"><span class="p-label">Доля рекламы</span><span class="p-value p-adv">2,1%</span></div>
+          </div>
+          <div class="ch-row">
+            <div class="ch-ava">ЛФ</div>
+            <div>
+              <div class="ch-name"><span class="plat" style="background:#ff0000">YT</span><b>Лайфхак — очень длинное название канала, которое не влезает в колонку</b></div>
+              <div class="ch-sub">Советы и лайфхаки · 12 видео за месяц</div>
+            </div>
+            <span class="sc sc--low">0,7</span>
+            <div class="mcell"><span class="p-label">Подписчиков</span><span class="p-value">3 632 628</span></div>
+            <div class="mcell"><span class="p-label">Средний охват</span><span class="p-value">24 954</span></div>
+            <div class="mcell"><span class="p-label">ER</span><span class="p-value">0,63%</span></div>
+            <div class="mcell"><span class="p-label">Доля рекламы</span><span class="p-value p-adv">18,3%</span></div>
+          </div>
+          <div class="ch-row">
+            <div class="ch-ava">ИД</div>
+            <div>
+              <div class="ch-name"><span class="plat" style="background:#1c1f1d">DZ</span><b>Известия дня</b></div>
+              <div class="ch-sub">Новости и события</div>
+            </div>
+            <span class="sc sc--none">—</span>
+            <div class="mcell"><span class="p-label">Подписчиков</span><span class="p-value">3 333 853</span></div>
+            <div class="mcell"><span class="p-label">Средний охват</span><span class="p-value p-none">нет данных</span></div>
+            <div class="mcell"><span class="p-label">ER</span><span class="p-value p-none">нет данных</span></div>
+            <div class="mcell"><span class="p-label">Доля рекламы</span><span class="p-value p-none">нет данных</span></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Скоринговый бейдж <code>components/score-badge.html</code></h3>
+      <p class="why">Одна цифра, по которой глаз сортирует выдачу, не читая метрик. Шкала
+      приглушённая, не светофорная: на странице с сотней строк чистый красный дерётся за внимание
+      с плашкой «реклама». <b>Что именно показывает цифра — пока не решено</b>, это форма без
+      содержания.</p>
+      <div class="canvas"><div class="inner">
+        <div class="sc-strip">
+          <span class="sc-cell"><span class="sc sc--good">3,6</span><span>хорошо</span></span>
+          <span class="sc-cell"><span class="sc sc--good">2,9</span><span>хорошо</span></span>
+          <span class="sc-cell"><span class="sc sc--mid">2,4</span><span>средне</span></span>
+          <span class="sc-cell"><span class="sc sc--mid">1,8</span><span>средне</span></span>
+          <span class="sc-cell"><span class="sc sc--low">0,7</span><span>плохо</span></span>
+          <span class="sc-cell"><span class="sc sc--none">—</span><span>нет данных</span></span>
+          <span class="sc-cell"><span class="sc sc--lg sc--good">3,6</span><span>крупный</span></span>
+          <span class="sc-cell"><span class="sc sc--lg sc--low">0,7</span><span>крупный</span></span>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Блок метрики <code>components/metric.html</code></h3>
+      <p class="why">Мелкий серый лейбл сверху, значение под ним. Ужимается в колонку 92 px и
+      разворачивается в плитку. Состояние «нет данных» выводим явно: молчаливый пропуск выглядит
+      как поломка вёрстки, а без метрик приедет заметная часть каналов.</p>
+      <div class="canvas"><div class="inner">
+        <div class="p-label sw-title">В строке выдачи</div>
+        <div class="mt-cols">
+          <div class="mcell"><span class="p-label">Подписчиков</span><span class="p-value">3 087 084</span></div>
+          <div class="mcell"><span class="p-label">Средний охват</span><span class="p-value">57 146</span></div>
+          <div class="mcell"><span class="p-label">ER</span><span class="p-value">1,84%</span></div>
+          <div class="mcell"><span class="p-label">Доля рекламы</span><span class="p-value p-adv">7,4%</span></div>
+        </div>
+        <div class="p-label sw-title">На странице канала</div>
+        <div class="mt-tiles">
+          <div class="mcell"><span class="p-label">Подписчиков</span><span class="p-value">3 087 084</span><span class="mt-sub mt-up">+12 400 за месяц</span></div>
+          <div class="mcell"><span class="p-label">Средний охват</span><span class="p-value">57 146</span><span class="mt-sub">за 30 дней</span></div>
+          <div class="mcell"><span class="p-label">Коэффициент охвата</span><span class="p-value">1,85%</span><span class="mt-sub">охват к подписчикам</span></div>
+          <div class="mcell"><span class="p-label">ER</span><span class="p-value">1,84%</span><span class="mt-sub mt-down">−0,3 п.п. к прошлому месяцу</span></div>
+          <div class="mcell"><span class="p-label">Постов за месяц</span><span class="p-value">218</span><span class="mt-sub">7 в сутки</span></div>
+          <div class="mcell"><span class="p-label">Доля рекламы</span><span class="p-value p-adv">7,4%</span><span class="mt-sub">16 постов из 218</span></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Плашка «реклама» и лента постов <code>components/ad-flag.html</code></h3>
+      <p class="why">Рекламный пост помечен плашкой и тёплой левой гранью, а не заливкой целиком:
+      на ленте в сотню постов заливка превращает страницу в полосатый ковёр. Табов «все / только
+      рекламные» нет.</p>
+      <div class="canvas"><div class="inner">
+        <div class="feed">
+          <article class="post">
+            <div class="post-head"><span class="post-date">24 июля</span></div>
+            <p>Разобрали, почему на длинных дистанциях выигрывает не самый быстрый, а тот, кто не сходит.</p>
+            <div class="post-stats"><span>Просмотров <b>48 210</b></span><span>Реакций <b>612</b></span></div>
+          </article>
+          <article class="post post--ad">
+            <div class="post-head"><span class="flag">Реклама</span><span class="post-date">22 июля</span></div>
+            <p>Сервис доставки продуктов за 15 минут. Первый заказ без платы за доставку по промокоду.</p>
+            <div class="post-stats"><span>Просмотров <b>61 004</b></span><span>Реакций <b>388</b></span></div>
+            <div class="adv-line">Рекламодатель: <b>ООО «Ромашка»</b> · ИНН 7707083893 · ОГРН 1027700132195</div>
+          </article>
+          <article class="post post--ad">
+            <div class="post-head"><span class="flag flag--solid">Реклама</span><span class="post-date">19 июля</span></div>
+            <p>Курс по управлению личными финансами, старт потока в августе.</p>
+            <div class="post-stats"><span>Просмотров <b>57 830</b></span><span>Реакций <b>245</b></span></div>
+            <div class="adv-line">Рекламодатель: <b>ИП</b> · ИНН 502707451234 · ОГРНИП 318774600123456</div>
+          </article>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Шапка канала <code>components/channel-header.html</code></h3>
+      <p class="why">Площадки автора — ссылки на отдельные страницы, а не табы: у каждого канала
+      свой URL. Это же даёт кросс-ссылки, без которых SEO-каркас не работает.</p>
+      <div class="canvas"><div class="inner">
+        <div class="hd-crumbs">Каталог · Telegram · Технологии</div>
+        <div class="hd">
+          <div class="hd-top">
+            <div class="hd-ava">МТ</div>
+            <div style="min-width:0">
+              <div class="hd-title">
+                <span class="plat" style="background:#229ed9;width:22px;height:22px;border-radius:6px;font-size:10px">TG</span>
+                <h1>Мир трендов</h1>
+                <span class="ver" style="width:18px;height:18px;font-size:10px">✓</span>
+                <span class="sc sc--lg sc--good">3,6</span>
+              </div>
+              <div class="ty-meta" style="margin-top:4px">Telegram · Технологии · @mirtrendov</div>
+              <p class="hd-desc">Обзоры техники, разборы новинок и подборки сервисов. 218 постов
+              за месяц, 16 из них рекламные.</p>
+            </div>
+          </div>
+          <div class="hd-actions">
+            <span class="btn btn--primary">Открыть канал</span>
+            <span class="btn btn--ghost">Разместить рекламу в WOWBlogger</span>
+          </div>
+          <div class="hd-sites">
+            <span class="p-label">Другие площадки автора</span>
+            <div class="chips">
+              <span class="chip"><i style="background:#0077ff">VK</i> Мир трендов · 412 тыс.</span>
+              <span class="chip"><i style="background:#ff0000">YT</i> Мир трендов · 89 тыс.</span>
+              <span class="chip"><i style="background:#1c1f1d">DZ</i> Мир трендов · 27 тыс.</span>
+            </div>
+          </div>
+          <div class="hd-upd">Данные обновлены 28 июля 2026</div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Фильтры <code>components/filters.html</code></h3>
+      <p class="why">Левая скрываемая колонка, разделы сверху. Верхняя панель не масштабируется —
+      параметров у нас больше, чем влезает в строку. Применённые фильтры вынесены тегами: живая
+      фильтрация это ещё и сигнал поисковику, что перед ним каталог, а не пачка шаблонных страниц.</p>
+      <div class="canvas"><div class="inner">
+        <div class="fl-layout">
+          <aside class="fl-side">
+            <div class="fl-head"><b>Фильтры</b><button class="fl-hide">Скрыть</button></div>
+            <div class="fl-group"><span class="p-label">Площадка</span><select class="field"><option>Все площадки</option></select></div>
+            <div class="fl-group"><span class="p-label">Тематика</span><select class="field"><option>Все тематики</option></select></div>
+            <div class="fl-group"><span class="p-label">Подписчиков</span>
+              <div class="pair"><input class="field" placeholder="от"><input class="field" placeholder="до"></div>
+            </div>
+            <div class="fl-group"><span class="p-label">Доля рекламы, %</span>
+              <div class="pair"><input class="field" placeholder="от"><input class="field" placeholder="до"></div>
+            </div>
+            <div class="fl-group">
+              <label class="check"><input type="checkbox" checked> Только с метриками</label>
+              <label class="check"><input type="checkbox"> Только верифицированные</label>
+            </div>
+          </aside>
+          <div>
+            <div class="fl-top">
+              <button class="fbtn fbtn--on">Фильтры · 3</button>
+              <input class="field" placeholder="Поиск по названию канала">
+            </div>
+            <div class="tags">
+              <span class="tag">Telegram ✕</span>
+              <span class="tag">Технологии ✕</span>
+              <span class="tag">от 100 000 подписчиков ✕</span>
+            </div>
+            <div class="stub">выдача · найдено 24 615 каналов</div>
+          </div>
+        </div>
+        <div style="height:16px"></div>
+        <div class="fl-layout fl-layout--off">
+          <div>
+            <div class="fl-top">
+              <button class="fbtn">Фильтры</button>
+              <input class="field" placeholder="Поиск по названию канала">
+            </div>
+            <div class="stub">фильтры свёрнуты · выдача во всю ширину</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Сортировка и пагинация <code>components/pagination.html</code></h3>
+      <p class="why">Страницы — обычные ссылки с адресом, а не подгрузка по скроллу: краулер должен
+      дойти до последней. Соседние номера видны всегда, иначе глубокие страницы недостижимы и по
+      кликам, и по обходу.</p>
+      <div class="canvas"><div class="inner">
+        <div class="bar">
+          <button class="sbtn sbtn--on">По подписчикам</button>
+          <button class="sbtn">По охвату</button>
+          <button class="sbtn">По ER</button>
+          <button class="sbtn">По доле рекламы</button>
+          <span class="count">Найдено <b>24 615</b> каналов</span>
+        </div>
+        <div class="pg">
+          <span class="off">←</span><span class="on">1</span><a href="#">2</a><a href="#">3</a>
+          <a href="#">4</a><a href="#">5</a><span class="gap">…</span><a href="#">704</a><a href="#">→</a>
+        </div>
+        <div style="height:12px"></div>
+        <div class="pg">
+          <a href="#">←</a><a href="#">1</a><span class="gap">…</span><a href="#">37</a>
+          <span class="on">38</span><a href="#">39</a><span class="gap">…</span><a href="#">704</a><a href="#">→</a>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="item">
+      <h3>Шапка сайта <code>components/site-header.html</code></h3>
+      <p class="why">Разделы вторым рядом, а не в выпадающем меню: это входы на посадочные страницы
+      под низкочастотные запросы и внутренняя перелинковка. Заголовок с абзацем — единственное, чем
+      витрина отличается от кабинета закупщика: краулеру нужен текст, а не только таблица.
+      <b>Название и логотип — заглушка</b>, домен ещё не куплен.</p>
+      <div class="canvas flush"><div class="inner">
+        <header class="sh">
+          <div class="sh-in">
+            <span class="sh-logo"><span class="sh-mark">Б</span> Блогеры России</span>
+            <nav class="sh-nav"><span class="on">Каталог</span><span>Подборки</span><span>Тематики</span><span>О проекте</span></nav>
+          </div>
+        </header>
+        <div class="sh-secs">
+          <div class="sh-in">
+            <span class="sec-pill on">Все площадки</span>
+            <span class="sec-pill">Telegram</span>
+            <span class="sec-pill">ВКонтакте</span>
+            <span class="sec-pill">YouTube</span>
+            <span class="sec-pill">Дзен</span>
+            <span class="sec-pill">MAX</span>
+          </div>
+        </div>
+        <div class="sh-hero">
+          <h1>Каталог блогеров и каналов России</h1>
+          <p>24 615 каналов во всех соцсетях: подписчики, охваты, вовлечённость и доля рекламы
+          в ленте. Данные обновляются ежедневно, поиск и фильтры бесплатны.</p>
+        </div>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Чего нет намеренно</h2></div>
+    <p class="sec-intro">Это не пробелы, а принятые решения. Записаны здесь, чтобы не всплывали
+    заново на каждой следующей странице.</p>
+    <div class="ledger">
+      <div><b>Денег</b><span>Ни цен, ни CPV, CPM, CPA, ни себестоимости. У BidFox цена стоит правой колонкой, но это цены маркетплейсов-конкурентов — ровно то основание, по которому зарубили демографию.</span></div>
+      <div><b>Табов</b><span>Ни по площадкам автора, ни по постам. Площадки — ссылки на отдельные страницы, посты идут одной лентой.</span></div>
+      <div><b>Демографии</b><span>Перепубликация данных конкурента.</span></div>
+      <div><b>Блока «это ваш канал»</b><span>И заявок от владельцев: разбирать их некому.</span></div>
+      <div><b>Наименования ИП</b><span>У юрлица выводим наименование, ОГРН и ИНН. У ИП — только ИНН и ОГРНИП: в реестре наименование и есть ФИО.</span></div>
+      <div><b>Тёмной темы</b><span>У витрины её не будет, поэтому образцы выше остаются на светлом фоне независимо от темы этой страницы.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Хвосты</h2></div>
+    <div class="cards">
+      <div class="card card--warn">
+        <h4>Файла шрифта нет</h4>
+        <p>Onest объявлен в <code>--font</code>, но не положен. До этого всё рисуется системным
+        стеком. Класть локально и раздавать со своего домена — внешний хост в критическом пути
+        отрисовки не нужен.</p>
+      </div>
+      <div class="card card--warn">
+        <h4>Бейдж без содержания</h4>
+        <p>Форма есть, что показывает цифра — отдельный вопрос. У BidFox это их внутренний
+        скоринг.</p>
+      </div>
+      <div class="card card--warn">
+        <h4>Прототип не перекрашен</h4>
+        <p>Сначала система целиком, перекраска следующим шагом. Заодно там правится наименование
+        ИП: прототип делался до решения от 28 июля.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Источник правды — <code>design-system/tokens.css</code> в репозитории wow_public_showcase,
+    ветка t50-design-system. Эта страница собрана из тех же токенов и обновляется вместе с ними.
+  </footer>
+</div>

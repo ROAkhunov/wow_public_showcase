@@ -5,21 +5,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Блок метрики</title>
+<link rel="stylesheet" href="../index.css">
+<link rel="stylesheet" href="../preview.css">
 <style>
-  /* Метрика = мелкий серый лейбл сверху, значение под ним. Приём BidFox:
-     читается влёт, ужимается в колонку 90px, работает и в строке, и в плитке. */
-  .m { display: flex; flex-direction: column; gap: 2px; }
-  .m .sub { font-size: var(--fs-label); color: var(--dim); }
-
-  .m-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); max-width: 560px; }
-
-  .m-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); }
-  .m-tiles .m { padding: var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
-  .m-tiles .ds-value { font-size: var(--fs-h3); }
-
-  .up   { color: var(--ok); }
-  .down { color: var(--score-low-fg); }
-  .adv  { color: var(--ad); }
+  /* только для карточки: в выдаче ширину задаёт колонка грида .row */
+  .m-cols { max-width: 560px; }
 </style>
 </head>
 <body>
@@ -46,16 +36,17 @@
   <div class="m-cols">
     <div class="m"><span class="ds-label">Средний охват</span><span class="ds-value">57 146</span></div>
     <div class="m"><span class="ds-label">Медианный охват</span><span class="ds-value">41 020</span></div>
-    <div class="m"><span class="ds-label">ER</span><span class="ds-value" style="color:var(--muted)">нет данных</span></div>
-    <div class="m"><span class="ds-label">Доля рекламы</span><span class="ds-value" style="color:var(--muted)">нет данных</span></div>
+    <div class="m"><span class="ds-label">ER</span><span class="ds-value none">нет данных</span></div>
+    <div class="m"><span class="ds-label">Доля рекламы</span><span class="ds-value none">нет данных</span></div>
   </div>
 
   <p class="ds-note">Доля рекламы всегда посчитанным числом, а не «16 постов, 218 всего» — считать
   за пользователя (решение созвона 22.07, п.4 T-41). Подпись под значением необязательная: в строке
   выдачи её нет, на странице канала она несёт то, что иначе стало бы отдельной метрикой.</p>
 
-  <p class="ds-note">Состояние «нет данных» выводим явно, серым. Молчаливый пропуск метрики
-  выглядит как поломка вёрстки, а на витрине без метрик будет заметная часть каналов.</p>
+  <p class="ds-note">Состояние «нет данных» выводим явно, серым классом <code>.none</code>. Молчаливый
+  пропуск метрики выглядит как поломка вёрстки, а на витрине без метрик будет заметная часть
+  каналов.</p>
 </div>
 </body>
 </html>

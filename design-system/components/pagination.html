@@ -5,29 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Пагинация и сортировка</title>
-<style>
-  .bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
-         padding: var(--sp-3) var(--sp-4); background: var(--surface);
-         border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: var(--sp-4); }
-  .bar .count { font-size: var(--fs-meta); color: var(--dim); margin-left: auto; }
-  .bar .count b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .sort { display: flex; gap: var(--sp-2); align-items: center; }
-  .sort .ds-label { margin-right: var(--sp-1); }
-  .sbtn { height: 30px; padding: 0 var(--sp-3); border-radius: var(--r-pill); border: 1px solid var(--line);
-          background: var(--surface); font: var(--fs-meta)/1 var(--font); color: var(--dim); cursor: pointer; }
-  .sbtn:hover { border-color: var(--line-strong); color: var(--text); }
-  .sbtn.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); font-weight: 600; }
-
-  .pg { display: flex; gap: var(--sp-2); align-items: center; justify-content: center; flex-wrap: wrap; }
-  .pg a, .pg span { min-width: 36px; height: 36px; padding: 0 var(--sp-2); border-radius: var(--r-md);
-                    display: inline-flex; align-items: center; justify-content: center;
-                    font-size: var(--fs-body); border: 1px solid var(--line); background: var(--surface);
-                    font-variant-numeric: tabular-nums; }
-  .pg a:hover { border-color: var(--line-strong); }
-  .pg .on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-  .pg .gap { border: 0; background: none; color: var(--muted); min-width: 20px; }
-  .pg .off { color: var(--muted); background: var(--surface-sunk); }
-</style>
+<link rel="stylesheet" href="../index.css">
+<link rel="stylesheet" href="../preview.css">
 </head>
 <body>
 <div class="ds-preview">
@@ -54,7 +33,7 @@
   </div>
 
   <h4>Середина</h4>
-  <div class="pg" style="margin-top:var(--sp-3)">
+  <div class="pg">
     <a href="#">←</a>
     <a href="#">1</a>
     <span class="gap">…</span>
@@ -65,7 +44,7 @@
   </div>
 
   <h4>Последняя</h4>
-  <div class="pg" style="margin-top:var(--sp-3)">
+  <div class="pg">
     <a href="#">←</a>
     <a href="#">1</a>
     <span class="gap">…</span>

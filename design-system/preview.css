@@ -1,0 +1,25 @@
+/* ============================================================================
+   Каркас страницы превью. Оформляет карточки самой дизайн-системы и в вёрстку
+   витрины не уезжает — держим отдельно от tokens.css и components.css, чтобы
+   служебные классы не утекали в шаблонные страницы и в дизайны, которые
+   собирает агент на claude.ai/design.
+   ========================================================================== */
+
+.ds-preview { padding: var(--sp-5); background: var(--bg); }
+
+.ds-preview h4 {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ds-preview h4:not(:first-child) { margin-top: var(--sp-5); }
+
+.ds-note {
+  margin: var(--sp-4) 0 0;
+  font-size: var(--fs-meta);
+  color: var(--dim);
+  max-width: 62ch;
+}

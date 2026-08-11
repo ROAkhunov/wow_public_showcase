@@ -5,11 +5,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Типографика</title>
+<link rel="stylesheet" href="../index.css">
+<link rel="stylesheet" href="../preview.css">
 <style>
-  .row { display: grid; grid-template-columns: 190px 1fr; gap: var(--sp-4);
-         padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); align-items: baseline; }
-  .row:first-of-type { border-top: 0; }
-  .row code { font-size: var(--fs-label); color: var(--dim); }
+  /* только для карточки: слева токен, справа образец.
+     Классы .h1—.meta тоже карточные: на витрине размер задаёт сам элемент
+     (h1 в .hero, .name b в строке выдачи), а не отдельный класс. */
+  .spec-row {
+    display: grid; grid-template-columns: 190px 1fr; gap: var(--sp-4);
+    padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); align-items: baseline;
+  }
+  .spec-row:first-of-type { border-top: 0; }
+  .spec-row code { font-size: var(--fs-label); color: var(--dim); }
+
   .h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); letter-spacing: var(--tracking-head); font-weight: 700; }
   .h2 { font-size: var(--fs-h2); line-height: var(--lh-tight); letter-spacing: var(--tracking-head); font-weight: 600; }
   .h3 { font-size: var(--fs-h3); font-weight: 600; }
@@ -22,16 +30,16 @@
 <div class="ds-preview">
   <h4>Onest — шкала</h4>
 
-  <div class="row"><code>--fs-h1 / 30 / 700</code><div class="h1">Каталог блогеров России</div></div>
-  <div class="row"><code>--fs-h2 / 21 / 600</code><div class="h2">Телеграм-каналы про финансы</div></div>
-  <div class="row"><code>--fs-h3 / 17 / 600</code><div class="h3">Рекламные посты за 30 дней</div></div>
-  <div class="row"><code>--fs-lead / 15 / 600</code><div class="lead">Мосты и туннели</div></div>
-  <div class="row"><code>--fs-body / 14 / 400</code><div class="body">Канал ведёт обзоры техники, публикует 18 постов в месяц, доля рекламы 7,4%.</div></div>
-  <div class="row"><code>--fs-meta / 12,5</code><div class="meta">Технологии · Telegram · данные обновлены 28 июля</div></div>
-  <div class="row"><code>--fs-label / 11 / caps</code><div class="ds-label">Средний охват поста</div></div>
+  <div class="spec-row"><code>--fs-h1 / 30 / 700</code><div class="h1">Каталог блогеров России</div></div>
+  <div class="spec-row"><code>--fs-h2 / 21 / 600</code><div class="h2">Телеграм-каналы про финансы</div></div>
+  <div class="spec-row"><code>--fs-h3 / 17 / 600</code><div class="h3">Рекламные посты за 30 дней</div></div>
+  <div class="spec-row"><code>--fs-lead / 15 / 600</code><div class="lead">Мосты и туннели</div></div>
+  <div class="spec-row"><code>--fs-body / 14 / 400</code><div class="body">Канал ведёт обзоры техники, публикует 18 постов в месяц, доля рекламы 7,4%.</div></div>
+  <div class="spec-row"><code>--fs-meta / 12,5</code><div class="meta">Технологии · Telegram · данные обновлены 28 июля</div></div>
+  <div class="spec-row"><code>--fs-label / 11 / caps</code><div class="ds-label">Средний охват поста</div></div>
 
   <h4>Цифры — всегда табличные</h4>
-  <div class="row">
+  <div class="spec-row">
     <code>font-variant-numeric</code>
     <div>
       <div class="ds-value">3 087 084</div>
@@ -44,9 +52,9 @@
   с положительным (<code>.06em</code>) — без разрядки капс читается как каша. Цифры табличные,
   иначе в колонке выдачи разряды пляшут от строки к строке.</p>
 
-  <p class="ds-note"><b>Файла шрифта пока нет:</b> Onest объявлен в <code>--font</code>, но до тех пор,
-  пока не положим его локально, всё отрисовывается системным стеком. Шкала, трекинг и вёрстка от
-  этого не меняются. Внешних <code>@import</code> в токенах нет намеренно.</p>
+  <p class="ds-note">Onest лежит локально в <code>design-system/fonts/</code> и раздаётся со своего
+  домена: файл вариативный, один woff2 на подмножество символов покрывает всю шкалу 400—700.
+  Внешних <code>@import</code> в дизайн-системе нет намеренно.</p>
 </div>
 </body>
 </html>

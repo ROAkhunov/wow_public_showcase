@@ -1,0 +1,405 @@
+/* ============================================================================
+   Дизайн-система публичной витрины — компоненты (T-50)
+
+   Словарь классов, из которого собираются страницы витрины. Правило то же, что
+   у токенов: вид меняем здесь, а не в разметке страницы. В релизе шаблонных
+   страниц сотни тысяч — если оформление живёт в разметке, каждая новая страница
+   переизобретает его заново.
+
+   Ничего, кроме var(--*) из tokens.css, тут не используется: цвет, размер и
+   плотность задаются токеном, а не числом. Числа остались только там, где они
+   геометрия самого компонента (высота бейджа, размер иконки площадки).
+
+   Зависит от tokens.css — подключать после него.
+   ========================================================================== */
+
+
+/* ── Список и строка выдачи ─────────────────────────────────────────────────
+   Плоский белый список: строки на границах, теней нет. Это главное отличие от
+   прежнего прототипа, где каждая карточка несла двойную тень на голубом фоне. */
+
+.list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--avatar) minmax(220px, 1fr) 46px repeat(4, 96px);
+  align-items: center;
+  gap: var(--sp-4);
+  min-height: var(--row-h);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--line-soft);
+}
+.row:first-child { border-top: 0; }
+.row:hover { background: #fcfbf9; }
+
+@media (max-width: 860px) {
+  .row { grid-template-columns: var(--avatar) 1fr 46px; row-gap: var(--sp-3); }
+  .row .m { grid-column: span 1; }
+}
+
+/* аватар канала; --lg — на странице канала */
+.ava {
+  width: var(--avatar); height: var(--avatar);
+  border-radius: var(--r-md);
+  object-fit: cover;
+  background: var(--surface-sunk);
+  display: grid; place-items: center;
+  font-weight: 700; color: var(--dim); font-size: var(--fs-lead);
+  flex: none;
+}
+.ava--lg { width: 72px; height: 72px; font-size: var(--fs-h2); }
+
+.name { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.name b {
+  font-size: var(--fs-lead); font-weight: 600;
+  letter-spacing: var(--tracking-head);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.name a:hover b { color: var(--accent); }
+
+/* вторая строка под названием: тематика, число постов */
+.sub { font-size: var(--fs-meta); color: var(--dim); margin-top: 1px; }
+
+/* иконка площадки — до чтения названия видно, где канал живёт */
+.plat {
+  width: 18px; height: 18px; border-radius: 5px; flex: none;
+  display: grid; place-items: center;
+  color: #fff; font-size: 9px; font-weight: 700;
+}
+.plat--lg { width: 22px; height: 22px; border-radius: 6px; font-size: 10px; }
+.plat--tg { background: #229ed9; }
+.plat--vk { background: #0077ff; }
+.plat--yt { background: #ff0000; }
+.plat--dz { background: #1c1f1d; }
+
+/* галочка верификации */
+.ver {
+  width: 14px; height: 14px; flex: none; border-radius: 50%;
+  background: var(--ok);
+  display: grid; place-items: center;
+  color: #fff; font-size: 9px; line-height: 1;
+}
+.ver--lg { width: 18px; height: 18px; font-size: 11px; }
+
+
+/* ── Метрика ────────────────────────────────────────────────────────────────
+   Мелкий серый лейбл сверху, значение под ним. Приём BidFox: читается влёт,
+   ужимается в колонку 90px, работает и в строке выдачи, и плиткой. Лейбл и
+   значение — .ds-label и .ds-value из tokens.css. */
+
+.m { display: flex; flex-direction: column; gap: 2px; }
+/* необязательная подпись под значением */
+.m .sub { font-size: var(--fs-label); margin-top: 0; }
+
+/* метрики колонками — в строке выдачи */
+.m-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+/* метрики плитками — на странице канала */
+.m-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-3);
+}
+.m-tiles .m {
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.m-tiles .ds-value { font-size: var(--fs-h3); }
+
+
+/* ── Скоринговый бейдж ──────────────────────────────────────────────────────
+   Одна цифра у названия, по которой глаз сортирует выдачу, не читая метрик.
+   Шкала приглушённая, не светофорная: на странице с сотней строк чистый красный
+   и чистый зелёный дерутся за внимание с плашкой «реклама».
+   Состояние «нет данных» обязательно — часть каналов приедет без метрик. */
+
+.score {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 38px; height: 22px; padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-meta); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+.score--good { background: var(--score-good-bg); color: var(--score-good-fg); border-color: #cfe3cc; }
+.score--mid  { background: var(--score-mid-bg);  color: var(--score-mid-fg);  border-color: #eddfc0; }
+.score--low  { background: var(--score-low-bg);  color: var(--score-low-fg);  border-color: #efd2cd; }
+.score--none { background: var(--surface-sunk);  color: var(--muted);         border-color: var(--line); }
+
+/* крупный — на странице канала */
+.score--lg { min-width: 52px; height: 30px; font-size: var(--fs-lead); border-radius: var(--r-md); }
+
+
+/* ── Плашка «реклама» ───────────────────────────────────────────────────────
+   Вместе со скоринговым бейджем — единственные два места, где на витрине
+   появляется насыщенный цвет. */
+
+.flag {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  height: 20px; padding: 0 var(--sp-2);
+  background: var(--ad-soft); color: var(--ad);
+  border: 1px solid var(--ad-line); border-radius: var(--r-sm);
+  font-size: var(--fs-label); font-weight: 600;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+}
+.flag--solid { background: var(--ad); color: #fff; border-color: var(--ad); }
+
+
+/* ── Лента постов ───────────────────────────────────────────────────────────
+   Рекламный пост помечен плашкой и тёплой левой гранью, а не заливкой целиком:
+   на ленте в сотню постов заливка превращает страницу в полосатый ковёр. */
+
+.feed { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+.post {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+}
+.post--ad { border-left: 3px solid var(--ad); }
+
+.post-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.post-date { font-size: var(--fs-meta); color: var(--muted); }
+.post-text { font-size: var(--fs-body); margin: 0 0 var(--sp-3); }
+.post-stats { display: flex; gap: var(--sp-4); font-size: var(--fs-meta); color: var(--dim); }
+.post-stats b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* строка раскрытия рекламодателя: у юрлица — наименование, ОГРН и ИНН;
+   у ИП — только ИНН и ОГРНИП, наименование не выводим (решение 28.07) */
+.adv-line {
+  margin-top: var(--sp-3); padding-top: var(--sp-3);
+  border-top: 1px solid var(--line-soft);
+  font-size: var(--fs-meta); color: var(--dim);
+}
+.adv-line b { color: var(--text); font-weight: 600; }
+
+
+/* ── Фильтры ────────────────────────────────────────────────────────────────
+   Левая скрываемая колонка, а не верхняя панель (решение 22.07): верхняя панель
+   не масштабируется, параметров у нас больше, чем влезает в строку. */
+
+.layout { display: grid; grid-template-columns: 268px 1fr; gap: var(--sp-4); align-items: start; }
+.layout--off { grid-template-columns: 1fr; }
+.layout--off .side { display: none; }
+
+.side {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+}
+.side-head { display: flex; align-items: center; margin-bottom: var(--sp-3); }
+.side-head b { font-size: var(--fs-lead); }
+.side-hide {
+  margin-left: auto; background: none; border: 0;
+  color: var(--dim); font-size: var(--fs-meta);
+  cursor: pointer; font-family: inherit;
+}
+.side-hide:hover { color: var(--accent); }
+
+.group {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft);
+}
+.group:first-of-type { border-top: 0; padding-top: 0; }
+
+/* инпут, селект — одна форма на все поля ввода */
+.field {
+  width: 100%; height: var(--control-h); padding: 0 var(--sp-3);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--surface);
+  font: var(--fs-body)/1 var(--font); color: var(--text);
+}
+.field:focus { outline: 2px solid var(--accent-line); outline-offset: -1px; border-color: var(--accent); }
+.field::placeholder { color: var(--muted); }
+
+/* пара «от — до» */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+
+.check { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.topline { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.search { flex: 1; }
+
+.fbtn {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  height: var(--control-h); padding: 0 var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+  color: var(--dim); font-size: var(--fs-body); font-weight: 600;
+  cursor: pointer; flex: none; font-family: inherit;
+}
+.fbtn:hover { border-color: var(--line-strong); color: var(--text); }
+.fbtn--on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); }
+
+/* применённые фильтры тегами над выдачей — живая фильтрация и есть тот
+   интерактив, который отличает каталог от статичного списка */
+.applied { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.tag {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  height: 28px; padding: 0 var(--sp-3);
+  background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-dark);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-meta); font-weight: 500;
+}
+.tag button { background: none; border: 0; color: inherit; cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
+
+
+/* ── Сортировка и пагинация ─────────────────────────────────────────────────
+   Страницы — обычные ссылки с адресом, а не подгрузка по скроллу: краулер
+   должен дойти до последней. Соседние номера всегда видны, иначе глубокие
+   страницы недостижимы и по кликам, и по обходу. */
+
+.bar {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  margin-bottom: var(--sp-4);
+}
+.bar .count { font-size: var(--fs-meta); color: var(--dim); margin-left: auto; }
+.bar .count b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.sort { display: flex; gap: var(--sp-2); align-items: center; }
+.sort .ds-label { margin-right: var(--sp-1); }
+
+.sbtn {
+  height: 30px; padding: 0 var(--sp-3);
+  border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface);
+  font: var(--fs-meta)/1 var(--font); color: var(--dim); cursor: pointer;
+}
+.sbtn:hover { border-color: var(--line-strong); color: var(--text); }
+.sbtn.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); font-weight: 600; }
+
+.pg { display: flex; gap: var(--sp-2); align-items: center; justify-content: center; flex-wrap: wrap; }
+.pg a, .pg span {
+  min-width: 36px; height: 36px; padding: 0 var(--sp-2);
+  border-radius: var(--r-md);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--fs-body);
+  border: 1px solid var(--line); background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+.pg a:hover { border-color: var(--line-strong); }
+.pg .on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.pg .gap { border: 0; background: none; color: var(--muted); min-width: 20px; }
+.pg .off { color: var(--muted); background: var(--surface-sunk); }
+
+
+/* ── Шапка сайта ────────────────────────────────────────────────────────────
+   Разделы вторым рядом, а не в выпадающем меню: это входы на посадочные
+   страницы под низкочастотку и внутренняя перелинковка, ради которой всё
+   и затевается. */
+
+.hdr { background: var(--surface); border-bottom: 1px solid var(--line); }
+.hdr .inner {
+  max-width: var(--wrap); margin: 0 auto; padding: 0 var(--sp-5);
+  display: flex; align-items: center; gap: var(--sp-6); height: 60px;
+}
+
+.logo { display: flex; align-items: center; gap: var(--sp-2); font-size: 18px; font-weight: 700; letter-spacing: var(--tracking-head); }
+.logo-mark {
+  width: 26px; height: 26px; border-radius: 7px; background: var(--accent);
+  display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700;
+}
+
+.nav { display: flex; gap: var(--sp-5); font-size: var(--fs-body); color: var(--dim); margin-left: auto; }
+.nav a:hover { color: var(--text); }
+.nav .on { color: var(--text); font-weight: 600; }
+
+.sections { background: var(--surface); border-bottom: 1px solid var(--line); }
+.sections .inner {
+  max-width: var(--wrap); margin: 0 auto; padding: 0 var(--sp-5);
+  display: flex; gap: var(--sp-2); height: 46px; align-items: center; overflow-x: auto;
+}
+.sec {
+  height: 30px; padding: 0 var(--sp-3);
+  display: inline-flex; align-items: center;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-meta); color: var(--dim); white-space: nowrap;
+}
+.sec:hover { background: var(--surface-sunk); color: var(--text); }
+.sec.on { background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }
+
+/* заголовок и абзац под ним — единственное место, где витрина отличается
+   от кабинета закупщика: краулеру нужен текст, а не только таблица */
+.hero { max-width: var(--wrap); margin: 0 auto; padding: var(--sp-6) var(--sp-5) var(--sp-5); }
+.hero h1 {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-h1); line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-head); font-weight: 700;
+}
+.hero p { margin: 0; color: var(--dim); max-width: 68ch; }
+
+
+/* ── Шапка канала ───────────────────────────────────────────────────────────
+   Площадки автора — ссылки на отдельные страницы, а не табы: у каждого канала
+   свой URL (решение 22.07, единица страницы — канал). */
+
+.head {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: var(--sp-5);
+}
+.top { display: flex; gap: var(--sp-4); align-items: flex-start; }
+
+.title { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.title h1 {
+  margin: 0;
+  font-size: var(--fs-h1); line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-head); font-weight: 700;
+}
+
+.breadcrumbs { font-size: var(--fs-meta); color: var(--dim); margin-bottom: var(--sp-3); }
+.breadcrumbs a:hover { color: var(--accent); }
+
+.desc { margin: var(--sp-3) 0 0; color: var(--dim); max-width: 62ch; }
+
+.actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); flex-wrap: wrap; }
+.btn {
+  height: var(--control-h); padding: 0 var(--sp-4);
+  border-radius: var(--r-md);
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-body); font-weight: 600;
+  cursor: pointer; border: 1px solid transparent;
+}
+.btn--primary { background: var(--accent); color: #fff; }
+.btn--primary:hover { background: var(--accent-dark); }
+.btn--ghost { background: var(--surface); color: var(--text); border-color: var(--line); }
+.btn--ghost:hover { border-color: var(--line-strong); }
+
+.sites { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line-soft); }
+.sites-list { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }
+.chip {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  height: 32px; padding: 0 var(--sp-3);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  font-size: var(--fs-meta); background: var(--surface);
+}
+.chip:hover { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-dark); }
+.chip .dot {
+  width: 14px; height: 14px; border-radius: 4px;
+  display: grid; place-items: center;
+  color: #fff; font-size: 7px; font-weight: 700;
+}
+
+.updated { font-size: var(--fs-meta); color: var(--muted); margin-top: var(--sp-4); }
+
+
+/* ── Утилиты значений ───────────────────────────────────────────────────────
+   Цвет несёт смысл, а не украшает: .adv — доля рекламы, .none — «нет данных». */
+
+.adv  { color: var(--ad); }
+.up   { color: var(--ok); }
+.down { color: var(--score-low-fg); }
+.none { color: var(--muted); font-weight: 500; }

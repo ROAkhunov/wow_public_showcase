@@ -5,62 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Строка выдачи</title>
-<style>
-  /* Плоский белый список: строки на границах, теней нет. Это главное отличие
-     от прежнего прототипа, где каждая карточка несла двойную тень на голубом фоне. */
-  .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
-
-  .row {
-    display: grid;
-    grid-template-columns: var(--avatar) minmax(220px, 1fr) 46px repeat(4, 96px);
-    align-items: center;
-    gap: var(--sp-4);
-    min-height: var(--row-h);
-    padding: var(--sp-3) var(--sp-4);
-    border-top: 1px solid var(--line-soft);
-  }
-  .row:first-child { border-top: 0; }
-  .row:hover { background: #fcfbf9; }
-
-  .ava { width: var(--avatar); height: var(--avatar); border-radius: var(--r-md);
-         object-fit: cover; background: var(--surface-sunk); display: grid; place-items: center;
-         font-weight: 700; color: var(--dim); font-size: var(--fs-lead); }
-
-  .name { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
-  .name b { font-size: var(--fs-lead); font-weight: 600; letter-spacing: var(--tracking-head);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .name a:hover b { color: var(--accent); }
-  .sub { font-size: var(--fs-meta); color: var(--dim); margin-top: 1px; }
-
-  /* иконка площадки — до чтения названия видно, где канал живёт */
-  .plat { width: 18px; height: 18px; border-radius: 5px; flex: none;
-          display: grid; place-items: center; color: #fff; font-size: 9px; font-weight: 700; }
-  .plat--tg { background: #229ed9; }
-  .plat--vk { background: #0077ff; }
-  .plat--yt { background: #ff0000; }
-  .plat--dz { background: #1c1f1d; }
-
-  .ver { width: 14px; height: 14px; flex: none; border-radius: 50%; background: var(--ok);
-         display: grid; place-items: center; color: #fff; font-size: 9px; line-height: 1; }
-
-  .m { display: flex; flex-direction: column; gap: 2px; }
-  .adv { color: var(--ad); }
-  .none { color: var(--muted); font-weight: 500; }
-
-  .score { display: inline-flex; align-items: center; justify-content: center;
-           min-width: 38px; height: 22px; padding: 0 var(--sp-2); border-radius: var(--r-sm);
-           font-size: var(--fs-meta); font-weight: 700; font-variant-numeric: tabular-nums;
-           border: 1px solid transparent; }
-  .score--good { background: var(--score-good-bg); color: var(--score-good-fg); border-color: #cfe3cc; }
-  .score--mid  { background: var(--score-mid-bg);  color: var(--score-mid-fg);  border-color: #eddfc0; }
-  .score--low  { background: var(--score-low-bg);  color: var(--score-low-fg);  border-color: #efd2cd; }
-  .score--none { background: var(--surface-sunk);  color: var(--muted);          border-color: var(--line); }
-
-  @media (max-width: 860px) {
-    .row { grid-template-columns: var(--avatar) 1fr 46px; row-gap: var(--sp-3); }
-    .row .m { grid-column: span 1; }
-  }
-</style>
+<link rel="stylesheet" href="../index.css">
+<link rel="stylesheet" href="../preview.css">
 </head>
 <body>
 <div class="ds-preview">
