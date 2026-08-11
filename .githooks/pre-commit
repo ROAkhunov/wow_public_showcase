@@ -1,0 +1,64 @@
+#!/bin/bash
+# Сторож публичности. Репозиторий открыт всему миру, поэтому коммит проверяется
+# до того, как уедет: реальный срез с ФИО рекламодателей, .env, дампы, секреты
+# и случайные тяжёлые файлы дальше индекса не проходят.
+#
+# Живёт под git, подключается через core.hooksPath — переживает клон, в отличие
+# от .git/hooks. После клона: git config core.hooksPath .githooks
+#
+# Разовый обход, когда точно знаешь, что делаешь: git commit --no-verify
+
+MAX_FILE_KB=512
+FAIL=0
+
+say() { echo "ОТКАЗ: $1" >&2; FAIL=1; }
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$STAGED" ] && exit 0
+
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+
+  case "$file" in
+    prototype/data.js)
+      say "$file — реальный срез с прода, в нём ФИО рекламодателей-физлиц. Для примеров есть prototype/data.example.js" ;;
+    .env|*/.env|.env.*|*/.env.*)
+      say "$file — файл окружения. В публичный репозиторий не едет, шаблон без значений называй .env.example" ;;
+    *.sql|*.dump|*.dmp|*.bak)
+      say "$file — похоже на дамп базы. Дампы в git не хранятся" ;;
+    *.pem|*.key|id_rsa|*/id_rsa|*.p12|*.pfx)
+      say "$file — похоже на ключ" ;;
+  esac
+
+  # Размер: тяжёлый файл в публичном репозитории почти всегда данные, а не код.
+  # Шрифты и картинки дизайн-системы в порог укладываются.
+  if [ -f "$file" ]; then
+    KB=$(( ($(wc -c < "$file") + 1023) / 1024 ))
+    if [ "$KB" -gt "$MAX_FILE_KB" ]; then
+      say "$file весит ${KB} КБ при пороге ${MAX_FILE_KB}. Если это данные, им тут не место; если код, поднимай MAX_FILE_KB в .githooks/pre-commit"
+    fi
+  fi
+done <<< "$STAGED"
+
+# Секреты в содержимом. Смотрим только добавляемые строки, чтобы старый файл
+# не блокировал коммит бесконечно.
+ADDED=$(git diff --cached -U0 --diff-filter=ACMR | grep -E '^\+' | grep -vE '^\+\+\+')
+
+check_added() {
+  if printf '%s' "$ADDED" | grep -qiE "$1"; then
+    say "в добавляемых строках $2. Проверь глазами, вынеси в окружение"
+  fi
+}
+
+check_added 'postgres(ql)?://[^ "'"'"']*:[^ @"'"'"']+@' "строка подключения к базе с паролем"
+check_added '(secret|password|passwd|api_key|apikey|access_token)[[:space:]]*[=:][[:space:]]*["'"'"'][^"'"'"']{8,}' "пароль или ключ значением"
+check_added 'BEGIN [A-Z ]*PRIVATE KEY' "приватный ключ"
+check_added '[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}' "токен телеграм-бота"
+
+if [ "$FAIL" -ne 0 ]; then
+  echo "" >&2
+  echo "Коммит остановлен сторожем публичности (.githooks/pre-commit)." >&2
+  exit 1
+fi
+
+exit 0
