@@ -38,13 +38,41 @@ class Page:
     number: int
     size: int
 
+    #: сколько соседей текущей страницы показывать номерами в пагинации.
+    WINDOW_SPAN = 2
+
     @property
     def pages(self) -> int:
-        return max(1, -(-self.total // self.size))
+        return pages_in(self.total, self.size)
 
     @property
     def has_next(self) -> bool:
         return self.number < self.pages
+
+    @property
+    def window(self) -> list[int]:
+        """Номера страниц для пагинации, `0` вместо пропущенного куска.
+
+        Все номера в строку не помещаются: каталог это 2 700 страниц. Показываем
+        первую, последнюю и соседей текущей — краулеру хватает, чтобы шагом за
+        шагом дойти до конца, а человеку чтобы понять, где он.
+        """
+        last = self.pages
+        shown = {1, last}
+        shown |= {n for n in range(self.number - self.WINDOW_SPAN,
+                                   self.number + self.WINDOW_SPAN + 1)
+                  if 1 <= n <= last}
+        out: list[int] = []
+        for n in sorted(shown):
+            if out and n - out[-1] > 1:
+                out.append(0)
+            out.append(n)
+        return out
+
+
+def pages_in(total: int, size: int) -> int:
+    """Сколько страниц (или кусков карты сайта) выйдет из `total` строк."""
+    return max(1, -(-total // size))
 
 
 class Showcase:
@@ -110,7 +138,7 @@ class Showcase:
             channel["categories"] = cur.fetchall()
 
             cur.execute("""
-                SELECT c.platform, c.username, c.display_name, c.subscribers
+                SELECT c.platform, c.username_lower, c.display_name, c.subscribers
                 FROM channel_sibling s JOIN channel c ON c.id = s.sibling_channel_id
                 WHERE s.channel_id = %s
                 ORDER BY c.subscribers DESC NULLS LAST
@@ -144,7 +172,8 @@ class Showcase:
             cur.execute(f"SELECT count(*) AS n FROM channel c {join} {clause}", params)
             total = cur.fetchone()["n"]
             cur.execute(f"""
-                SELECT c.platform, c.username, c.display_name, c.avatar_file,
+                SELECT c.platform, c.username, c.username_lower, c.display_name,
+                       c.avatar_file,
                        c.subscribers, c.views_organic, c.coverage_ratio, c.er_percent,
                        c.posts_30d, c.ad_share_30d, c.last_post_at
                 FROM channel c {join} {clause}
@@ -182,8 +211,9 @@ class Showcase:
 
     def sitemap_chunk(self, number: int, size: int) -> list[dict]:
         with self._cursor() as (cur, _):
+            # В карту едет только нижний регистр: адрес у страницы один.
             cur.execute("""
-                SELECT platform, username, built_at FROM channel
+                SELECT platform, username_lower, built_at FROM channel
                 ORDER BY id LIMIT %s OFFSET %s
             """, (size, (number - 1) * size))
             return cur.fetchall()

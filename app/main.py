@@ -9,25 +9,34 @@
 """
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import (FileResponse, HTMLResponse, PlainTextResponse,
+                               RedirectResponse, Response)
 from fastapi.templating import Jinja2Templates
 
 from app import format as fmt
 from app.chart import sparkline
-from app.db import Page, Showcase, ShowcaseUnavailable
-from app.settings import PLATFORM_NAMES, PLATFORMS, Settings, from_env
+from app.db import Page, Showcase, ShowcaseUnavailable, pages_in
+from app.settings import PLATFORM_CODES, PLATFORM_NAMES, PLATFORMS, Settings, from_env
 
 ROOT = Path(__file__).resolve().parent.parent
+ASSETS_DIR = ROOT / "design-system"
+
+log = logging.getLogger("showcase")
 
 #: значение X-Robots-Tag, когда сайт открыт, но страница в индекс не нужна.
 FOLLOW_ONLY = "noindex, follow"
 CLOSED = "noindex, nofollow"
+
+#: что из дизайн-системы отдаётся наружу. Каталог целиком монтировать нельзя:
+#: рядом с этими файлами лежат `specimen.html` и превью компонентов, а это
+#: лишние индексируемые страницы на публичном домене.
+PUBLIC_ASSETS = ("index.css", "tokens.css", "components.css", "fonts/fonts.css")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -40,10 +49,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     templates.env.filters.update(num=fmt.num, pct=fmt.pct, signed=fmt.signed,
                                  date_ru=fmt.date_ru, clip=fmt.clip)
     templates.env.globals.update(plural=fmt.plural, platform_names=PLATFORM_NAMES,
-                                 platforms=PLATFORMS, settings=settings)
+                                 platform_codes=PLATFORM_CODES, platforms=PLATFORMS,
+                                 settings=settings)
     app.state.templates = templates
-
-    app.mount("/assets", StaticFiles(directory=str(ROOT / "design-system")), name="assets")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -75,39 +83,72 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def not_found(request: Request, what: str = "Страница не найдена") -> HTMLResponse:
         return render(request, "404.html", status=404, what=what)
 
-    def page_number(request: Request) -> int:
-        raw = request.query_params.get("page", "1")
-        return max(1, int(raw)) if raw.isdigit() else 1
+    def page_number(request: Request) -> int | None:
+        """Номер страницы из `?page=`, или None, если такой страницы не бывает.
 
-    def mark_pagination(request: Request, page: Page) -> None:
+        Мусор, ноль и отрицательные — это несуществующий адрес, а не первая
+        страница: подставив первую, мы завели бы бесконечное число адресов с
+        одинаковым содержанием (US19).
+        """
+        raw = request.query_params.get("page", "1")
+        if not raw.isdigit() or int(raw) < 1:
+            return None
+        return int(raw)
+
+    def catalog_page(request: Request, *, title: str, subtitle: str, base_url: str,
+                     platform: str | None = None, category: str | None = None,
+                     counts: dict | None = None,
+                     categories: list | None = None) -> HTMLResponse:
+        """Один ход всех каталожных страниц: номер → выборка → пометка → рендер.
+
+        Каталог, раздел площадки и раздел категории отличаются только заголовком
+        и условием выборки, поэтому пагинация и её 404 живут в одном месте.
+        """
+        n = page_number(request)
+        if n is None:
+            return not_found(request, "Такой страницы каталога нет")
+        page = app.state.db.catalog(platform=platform, category=category,
+                                    page=n, size=settings.page_size)
+        # Страница за последней — такой же несуществующий адрес, как неизвестный
+        # канал: пустой список со статусом 200 краулер копил бы себе в индекс.
+        if n > page.pages:
+            return not_found(request, "Такой страницы каталога нет")
         if page.number > 1:
             request.state.robots = FOLLOW_ONLY
+        return render(request, "catalog.html", page=page, title=title, subtitle=subtitle,
+                      base_url=base_url, counts=counts or {}, categories=categories or [],
+                      built_at=app.state.db.build().built_at)
 
     # ── каталог и разделы ────────────────────────────────────────────────
     @app.get("/", response_class=HTMLResponse)
     def catalog(request: Request):
-        n = page_number(request)
-        page = app.state.db.catalog(page=n, size=settings.page_size)
-        mark_pagination(request, page)
-        return render(request, "catalog.html", page=page, title="Каталог каналов",
-                      subtitle="Аудитория, охваты и реклама по данным открытых источников",
-                      base_url="/", counts=app.state.db.platform_counts(),
-                      categories=app.state.db.categories()[:24],
-                      built_at=app.state.db.build().built_at)
+        return catalog_page(
+            request, title="Каталог каналов",
+            subtitle="Аудитория, охваты и реклама по данным открытых источников",
+            base_url="/", counts=app.state.db.platform_counts(),
+            categories=app.state.db.categories()[:24])
 
     @app.get("/category/{slug}", response_class=HTMLResponse)
     def category(request: Request, slug: str):
         name = app.state.db.category_name(slug)
         if not name:
             return not_found(request, "Такой категории нет")
-        n = page_number(request)
-        page = app.state.db.catalog(category=slug, page=n, size=settings.page_size)
-        mark_pagination(request, page)
-        return render(request, "catalog.html", page=page, title=name,
-                      subtitle=f"Каналы в категории «{name}»",
-                      base_url=f"/category/{quote(slug)}",
-                      counts={}, categories=app.state.db.categories()[:24],
-                      built_at=app.state.db.build().built_at)
+        return catalog_page(
+            request, title=name, subtitle=f"Каналы в категории «{name}»",
+            base_url=f"/category/{quote(slug)}", category=slug,
+            categories=app.state.db.categories()[:24])
+
+    # ── статика дизайн-системы ───────────────────────────────────────────
+    # Регистрируется до `/{platform}`, иначе раздел-заглушка перехватит адрес.
+    @app.get("/assets/{path:path}")
+    def asset(request: Request, path: str):
+        font = path.startswith("fonts/") and path.endswith(".woff2") and path.count("/") == 1
+        if path not in PUBLIC_ASSETS and not font:
+            return not_found(request, "Такого файла нет")
+        target = ASSETS_DIR / path
+        if not target.is_file():
+            return not_found(request, "Такого файла нет")
+        return FileResponse(target)
 
     # ── краулер ──────────────────────────────────────────────────────────
     # Регистрируются до `/{platform}`: маршруты разбираются по порядку, и
@@ -122,21 +163,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     f"Sitemap: {settings.site_origin}/sitemap.xml\n")
         return PlainTextResponse(body)
 
+    def sitemap_chunks() -> int:
+        return pages_in(app.state.db.channels_total(), settings.sitemap_chunk)
+
     @app.get("/sitemap.xml")
     def sitemap_index(request: Request):
-        total = app.state.db.channels_total()
-        chunks = max(1, -(-total // settings.sitemap_chunk))
         xml = app.state.templates.get_template("sitemap_index.xml").render(
-            chunks=range(1, chunks + 1), origin=settings.site_origin)
+            chunks=range(1, sitemap_chunks() + 1), origin=settings.site_origin)
         return Response(xml, media_type="application/xml")
 
+    # Номер принимается строкой и проверяется руками: на `/sitemap-abc.xml`
+    # валидатор FastAPI ответил бы своим JSON с кодом 422, а краулеру на
+    # неизвестный адрес нужна страница 404.
     @app.get("/sitemap-{number}.xml")
-    def sitemap_chunk(request: Request, number: int):
-        total = app.state.db.channels_total()
-        chunks = max(1, -(-total // settings.sitemap_chunk))
-        if number < 1 or number > chunks:
+    def sitemap_chunk(request: Request, number: str):
+        if not number.isdigit() or not 1 <= int(number) <= sitemap_chunks():
             return not_found(request, "Такого файла карты сайта нет")
-        rows = app.state.db.sitemap_chunk(number, settings.sitemap_chunk)
+        rows = app.state.db.sitemap_chunk(int(number), settings.sitemap_chunk)
         xml = app.state.templates.get_template("sitemap.xml").render(
             rows=rows, origin=settings.site_origin)
         return Response(xml, media_type="application/xml")
@@ -146,18 +189,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def platform_section(request: Request, platform: str):
         if platform not in PLATFORMS:
             return not_found(request)
-        n = page_number(request)
-        page = app.state.db.catalog(platform=platform, page=n, size=settings.page_size)
-        mark_pagination(request, page)
         name = PLATFORM_NAMES[platform]
-        return render(request, "catalog.html", page=page, title=f"Каналы · {name}",
-                      subtitle=f"Все площадки {name} в базе", base_url=f"/{platform}",
-                      counts={}, categories=[], built_at=app.state.db.build().built_at)
+        return catalog_page(request, title=f"Каналы · {name}",
+                            subtitle=f"Все площадки {name} в базе",
+                            base_url=f"/{platform}", platform=platform)
 
     @app.get("/{platform}/{username}", response_class=HTMLResponse)
     def channel(request: Request, platform: str, username: str):
         if platform not in PLATFORMS:
             return not_found(request)
+        # У канала ровно один адрес, и он в нижнем регистре. Иначе одна и та же
+        # страница жила бы по двум адресам, а страницы-клоны роняют оценку
+        # домена целиком (US19). Регистр приводим до похода в базу.
+        if username != username.lower():
+            return RedirectResponse(f"/{platform}/{username.lower()}", status_code=301)
         row = app.state.db.channel(platform, username)
         if not row:
             return not_found(request, "Такого канала в базе нет")
@@ -167,10 +212,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # ── дамп ещё не собран ───────────────────────────────────────────────
     @app.exception_handler(ShowcaseUnavailable)
     def no_live_schema(request: Request, exc: ShowcaseUnavailable):
+        # Отказ обслуживания не уходит в тишину: правило проекта — потеря и
+        # отказ это warning, а не debug (WOWlist_manage/CLAUDE.md).
+        log.warning("витрина недоступна на %s: %s", request.url.path, exc)
         return render(request, "404.html", status=503,
                       what="Витрина ещё наполняется, загляните чуть позже")
 
     return app
-
-
-app = None  # создаётся в точке входа: см. app/asgi.py

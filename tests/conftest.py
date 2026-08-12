@@ -86,6 +86,21 @@ class Layer:
         with self.conn.cursor() as cur:
             cur.execute(LAYER_SQL.replace("{schema}", schema))
 
+    def _insert(self, table: str, row: dict) -> None:
+        cols = ", ".join(row)
+        holders = ", ".join(["%s"] * len(row))
+        with self.conn.cursor() as cur:
+            cur.execute(f'INSERT INTO "{self.schema}".{table} ({cols}) VALUES ({holders})',
+                        list(row.values()))
+
+    def columns(self, table: str) -> list[str]:
+        """Состав колонок таблицы слоя: им проверяется, чего в слое нет."""
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = %s AND table_name = %s",
+                        (self.schema, table))
+            return [name for (name,) in cur.fetchall()]
+
     # ── строки слоя ──────────────────────────────────────────────────────
     def channel(self, id: int, platform: str = "tg", username: str = "example_channel", **kw):
         row = dict(
@@ -94,6 +109,7 @@ class Layer:
             url=f"https://t.me/{username}",
             display_name=f"Канал {username}", description="Описание канала",
             avatar_file=None, blogger_id=None, blogger_has_siblings=False,
+            wowblogger_slug=None,
             subscribers=120_000, views_avg=None, coverage_ratio=18.5, er_percent=4.2,
             posts_30d=12, ads_30d=3, ad_share_30d=25.0,
             views_organic=22_200, views_ad=15_400, views_drop=-30.6, views_spread=18.0,
@@ -102,11 +118,7 @@ class Layer:
             stats_scraped_at=NOW - timedelta(hours=6), built_at=NOW,
         )
         row.update(kw)
-        cols = ", ".join(row)
-        holders = ", ".join(["%s"] * len(row))
-        with self.conn.cursor() as cur:
-            cur.execute(f'INSERT INTO "{self.schema}".channel ({cols}) VALUES ({holders})',
-                        list(row.values()))
+        self._insert("channel", row)
         return id
 
     def post(self, channel_id: int, post_id: str, **kw):
@@ -117,11 +129,7 @@ class Layer:
             is_ad=False, posted_at=NOW - timedelta(days=1),
         )
         row.update(kw)
-        cols = ", ".join(row)
-        holders = ", ".join(["%s"] * len(row))
-        with self.conn.cursor() as cur:
-            cur.execute(f'INSERT INTO "{self.schema}".channel_post ({cols}) VALUES ({holders})',
-                        list(row.values()))
+        self._insert("channel_post", row)
 
     def history(self, channel_id: int, points: list[tuple]):
         with self.conn.cursor() as cur:
@@ -147,11 +155,7 @@ class Layer:
                    entity_type="ul", placements_count=2,
                    last_placed_at=NOW - timedelta(days=10), rank=rank)
         row.update(kw)
-        cols = ", ".join(row)
-        holders = ", ".join(["%s"] * len(row))
-        with self.conn.cursor() as cur:
-            cur.execute(f'INSERT INTO "{self.schema}".channel_advertiser ({cols}) '
-                        f"VALUES ({holders})", list(row.values()))
+        self._insert("channel_advertiser", row)
 
     # ── указатель ────────────────────────────────────────────────────────
     def go_live(self, channels_total: int | None = None):

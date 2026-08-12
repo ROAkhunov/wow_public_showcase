@@ -22,6 +22,7 @@ CREATE TABLE "{schema}".channel (
     avatar_file          TEXT,
     blogger_id           BIGINT,
     blogger_has_siblings BOOLEAN NOT NULL DEFAULT FALSE,
+    wowblogger_slug      TEXT,
 
     subscribers          BIGINT,
     views_avg            INTEGER,

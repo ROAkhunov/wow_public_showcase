@@ -4,64 +4,79 @@
 {% block description %}{{ subtitle }}{% endblock %}
 {% block canonical %}{{ base_url }}{% if page.number > 1 %}?page={{ page.number }}{% endif %}{% endblock %}
 
+{% block hero %}
+<div class="hero">
+  <h1>{{ title }}</h1>
+  <p>{{ subtitle }}</p>
+</div>
+{% endblock %}
+
 {% block body %}
-<section class="sec">
-  <h1 class="title">{{ title }}</h1>
-  <p class="sub">{{ subtitle }} · {{ page.total | num }}
-     {{ plural(page.total, 'канал', 'канала', 'каналов') }}</p>
+{% if categories %}
+<div class="sites-list">
+  {% for cat in categories %}
+    <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
+  {% endfor %}
+</div>
+{% endif %}
 
-  {% if counts %}
-  <div class="sections">
-    {% for p in platforms if counts.get(p) %}
-      <a class="sbtn" href="/{{ p }}">{{ platform_names[p] }} <span class="sub">{{ counts[p] | num }}</span></a>
-    {% endfor %}
-  </div>
-  {% endif %}
+<div class="bar">
+  <span class="ds-label">Каналы</span>
+  <span class="count">Найдено <b>{{ page.total | num }}</b>
+    {{ plural(page.total, 'канал', 'канала', 'каналов') }}</span>
+</div>
 
-  {% if categories %}
+<div class="list">
+  {% for c in page.rows %}
   <div class="row">
-    {% for cat in categories %}
-      <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
-    {% endfor %}
-  </div>
-  {% endif %}
-</section>
-
-<section class="sec">
-  <div class="list">
-    {% for c in page.rows %}
-    <a class="row" href="/{{ c.platform }}/{{ c.username }}">
-      {% if c.avatar_file %}
-        <img class="ava" src="{{ settings.avatar_base }}/{{ c.avatar_file }}" alt="" loading="lazy" width="40" height="40">
-      {% else %}
-        <span class="ava">{{ (c.display_name or c.username)[0] | upper }}</span>
-      {% endif %}
-      <span class="name">
-        <b>{{ c.display_name or c.username }}</b>
-        <span class="sub"><span class="plat plat--{{ c.platform }}">{{ platform_names[c.platform] }}</span> {{ c.username }}</span>
-      </span>
-      <span class="m"><span class="m-cols">Подписчиков</span><b>{{ c.subscribers | num }}</b></span>
-      <span class="m"><span class="m-cols">Охват</span><b>{{ c.views_organic | num }}</b></span>
-      <span class="m"><span class="m-cols">ER</span><b>{{ c.er_percent | pct }}</b></span>
-      <span class="m"><span class="m-cols">Реклама</span><b>{{ c.ad_share_30d | pct }}</b></span>
-    </a>
+    {% if c.avatar_file %}
+      <img class="ava" src="{{ settings.avatar_base }}/{{ c.avatar_file }}" alt="" loading="lazy" width="40" height="40">
     {% else %}
-    <p class="none">Здесь пока пусто.</p>
-    {% endfor %}
+      <div class="ava">{{ (c.display_name or c.username)[:2] | upper }}</div>
+    {% endif %}
+    <div>
+      <div class="name">
+        <span class="plat plat--{{ c.platform }}">{{ platform_codes[c.platform] }}</span>
+        <a href="/{{ c.platform }}/{{ c.username_lower }}"><b>{{ c.display_name or c.username }}</b></a>
+      </div>
+      <div class="sub">{{ platform_names[c.platform] }} · {{ c.username }} ·
+        {{ c.posts_30d | num }} {{ plural(c.posts_30d, 'пост', 'поста', 'постов') }} за месяц{%
+        if c.last_post_at %} · последний {{ c.last_post_at | date_ru }}{% endif %}</div>
+    </div>
+    <span></span>
+    {# Набор колонок в строке фиксирован, и метрика без значения показывается
+       прочерком: ячейки соседних строк обязаны стоять друг под другом. Правило
+       «метрика показывается, когда она есть» относится к плиткам страницы
+       канала, где блок убирается без последствий (спека, «Метрики»). #}
+    <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ c.subscribers | num }}</span></div>
+    <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ c.views_organic | num }}</span></div>
+    <div class="m"><span class="ds-label">Коэф. охвата</span><span class="ds-value">{{ c.coverage_ratio | pct }}</span></div>
+    <div class="m"><span class="ds-label">Доля рекламы</span><span class="ds-value adv">{{ c.ad_share_30d | pct }}</span></div>
   </div>
+  {% else %}
+  <div class="row"><span class="none">Здесь пока пусто.</span></div>
+  {% endfor %}
+</div>
 
-  {% if page.pages > 1 %}
-  {# Пагинация со второй страницы под noindex, follow: краулер проходит её
-     насквозь до карточек, а страниц-клонов в индексе не копится. #}
-  <nav class="pg">
-    {% if page.number > 1 %}
-      <a href="{{ base_url }}{% if page.number > 2 %}?page={{ page.number - 1 }}{% endif %}">Назад</a>
-    {% endif %}
-    <span class="sub">Страница {{ page.number }} из {{ page.pages | num }}</span>
-    {% if page.has_next %}
-      <a href="{{ base_url }}?page={{ page.number + 1 }}">Дальше</a>
-    {% endif %}
-  </nav>
+{% if page.pages > 1 %}
+{# Страницы — обычные ссылки с адресом: краулер должен дойти до последней.
+   Со второй они отдаются под noindex, follow, чтобы в индекс не копились клоны. #}
+<nav class="pg">
+  {% if page.number > 1 %}
+    <a href="{{ base_url }}{% if page.number > 2 %}?page={{ page.number - 1 }}{% endif %}">←</a>
+  {% else %}
+    <span class="off">←</span>
   {% endif %}
-</section>
+  {% for n in page.window %}
+    {% if n == page.number %}<span class="on">{{ n }}</span>
+    {% elif n %}<a href="{{ base_url }}{% if n > 1 %}?page={{ n }}{% endif %}">{{ n }}</a>
+    {% else %}<span class="gap">…</span>{% endif %}
+  {% endfor %}
+  {% if page.has_next %}
+    <a href="{{ base_url }}?page={{ page.number + 1 }}">→</a>
+  {% else %}
+    <span class="off">→</span>
+  {% endif %}
+</nav>
+{% endif %}
 {% endblock %}

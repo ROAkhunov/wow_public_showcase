@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 
 WIDTH, HEIGHT, PAD = 900, 150, 26
 MIN_POINTS = 3
@@ -18,8 +19,8 @@ MIN_POINTS = 3
 class Sparkline:
     line: str
     area: str
-    first_date: object
-    last_date: object
+    first_date: date
+    last_date: date
     minimum: int
     maximum: int
 

@@ -1,10 +1,10 @@
 {#
-  Каркас всех страниц витрины. Стили — один файл дизайн-системы, второго набора
-  в репозитории не заводим: страниц в релизе сотни тысяч, и каждая новая иначе
-  переизобретала бы оформление.
+  Каркас всех страниц витрины. Вёрстка собирается классами дизайн-системы
+  (`design-system/components.css`), второго набора стилей в репозитории нет:
+  страниц в релизе сотни тысяч, и каждая новая иначе переизобретала бы вид.
 
   Клиентского JS здесь нет и быть не должно: тест шва 3 проверяет отсутствие
-  тега <script> в теле ответа, а не подразумевает его.
+  тега script в теле ответа, а не подразумевает его.
 #}<!doctype html>
 <html lang="ru">
 <head>
@@ -19,20 +19,29 @@
 <body>
 
 <header class="hdr">
-  <div class="wrap">
+  <div class="inner">
     <a class="logo" href="/"><span class="logo-mark">F</span> Fomobase</a>
-    <nav class="nav">
-      {% for p in platforms %}<a href="/{{ p }}">{{ platform_names[p] }}</a>{% endfor %}
-    </nav>
+    <nav class="nav"><a class="on" href="/">Каталог</a></nav>
   </div>
 </header>
 
-<main class="wrap">
+<div class="sections">
+  <div class="inner">
+    <a class="sec{% if not section %} on{% endif %}" href="/">Все площадки</a>
+    {% for p in platforms %}
+      <a class="sec{% if section == p %} on{% endif %}" href="/{{ p }}">{{ platform_names[p] }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% block hero %}{% endblock %}
+
+<main class="ds-wrap">
 {% block body %}{% endblock %}
 </main>
 
-<footer class="sec wrap">
-  <p class="sub">Данные собраны из открытых источников. Цифры обновляются раз в сутки.</p>
+<footer class="ds-wrap">
+  <p class="sub">Данные собраны из открытых источников и обновляются раз в сутки.</p>
   {% if built_at %}<p class="updated">Данные обновлены {{ built_at | date_ru }}</p>{% endif %}
 </footer>
 

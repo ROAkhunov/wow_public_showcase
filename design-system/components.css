@@ -76,6 +76,10 @@
 .plat--vk { background: #0077ff; }
 .plat--yt { background: #ff0000; }
 .plat--dz { background: #1c1f1d; }
+/* MAX и Одноклассники добавлены под T-61: витрина публикует пять площадок
+   (tg, vk, max, yt, ok), и без своего цвета бейдж двух из них выходил пустым */
+.plat--max { background: #6c4ef5; }
+.plat--ok  { background: #ee8208; }
 
 /* галочка верификации */
 .ver {
@@ -394,6 +398,20 @@
 }
 
 .updated { font-size: var(--fs-meta); color: var(--muted); margin-top: var(--sp-4); }
+
+/* блок страницы канала: график, рекламодатели, лента. До T-61 в системе была
+   только шапка (.head), а страница канала состоит из нескольких таких панелей */
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: var(--sp-5); margin-top: var(--sp-4);
+}
+.panel > h2 {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-h3); letter-spacing: var(--tracking-head); font-weight: 700;
+}
+
+/* спарклайн подписчиков: рисуется на сервере, клиентского JS на витрине нет */
+.chart { display: block; width: 100%; height: auto; }
 
 
 /* ── Утилиты значений ───────────────────────────────────────────────────────

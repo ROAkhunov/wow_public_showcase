@@ -2,95 +2,139 @@
 
 {% block title %}{{ c.display_name or c.username }} — статистика канала, охваты и реклама{% endblock %}
 {% block description %}{{ platform_names[c.platform] }} {{ c.username }}: {{ c.subscribers | num }} подписчиков, охват {{ c.views_organic | num }}, реклама и публикации за месяц.{% endblock %}
+{# Адрес страницы один и тот же независимо от того, каким регистром пришёл
+   запрос: канонический собирается из площадки и имени, а не из пути запроса. #}
+{% block canonical %}/{{ c.platform }}/{{ c.username_lower }}{% endblock %}
 
 {% block body %}
 <nav class="breadcrumbs">
   <a href="/">Каталог</a> · <a href="/{{ c.platform }}">{{ platform_names[c.platform] }}</a> ·
-  <span>{{ c.display_name or c.username }}</span>
+  {{ c.display_name or c.username }}
 </nav>
 
-<section class="sec">
-  <div class="head">
+<div class="head">
+  <div class="top">
     {% if c.avatar_file %}
-      <img class="ava ava--lg" src="{{ settings.avatar_base }}/{{ c.avatar_file }}" alt="" loading="lazy" width="72" height="72">
+      <img class="ava ava--lg" src="{{ settings.avatar_base }}/{{ c.avatar_file }}" alt="" width="72" height="72">
     {% else %}
-      <span class="ava ava--lg">{{ (c.display_name or c.username)[0] | upper }}</span>
+      <div class="ava ava--lg">{{ (c.display_name or c.username)[:2] | upper }}</div>
     {% endif %}
-    <div>
-      <h1 class="title">{{ c.display_name or c.username }}</h1>
-      <p class="sub">
-        <span class="plat plat--{{ c.platform }}">{{ platform_names[c.platform] }}</span>
-        {{ c.username }}
-      </p>
-      {% if c.categories %}
-      <p class="row">
-        {% for cat in c.categories %}
-          <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
-        {% endfor %}
-      </p>
-      {% endif %}
+    <div style="min-width:0">
+      <div class="title">
+        <span class="plat plat--lg plat--{{ c.platform }}">{{ platform_codes[c.platform] }}</span>
+        <h1>{{ c.display_name or c.username }}</h1>
+      </div>
+      <div class="sub">{{ platform_names[c.platform] }} · {{ c.username }}</div>
+      {% if c.description %}<p class="desc">{{ c.description | clip(400) }}</p>{% endif %}
     </div>
-    {% if c.url %}<a class="btn btn--ghost" href="{{ c.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>{% endif %}
   </div>
 
-  {% if c.description %}<p class="desc">{{ c.description | clip(400) }}</p>{% endif %}
+  {% if c.url or c.wowblogger_slug %}
+  <div class="actions">
+    {% if c.url %}
+    <a class="btn btn--primary" href="{{ c.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>
+    {% endif %}
+    {# Адрес карточки автора на WOWBlogger собирается из слага, который приехал
+       колонкой слоя. Слага нет — кнопки нет: вести в никуда хуже, чем не вести. #}
+    {% if c.wowblogger_slug %}
+    <a class="btn btn--ghost" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
+       rel="nofollow noopener" target="_blank">Разместить рекламу в WOWBlogger</a>
+    {% endif %}
+  </div>
+  {% endif %}
 
-  {# Каждая плитка — колонка публичного слоя. Появилось деление — формулу забыли
-     перенести в сборщик дампа. #}
+  {# Каждая плитка — колонка публичного слоя. Метрики, которой нет, на странице
+     тоже нет: прочерк на большинстве страниц это тонкая страница, ради
+     избавления от которых мы отсекали пустые каналы. #}
   <div class="m-tiles">
-    <div class="m"><span class="m-cols">Подписчиков</span><b>{{ c.subscribers | num }}</b></div>
-    <div class="m"><span class="m-cols">Охват поста</span><b>{{ c.views_organic | num }}</b></div>
+    {% if c.subscribers is not none %}
+    <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ c.subscribers | num }}</span></div>
+    {% endif %}
+    {% if c.views_organic is not none %}
+    <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ c.views_organic | num }}</span></div>
+    {% endif %}
     {% if c.coverage_ratio is not none %}
-    <div class="m"><span class="m-cols">Коэффициент охвата</span><b>{{ c.coverage_ratio | pct }}</b></div>
+    <div class="m"><span class="ds-label">Коэффициент охвата</span><span class="ds-value">{{ c.coverage_ratio | pct }}</span></div>
     {% endif %}
-    {# ER приходит от скрейпера и на боевом дампе есть у 2 467 каналов из 138 358.
-       Плитка с прочерком на 98% страниц — это тонкая страница, поэтому её просто нет. #}
     {% if c.er_percent is not none %}
-    <div class="m"><span class="m-cols">ER</span><b>{{ c.er_percent | pct }}</b></div>
+    <div class="m"><span class="ds-label">ER</span><span class="ds-value">{{ c.er_percent | pct }}</span></div>
     {% endif %}
-    <div class="m"><span class="m-cols">Постов за месяц</span><b>{{ c.posts_30d | num }}</b></div>
-    <div class="m"><span class="m-cols">Рекламных постов</span><b>{{ c.ads_30d | num }} <span class="sub">{{ c.ad_share_30d | pct }} ленты</span></b></div>
-    {% if c.views_ad %}
-    <div class="m"><span class="m-cols">Охват рекламного поста</span><b>{{ c.views_ad | num }} <span class="sub">обычный {{ c.views_organic | num }}</span></b></div>
+    <div class="m"><span class="ds-label">Постов за месяц</span>
+      <span class="ds-value">{{ c.posts_30d | num }}</span>
+      {% if c.last_post_at %}<span class="sub">последний {{ c.last_post_at | date_ru }}</span>{% endif %}</div>
+    {% if c.ad_share_30d is not none %}
+    <div class="m"><span class="ds-label">Рекламных постов</span>
+      <span class="ds-value">{{ c.ads_30d | num }}</span>
+      <span class="sub adv">{{ c.ad_share_30d | pct }} ленты</span></div>
+    {% endif %}
+    {% if c.views_ad is not none %}
+    <div class="m"><span class="ds-label">Охват рекламного поста</span>
+      <span class="ds-value">{{ c.views_ad | num }}</span>
+      <span class="sub">обычный {{ c.views_organic | num }}</span></div>
     {% endif %}
     {% if c.growth_90d is not none %}
-    <div class="m"><span class="m-cols">Прирост аудитории</span><b>{{ c.growth_90d | signed }} <span class="sub">за 90 дней</span></b></div>
+    <div class="m"><span class="ds-label">Прирост аудитории</span>
+      <span class="ds-value {{ 'up' if c.growth_90d >= 0 else 'down' }}">{{ c.growth_90d | signed }}</span>
+      <span class="sub">за 90 дней</span></div>
     {% endif %}
     {% if c.views_spread is not none %}
-    <div class="m"><span class="m-cols">Разброс охвата</span><b>{{ c.views_spread | pct }} <span class="sub">{{ 'стабильно' if c.views_spread < 30 else 'скачет' }}</span></b></div>
+    <div class="m"><span class="ds-label">Разброс охвата</span>
+      <span class="ds-value">{{ c.views_spread | pct }}</span></div>
     {% endif %}
   </div>
-</section>
+
+  {% if c.categories or c.siblings %}
+  <div class="sites">
+    {% if c.categories %}
+    <span class="ds-label">Тематики</span>
+    <div class="sites-list">
+      {% for cat in c.categories %}
+        <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if c.siblings %}
+    <span class="ds-label">Другие площадки автора</span>
+    <div class="sites-list">
+      {% for s in c.siblings %}
+        <a class="chip" href="/{{ s.platform }}/{{ s.username_lower }}">
+          <span class="dot plat--{{ s.platform }}">{{ platform_codes[s.platform] }}</span>
+          {{ s.display_name or s.username }} · {{ s.subscribers | num }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="updated">Данные обновлены {{ built_at | date_ru }}</div>
+</div>
 
 {% if chart %}
 {# Меньше трёх точек — блока нет вовсе: пустой график хуже отсутствующего. #}
-<section class="sec">
-  <h2 class="title">Динамика подписчиков</h2>
-  <svg viewBox="0 0 900 150" preserveAspectRatio="none" role="img" width="100%" height="150"
+<section class="panel">
+  <h2>Динамика подписчиков</h2>
+  <svg class="chart" viewBox="0 0 900 150" preserveAspectRatio="none" role="img"
        aria-label="График подписчиков с {{ chart.first_date | date_ru }} по {{ chart.last_date | date_ru }}">
     <path d="{{ chart.area }}" fill="rgba(13,110,99,.14)"></path>
     <path d="{{ chart.line }}" fill="none" stroke="#0d6e63" stroke-width="2.2" stroke-linejoin="round"></path>
   </svg>
-  <p class="sub">{{ chart.first_date | date_ru }} — {{ chart.last_date | date_ru }} ·
-     мин {{ chart.minimum | num }} · макс {{ chart.maximum | num }}</p>
+  <p class="sub">с {{ chart.first_date | date_ru }} по {{ chart.last_date | date_ru }} ·
+     минимум {{ chart.minimum | num }} · максимум {{ chart.maximum | num }}</p>
 </section>
 {% endif %}
 
-<section class="sec">
-  <h2 class="title">Кто рекламировался в канале</h2>
+<section class="panel">
+  <h2>Кто рекламировался в канале</h2>
   {% if c.advertisers %}
-  <div class="list">
-    {% for a in c.advertisers %}
-    <div class="adv">
-      <b>{{ a.label }}</b>
-      <span class="adv-line">
-        {% if a.inn %}ИНН {{ a.inn }}{% endif %}{% if a.ogrn %} · {{ 'ОГРНИП' if a.entity_type == 'fl' else 'ОГРН' }} {{ a.ogrn }}{% endif %}
-      </span>
-      <span class="sub">{{ a.placements_count | num }} {{ plural(a.placements_count, 'размещение', 'размещения', 'размещений') }}
-        {% if a.last_placed_at %}· последнее {{ a.last_placed_at | date_ru }}{% endif %}</span>
-    </div>
-    {% endfor %}
+  {% for a in c.advertisers %}
+  <div class="adv-line">
+    <b>{{ a.label }}</b>
+    {% if a.inn %}· ИНН {{ a.inn }}{% endif %}
+    {% if a.ogrn %}· {{ 'ОГРНИП' if a.entity_type == 'fl' else 'ОГРН' }} {{ a.ogrn }}{% endif %}
+    · {{ a.placements_count | num }} {{ plural(a.placements_count, 'размещение', 'размещения', 'размещений') }}
+    {% if a.last_placed_at %}· последнее {{ a.last_placed_at | date_ru }}{% endif %}
   </div>
+  {% endfor %}
   <p class="sub">Рекламодатели определяются по обязательной маркировке в тексте постов за
      {{ c.adv_window_days | num }} дней. Показываем только открытые реквизиты из реестра.</p>
   {% else %}
@@ -98,37 +142,22 @@
   {% endif %}
 </section>
 
-{% if c.siblings %}
-<section class="sec">
-  <h2 class="title">Другие площадки автора</h2>
-  <div class="sites-list">
-    {% for s in c.siblings %}
-    <a class="sites" href="/{{ s.platform }}/{{ s.username }}">
-      <span class="plat plat--{{ s.platform }}">{{ platform_names[s.platform] }}</span>
-      <b>{{ s.display_name or s.username }}</b>
-      <span class="sub">{{ s.subscribers | num }} подписчиков</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-<section class="sec">
-  <h2 class="title">Публикации</h2>
+<section class="panel">
+  <h2>Публикации</h2>
   {% if posts %}
   <div class="feed">
     {% for p in posts %}
     <article class="post{% if p.is_ad %} post--ad{% endif %}">
       <div class="post-head">
         <span class="post-date">{{ p.posted_at | date_ru }}</span>
-        {% if p.is_ad %}<span class="tag">РЕКЛАМА</span>{% endif %}
-        {% if p.url %}<a href="{{ p.url }}" rel="nofollow noopener" target="_blank">Оригинал</a>{% endif %}
+        {% if p.is_ad %}<span class="flag">Реклама</span>{% endif %}
+        {% if p.url %}<a class="sub" href="{{ p.url }}" rel="nofollow noopener" target="_blank">Оригинал</a>{% endif %}
       </div>
       <p class="post-text">{{ p.text | clip(420) }}</p>
       <div class="post-stats">
-        <span>{{ p.views | num }} просмотров</span>
-        {% if p.reactions %}<span>{{ p.reactions | num }} реакций</span>{% endif %}
-        {% if p.comments %}<span>{{ p.comments | num }} комментариев</span>{% endif %}
+        <span><b>{{ p.views | num }}</b> просмотров</span>
+        {% if p.reactions %}<span><b>{{ p.reactions | num }}</b> реакций</span>{% endif %}
+        {% if p.comments %}<span><b>{{ p.comments | num }}</b> комментариев</span>{% endif %}
       </div>
     </article>
     {% endfor %}

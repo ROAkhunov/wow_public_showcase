@@ -6,6 +6,7 @@
 """
 from datetime import date, timedelta
 
+import psycopg2
 import pytest
 
 pytestmark = pytest.mark.integration
@@ -41,12 +42,23 @@ def test_unknown_channel_is_404(layer, client):
     assert client.get("/xx/example_channel").status_code == 404
 
 
-def test_username_case_does_not_matter(layer, client):
+def test_address_in_upper_case_redirects_to_the_only_one(layer, client):
+    """У канала ровно один адрес: два живых адреса это страницы-клоны (US19)."""
     layer.channel(1, "tg", "Example_Channel")
     layer.go_live()
 
-    assert client.get("/tg/example_channel").status_code == 200
-    assert client.get("/tg/Example_Channel").status_code == 200
+    upper = client.get("/tg/Example_Channel", follow_redirects=False)
+    assert upper.status_code == 301
+    assert upper.headers["location"] == "/tg/example_channel"
+
+    page = client.get("/tg/example_channel")
+    assert page.status_code == 200
+    assert 'href="https://fomobase.ru/tg/example_channel"' in page.text
+
+    # Ни каталог, ни карта сайта исходный регистр не печатают.
+    assert "/tg/example_channel" in client.get("/").text
+    assert "/tg/Example_Channel" not in client.get("/").text
+    assert "/tg/Example_Channel" not in client.get("/sitemap-1.xml").text
 
 
 def test_empty_feed_says_so_and_is_not_an_error(layer, client):
@@ -75,14 +87,42 @@ def test_channel_without_history_has_no_chart(layer, client):
 
 
 def test_individual_advertiser_shows_requisites_without_a_name(layer, client):
+    """У ИП наименование в реестре и есть ФИО, поэтому на странице реквизиты.
+
+    Защита структурная: в публичном слое нет колонок с именами, и положить туда
+    ФИО тесту просто некуда — что здесь и проверяется. Утечка возможна только
+    через сборщик (T-60), а не через шаблон.
+    """
     cid = layer.channel(1, "tg", "example_channel")
     layer.advertiser(cid, "ИП, ИНН 500100732259", entity_type="fl",
                      inn="500100732259", ogrn="304500116000157")
     layer.go_live()
 
+    assert [c for c in layer.columns("channel_advertiser") if "name" in c] == []
+    with pytest.raises(psycopg2.errors.UndefinedColumn):
+        layer.advertiser(cid, "ООО «Ромашка»", rank=2, name_short="Иванов Иван Иванович")
+
     body = client.get("/tg/example_channel").text
     assert "500100732259" in body
     assert "ИП" in body
+    assert "Иванов" not in body
+
+
+def test_wowblogger_button_appears_only_with_a_slug(layer, client):
+    """US41: со страницы канала уходят на размещение в WOWBlogger.
+
+    Адрес не сочиняется на месте: слаг карточки автора приезжает колонкой слоя,
+    и без него кнопки нет вовсе.
+    """
+    layer.channel(1, "tg", "listed_one", wowblogger_slug="vykhino-zhulebino-2")
+    layer.channel(2, "tg", "stranger_one")
+    layer.go_live()
+
+    listed = client.get("/tg/listed_one").text
+    assert "https://wowblogger.ru/bloggers/vykhino-zhulebino-2" in listed
+    assert "WOWBlogger" in listed
+
+    assert "wowblogger.ru" not in client.get("/tg/stranger_one").text
 
 
 def test_siblings_link_to_their_own_pages(layer, client):
@@ -112,6 +152,30 @@ def test_catalog_lists_channels_and_paginates_by_fifty(layer, client):
     second = client.get("/?page=2")
     assert second.status_code == 200
     assert "chan060" in second.text
+
+
+def test_page_beyond_the_last_one_is_404(layer, client):
+    """Страница за последней — такой же несуществующий адрес, как чужой канал."""
+    for i in range(1, 61):
+        layer.channel(i, "tg", f"chan{i:03d}")
+    layer.category(1, "Автомобили", "автомобили")
+    layer.go_live()
+
+    assert client.get("/?page=2").status_code == 200
+    assert client.get("/?page=3").status_code == 404
+    assert client.get("/tg?page=3").status_code == 404
+    assert client.get("/category/автомобили?page=2").status_code == 404
+    for bad in ("?page=0", "?page=-1", "?page=abc", "?page="):
+        assert client.get("/" + bad).status_code == 404, bad
+
+
+def test_catalog_shows_when_the_last_post_was(layer, client):
+    layer.channel(1, "tg", "example_channel",
+                  last_post_at=date(2026, 8, 9))
+    layer.go_live()
+
+    for path in ("/", "/tg/example_channel"):
+        assert "9 августа 2026" in client.get(path).text, path
 
 
 def test_platform_and_category_sections(layer, client):
@@ -175,7 +239,26 @@ def test_sitemap_lists_published_channels_only(layer, client):
     assert chunk.status_code == 200
     assert "/tg/published_one" in chunk.text
     assert "no_such_channel" not in chunk.text
-    assert client.get("/sitemap-99.xml").status_code == 404
+
+    # Мусор в номере — тоже страница 404, а не JSON валидатора с кодом 422.
+    for bad in ("/sitemap-99.xml", "/sitemap-abc.xml", "/sitemap-0.xml"):
+        answer = client.get(bad)
+        assert answer.status_code == 404, bad
+        assert "text/html" in answer.headers["content-type"], bad
+
+
+def test_only_the_stylesheet_side_of_the_design_system_is_public(layer, client):
+    """Наружу едет вид страницы, а не витрина компонентов рядом с ним."""
+    layer.channel(1, "tg", "example_channel")
+    layer.go_live()
+
+    for path in ("/assets/index.css", "/assets/tokens.css", "/assets/components.css",
+                 "/assets/fonts/fonts.css", "/assets/fonts/onest-cyrillic.woff2"):
+        assert client.get(path).status_code == 200, path
+
+    for path in ("/assets/specimen.html", "/assets/preview.css", "/assets/README.md",
+                 "/assets/components/channel-header.html"):
+        assert client.get(path).status_code == 404, path
 
 
 def test_pages_carry_no_client_side_javascript(layer, client):
