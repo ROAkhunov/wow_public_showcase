@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — Fomobase{% endblock %}
+{% block description %}{{ subtitle }}{% endblock %}
+{% block canonical %}{{ base_url }}{% if page.number > 1 %}?page={{ page.number }}{% endif %}{% endblock %}
+
+{% block body %}
+<section class="sec">
+  <h1 class="title">{{ title }}</h1>
+  <p class="sub">{{ subtitle }} · {{ page.total | num }}
+     {{ plural(page.total, 'канал', 'канала', 'каналов') }}</p>
+
+  {% if counts %}
+  <div class="sections">
+    {% for p in platforms if counts.get(p) %}
+      <a class="sbtn" href="/{{ p }}">{{ platform_names[p] }} <span class="sub">{{ counts[p] | num }}</span></a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if categories %}
+  <div class="row">
+    {% for cat in categories %}
+      <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="sec">
+  <div class="list">
+    {% for c in page.rows %}
+    <a class="row" href="/{{ c.platform }}/{{ c.username }}">
+      {% if c.avatar_file %}
+        <img class="ava" src="{{ settings.avatar_base }}/{{ c.avatar_file }}" alt="" loading="lazy" width="40" height="40">
+      {% else %}
+        <span class="ava">{{ (c.display_name or c.username)[0] | upper }}</span>
+      {% endif %}
+      <span class="name">
+        <b>{{ c.display_name or c.username }}</b>
+        <span class="sub"><span class="plat plat--{{ c.platform }}">{{ platform_names[c.platform] }}</span> {{ c.username }}</span>
+      </span>
+      <span class="m"><span class="m-cols">Подписчиков</span><b>{{ c.subscribers | num }}</b></span>
+      <span class="m"><span class="m-cols">Охват</span><b>{{ c.views_organic | num }}</b></span>
+      <span class="m"><span class="m-cols">ER</span><b>{{ c.er_percent | pct }}</b></span>
+      <span class="m"><span class="m-cols">Реклама</span><b>{{ c.ad_share_30d | pct }}</b></span>
+    </a>
+    {% else %}
+    <p class="none">Здесь пока пусто.</p>
+    {% endfor %}
+  </div>
+
+  {% if page.pages > 1 %}
+  {# Пагинация со второй страницы под noindex, follow: краулер проходит её
+     насквозь до карточек, а страниц-клонов в индексе не копится. #}
+  <nav class="pg">
+    {% if page.number > 1 %}
+      <a href="{{ base_url }}{% if page.number > 2 %}?page={{ page.number - 1 }}{% endif %}">Назад</a>
+    {% endif %}
+    <span class="sub">Страница {{ page.number }} из {{ page.pages | num }}</span>
+    {% if page.has_next %}
+      <a href="{{ base_url }}?page={{ page.number + 1 }}">Дальше</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}

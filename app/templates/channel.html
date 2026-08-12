@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{{ c.display_name or c.username }} — статистика канала, охваты и реклама{% endblock %}
+{% block description %}{{ platform_names[c.platform] }} {{ c.username }}: {{ c.subscribers | num }} подписчиков, охват {{ c.views_organic | num }}, реклама и публикации за месяц.{% endblock %}
+
+{% block body %}
+<nav class="breadcrumbs">
+  <a href="/">Каталог</a> · <a href="/{{ c.platform }}">{{ platform_names[c.platform] }}</a> ·
+  <span>{{ c.display_name or c.username }}</span>
+</nav>
+
+<section class="sec">
+  <div class="head">
+    {% if c.avatar_file %}
+      <img class="ava ava--lg" src="{{ settings.avatar_base }}/{{ c.avatar_file }}" alt="" loading="lazy" width="72" height="72">
+    {% else %}
+      <span class="ava ava--lg">{{ (c.display_name or c.username)[0] | upper }}</span>
+    {% endif %}
+    <div>
+      <h1 class="title">{{ c.display_name or c.username }}</h1>
+      <p class="sub">
+        <span class="plat plat--{{ c.platform }}">{{ platform_names[c.platform] }}</span>
+        {{ c.username }}
+      </p>
+      {% if c.categories %}
+      <p class="row">
+        {% for cat in c.categories %}
+          <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
+        {% endfor %}
+      </p>
+      {% endif %}
+    </div>
+    {% if c.url %}<a class="btn btn--ghost" href="{{ c.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>{% endif %}
+  </div>
+
+  {% if c.description %}<p class="desc">{{ c.description | clip(400) }}</p>{% endif %}
+
+  {# Каждая плитка — колонка публичного слоя. Появилось деление — формулу забыли
+     перенести в сборщик дампа. #}
+  <div class="m-tiles">
+    <div class="m"><span class="m-cols">Подписчиков</span><b>{{ c.subscribers | num }}</b></div>
+    <div class="m"><span class="m-cols">Охват поста</span><b>{{ c.views_organic | num }}</b></div>
+    {% if c.coverage_ratio is not none %}
+    <div class="m"><span class="m-cols">Коэффициент охвата</span><b>{{ c.coverage_ratio | pct }}</b></div>
+    {% endif %}
+    {# ER приходит от скрейпера и на боевом дампе есть у 2 467 каналов из 138 358.
+       Плитка с прочерком на 98% страниц — это тонкая страница, поэтому её просто нет. #}
+    {% if c.er_percent is not none %}
+    <div class="m"><span class="m-cols">ER</span><b>{{ c.er_percent | pct }}</b></div>
+    {% endif %}
+    <div class="m"><span class="m-cols">Постов за месяц</span><b>{{ c.posts_30d | num }}</b></div>
+    <div class="m"><span class="m-cols">Рекламных постов</span><b>{{ c.ads_30d | num }} <span class="sub">{{ c.ad_share_30d | pct }} ленты</span></b></div>
+    {% if c.views_ad %}
+    <div class="m"><span class="m-cols">Охват рекламного поста</span><b>{{ c.views_ad | num }} <span class="sub">обычный {{ c.views_organic | num }}</span></b></div>
+    {% endif %}
+    {% if c.growth_90d is not none %}
+    <div class="m"><span class="m-cols">Прирост аудитории</span><b>{{ c.growth_90d | signed }} <span class="sub">за 90 дней</span></b></div>
+    {% endif %}
+    {% if c.views_spread is not none %}
+    <div class="m"><span class="m-cols">Разброс охвата</span><b>{{ c.views_spread | pct }} <span class="sub">{{ 'стабильно' if c.views_spread < 30 else 'скачет' }}</span></b></div>
+    {% endif %}
+  </div>
+</section>
+
+{% if chart %}
+{# Меньше трёх точек — блока нет вовсе: пустой график хуже отсутствующего. #}
+<section class="sec">
+  <h2 class="title">Динамика подписчиков</h2>
+  <svg viewBox="0 0 900 150" preserveAspectRatio="none" role="img" width="100%" height="150"
+       aria-label="График подписчиков с {{ chart.first_date | date_ru }} по {{ chart.last_date | date_ru }}">
+    <path d="{{ chart.area }}" fill="rgba(13,110,99,.14)"></path>
+    <path d="{{ chart.line }}" fill="none" stroke="#0d6e63" stroke-width="2.2" stroke-linejoin="round"></path>
+  </svg>
+  <p class="sub">{{ chart.first_date | date_ru }} — {{ chart.last_date | date_ru }} ·
+     мин {{ chart.minimum | num }} · макс {{ chart.maximum | num }}</p>
+</section>
+{% endif %}
+
+<section class="sec">
+  <h2 class="title">Кто рекламировался в канале</h2>
+  {% if c.advertisers %}
+  <div class="list">
+    {% for a in c.advertisers %}
+    <div class="adv">
+      <b>{{ a.label }}</b>
+      <span class="adv-line">
+        {% if a.inn %}ИНН {{ a.inn }}{% endif %}{% if a.ogrn %} · {{ 'ОГРНИП' if a.entity_type == 'fl' else 'ОГРН' }} {{ a.ogrn }}{% endif %}
+      </span>
+      <span class="sub">{{ a.placements_count | num }} {{ plural(a.placements_count, 'размещение', 'размещения', 'размещений') }}
+        {% if a.last_placed_at %}· последнее {{ a.last_placed_at | date_ru }}{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="sub">Рекламодатели определяются по обязательной маркировке в тексте постов за
+     {{ c.adv_window_days | num }} дней. Показываем только открытые реквизиты из реестра.</p>
+  {% else %}
+  <p class="none">Рекламных размещений с маркировкой не найдено.</p>
+  {% endif %}
+</section>
+
+{% if c.siblings %}
+<section class="sec">
+  <h2 class="title">Другие площадки автора</h2>
+  <div class="sites-list">
+    {% for s in c.siblings %}
+    <a class="sites" href="/{{ s.platform }}/{{ s.username }}">
+      <span class="plat plat--{{ s.platform }}">{{ platform_names[s.platform] }}</span>
+      <b>{{ s.display_name or s.username }}</b>
+      <span class="sub">{{ s.subscribers | num }} подписчиков</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="sec">
+  <h2 class="title">Публикации</h2>
+  {% if posts %}
+  <div class="feed">
+    {% for p in posts %}
+    <article class="post{% if p.is_ad %} post--ad{% endif %}">
+      <div class="post-head">
+        <span class="post-date">{{ p.posted_at | date_ru }}</span>
+        {% if p.is_ad %}<span class="tag">РЕКЛАМА</span>{% endif %}
+        {% if p.url %}<a href="{{ p.url }}" rel="nofollow noopener" target="_blank">Оригинал</a>{% endif %}
+      </div>
+      <p class="post-text">{{ p.text | clip(420) }}</p>
+      <div class="post-stats">
+        <span>{{ p.views | num }} просмотров</span>
+        {% if p.reactions %}<span>{{ p.reactions | num }} реакций</span>{% endif %}
+        {% if p.comments %}<span>{{ p.comments | num }} комментариев</span>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="none">Постов нет: за последний месяц канал ничего не публиковал.</p>
+  {% endif %}
+</section>
+{% endblock %}

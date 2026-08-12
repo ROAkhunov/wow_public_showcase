@@ -24,8 +24,15 @@ while IFS= read -r file; do
       say "$file — реальный срез с прода, в нём ФИО рекламодателей-физлиц. Для примеров есть prototype/data.example.js" ;;
     .env|*/.env|.env.*|*/.env.*)
       say "$file — файл окружения. В публичный репозиторий не едет, шаблон без значений называй .env.example" ;;
-    *.sql|*.dump|*.dmp|*.bak)
+    *.dump|*.dmp|*.bak)
       say "$file — похоже на дамп базы. Дампы в git не хранятся" ;;
+    *.sql)
+      # .sql — это и дамп, и схема. Схема (CREATE TABLE) нужна в репозитории:
+      # по ней тесты поднимают публичный слой. Дамп выдают строки данных, а не
+      # расширение, поэтому смотрим внутрь файла.
+      if [ -f "$file" ] && grep -qiE '^(COPY .* FROM stdin|INSERT INTO)|PostgreSQL database dump' "$file"; then
+        say "$file — похоже на дамп базы (строки данных внутри). Дампы в git не хранятся"
+      fi ;;
     *.pem|*.key|id_rsa|*/id_rsa|*.p12|*.pfx)
       say "$file — похоже на ключ" ;;
   esac
