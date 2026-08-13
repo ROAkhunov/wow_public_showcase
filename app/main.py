@@ -39,6 +39,20 @@ CLOSED = "noindex, nofollow"
 PUBLIC_ASSETS = ("index.css", "tokens.css", "components.css", "fonts/fonts.css")
 
 
+def positive_int(raw: str) -> int | None:
+    """Целое из строки адреса, или None, если это не номер.
+
+    Проверяется ASCII, а не только `isdigit`: юникодные «цифры» вроде `²` и `⁵`
+    ему подходят, а `int()` их уже не берёт — и `?page=²` отвечал бы пятисоткой
+    вместо 404. Это тот же класс, что 422 на `/sitemap-abc.xml`: краулеру на
+    неизвестный адрес нужна страница 404, а не ошибка сервера.
+    """
+    if not (raw.isascii() and raw.isdigit()):
+        return None
+    number = int(raw)
+    return number if number >= 1 else None
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or from_env()
     app = FastAPI(title="Fomobase", docs_url=None, redoc_url=None, openapi_url=None)
@@ -90,14 +104,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         страница: подставив первую, мы завели бы бесконечное число адресов с
         одинаковым содержанием (US19).
         """
-        raw = request.query_params.get("page", "1")
-        if not raw.isdigit() or int(raw) < 1:
-            return None
-        return int(raw)
+        return positive_int(request.query_params.get("page", "1"))
 
     def catalog_page(request: Request, *, title: str, subtitle: str, base_url: str,
                      platform: str | None = None, category: str | None = None,
-                     counts: dict | None = None,
+                     section: str | None = None, counts: dict | None = None,
                      categories: list | None = None) -> HTMLResponse:
         """Один ход всех каталожных страниц: номер → выборка → пометка → рендер.
 
@@ -116,7 +127,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if page.number > 1:
             request.state.robots = FOLLOW_ONLY
         return render(request, "catalog.html", page=page, title=title, subtitle=subtitle,
-                      base_url=base_url, counts=counts or {}, categories=categories or [],
+                      base_url=base_url, section=section,
+                      counts=counts or {}, categories=categories or [],
                       built_at=app.state.db.build().built_at)
 
     # ── каталог и разделы ────────────────────────────────────────────────
@@ -145,8 +157,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         font = path.startswith("fonts/") and path.endswith(".woff2") and path.count("/") == 1
         if path not in PUBLIC_ASSETS and not font:
             return not_found(request, "Такого файла нет")
-        target = ASSETS_DIR / path
-        if not target.is_file():
+        # Белого списка мало: имя файла в нём проверяется как строка, а из
+        # каталога наружу уводит и обратный слэш («fonts/..\..\ключ.woff2»).
+        # Решает уже разобранный путь, а не догадки о том, что считать
+        # разделителем на этой системе.
+        target = (ASSETS_DIR / path).resolve()
+        if not target.is_relative_to(ASSETS_DIR.resolve()) or not target.is_file():
             return not_found(request, "Такого файла нет")
         return FileResponse(target)
 
@@ -177,9 +193,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # неизвестный адрес нужна страница 404.
     @app.get("/sitemap-{number}.xml")
     def sitemap_chunk(request: Request, number: str):
-        if not number.isdigit() or not 1 <= int(number) <= sitemap_chunks():
+        n = positive_int(number)
+        if n is None or n > sitemap_chunks():
             return not_found(request, "Такого файла карты сайта нет")
-        rows = app.state.db.sitemap_chunk(int(number), settings.sitemap_chunk)
+        rows = app.state.db.sitemap_chunk(n, settings.sitemap_chunk)
         xml = app.state.templates.get_template("sitemap.xml").render(
             rows=rows, origin=settings.site_origin)
         return Response(xml, media_type="application/xml")
@@ -192,7 +209,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         name = PLATFORM_NAMES[platform]
         return catalog_page(request, title=f"Каналы · {name}",
                             subtitle=f"Все площадки {name} в базе",
-                            base_url=f"/{platform}", platform=platform)
+                            base_url=f"/{platform}", platform=platform, section=platform)
 
     @app.get("/{platform}/{username}", response_class=HTMLResponse)
     def channel(request: Request, platform: str, username: str):

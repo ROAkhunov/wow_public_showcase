@@ -171,6 +171,12 @@ class Showcase:
         with self._cursor() as (cur, _):
             cur.execute(f"SELECT count(*) AS n FROM channel c {join} {clause}", params)
             total = cur.fetchone()["n"]
+            # Страницы за последней не существует, и выбирать для неё строки
+            # незачем: `?page=100000` увёл бы базу в OFFSET на пять миллионов
+            # строк, а ответ всё равно 404. Обход каталога краулером и без того
+            # самая частая нагрузка на этот запрос.
+            if page > pages_in(total, size):
+                return Page([], total, page, size)
             cur.execute(f"""
                 SELECT c.platform, c.username, c.username_lower, c.display_name,
                        c.avatar_file,

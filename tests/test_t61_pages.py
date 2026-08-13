@@ -165,7 +165,9 @@ def test_page_beyond_the_last_one_is_404(layer, client):
     assert client.get("/?page=3").status_code == 404
     assert client.get("/tg?page=3").status_code == 404
     assert client.get("/category/автомобили?page=2").status_code == 404
-    for bad in ("?page=0", "?page=-1", "?page=abc", "?page="):
+    # «²» и «１» — цифры по мнению str.isdigit(), и без проверки на ASCII
+    # первая уронила бы ответ в 500, а вторая завела бы странице второй адрес.
+    for bad in ("?page=0", "?page=-1", "?page=abc", "?page=", "?page=²", "?page=１"):
         assert client.get("/" + bad).status_code == 404, bad
 
 
@@ -187,6 +189,9 @@ def test_platform_and_category_sections(layer, client):
     tg = client.get("/tg")
     assert tg.status_code == 200
     assert "tg_one" in tg.text and "vk_one" not in tg.text
+    # Раздел, в котором стоит посетитель, подсвечен в нав-панели именно свой.
+    assert '<a class="sec on" href="/tg">' in tg.text
+    assert '<a class="sec on" href="/">' in client.get("/").text
 
     cat = client.get("/category/автомобили")
     assert cat.status_code == 200
@@ -241,7 +246,7 @@ def test_sitemap_lists_published_channels_only(layer, client):
     assert "no_such_channel" not in chunk.text
 
     # Мусор в номере — тоже страница 404, а не JSON валидатора с кодом 422.
-    for bad in ("/sitemap-99.xml", "/sitemap-abc.xml", "/sitemap-0.xml"):
+    for bad in ("/sitemap-99.xml", "/sitemap-abc.xml", "/sitemap-0.xml", "/sitemap-².xml"):
         answer = client.get(bad)
         assert answer.status_code == 404, bad
         assert "text/html" in answer.headers["content-type"], bad
