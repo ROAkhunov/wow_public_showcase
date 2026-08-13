@@ -1,0 +1,14 @@
+[Unit]
+Description=WOW Public Showcase (fomobase.ru)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/wow_public_showcase
+ExecStart=/opt/wow_public_showcase/venv/bin/uvicorn app.asgi:app --host 127.0.0.1 --port 8502 --workers 2
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/wow_public_showcase/.env
+
+[Install]
+WantedBy=multi-user.target
