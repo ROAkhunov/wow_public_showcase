@@ -421,3 +421,36 @@
 .up   { color: var(--ok); }
 .down { color: var(--score-low-fg); }
 .none { color: var(--muted); font-weight: 500; }
+
+/* ── Колонка фильтров: две разметки одной формы (T-65) ──────────────────────
+   На десктопе колонка стоит раскрытой, на телефоне свёрнута. Одним `details`
+   это не собирается: атрибут `open` один на всех и медиазапросом не
+   переключается, а клиентского кода на витрине нет. Значит разметки две, и
+   каждая скрыта на чужой ширине — лишний килобайт дешевле скрипта. */
+
+.side-mobile { display: none; }
+.side-desktop { position: sticky; top: var(--sp-4); }
+.side-mobile > summary { list-style: none; margin-bottom: var(--sp-3); }
+.side-mobile > summary::-webkit-details-marker { display: none; }
+.listing { min-width: 0; }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .side-desktop { display: none; }
+  .side-mobile { display: block; }
+}
+
+/* Сортировка — ссылки, а не кнопки: кнопка без обработчика никуда не ведёт. */
+a.sbtn { text-decoration: none; display: inline-flex; align-items: center; }
+.sbtn.on { background: var(--accent-soft); border-color: var(--accent-line);
+           color: var(--accent-dark); font-weight: 600;
+           display: inline-flex; align-items: center; padding: 0 var(--sp-3); height: 30px;
+           border-radius: var(--r-pill); border-style: solid; border-width: 1px;
+           font-size: var(--fs-meta); }
+
+/* Блок площадки автора: полные блоки идут вертикальным скроллом, без табов. */
+.ch-block + .ch-block { margin-top: var(--sp-6); }
+.ch-block .sep { display: block; margin-bottom: var(--sp-3); }
+.switch { margin-bottom: var(--sp-4); }
+.chip.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); }
+.more { margin-top: var(--sp-3); }

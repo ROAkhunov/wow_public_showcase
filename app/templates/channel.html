@@ -3,7 +3,8 @@
 {% block title %}{{ c.display_name or c.username }} — статистика канала, охваты и реклама{% endblock %}
 {% block description %}{{ platform_names[c.platform] }} {{ c.username }}: {{ c.subscribers | num }} подписчиков, охват {{ c.views_organic | num }}, реклама и публикации за месяц.{% endblock %}
 {# Адрес страницы один и тот же независимо от того, каким регистром пришёл
-   запрос: канонический собирается из площадки и имени, а не из пути запроса. #}
+   запрос и какая страница ленты открыта: канонический собирается из площадки и
+   имени, а не из пути запроса со строкой параметров. #}
 {% block canonical %}/{{ c.platform }}/{{ c.username_lower }}{% endblock %}
 
 {% block body %}
@@ -12,103 +13,121 @@
   {{ c.display_name or c.username }}
 </nav>
 
+{% if c.siblings %}
+{# Переключатель площадок — якоря по этой же странице, а не табы (решение PO
+   27.07). Таб прячет половину содержимого и от человека, и от краулера, а блоки
+   ниже он видит целиком. #}
+<div class="switch">
+  <span class="ds-label">Площадки автора в нашей базе</span>
+  <div class="sites-list">
+    {% for s in family %}
+      <a class="chip{% if s.id == c.id %} on{% endif %}" href="#ch-{{ s.id }}">
+        <span class="dot plat--{{ s.platform }}">{{ platform_codes[s.platform] }}</span>
+        {{ s.display_name or s.username }} · {{ s.subscribers | num }}</a>
+    {% endfor %}
+  </div>
+  <p class="sub">Показываем только площадки, которые есть в нашей базе: часть соцсетей мы пока
+     не собираем. У каждой площадки своя страница — ссылка в её блоке.</p>
+</div>
+{% endif %}
+
+{% for ch in family %}
+{% set own = ch.id == c.id %}
+<section class="ch-block" id="ch-{{ ch.id }}">
+{% if not own %}
+  <div class="ds-label sep">Ещё одна площадка автора · {{ platform_names[ch.platform] }}</div>
+{% endif %}
+
 <div class="head">
   <div class="top">
-    {% if c.avatar_file %}
-      <img class="ava ava--lg" src="{{ settings.avatar_base }}/{{ c.avatar_file }}" alt="" width="72" height="72">
+    {% if ch.avatar_file %}
+      <img class="ava ava--lg" src="{{ settings.avatar_base }}/{{ ch.avatar_file }}" alt="" width="72" height="72">
     {% else %}
-      <div class="ava ava--lg">{{ (c.display_name or c.username)[:2] | upper }}</div>
+      <div class="ava ava--lg">{{ (ch.display_name or ch.username)[:2] | upper }}</div>
     {% endif %}
     <div style="min-width:0">
       <div class="title">
-        <span class="plat plat--lg plat--{{ c.platform }}">{{ platform_codes[c.platform] }}</span>
-        <h1>{{ c.display_name or c.username }}</h1>
+        <span class="plat plat--lg plat--{{ ch.platform }}">{{ platform_codes[ch.platform] }}</span>
+        {% if own %}<h1>{{ ch.display_name or ch.username }}</h1>
+        {% else %}<h2>{{ ch.display_name or ch.username }}</h2>{% endif %}
       </div>
-      <div class="sub">{{ platform_names[c.platform] }} · {{ c.username }}</div>
-      {% if c.description %}<p class="desc">{{ c.description | clip(400) }}</p>{% endif %}
+      <div class="sub">{{ platform_names[ch.platform] }} · {{ ch.username }}</div>
+      {% if ch.description %}<p class="desc">{{ ch.description | clip(400) }}</p>{% endif %}
     </div>
   </div>
 
-  {% if c.url or c.wowblogger_slug %}
   <div class="actions">
-    {% if c.url %}
-    <a class="btn btn--primary" href="{{ c.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>
+    {% if ch.url %}
+    <a class="btn btn--primary" href="{{ ch.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>
     {% endif %}
     {# Адрес карточки автора на WOWBlogger собирается из слага, который приехал
        колонкой слоя. Слага нет — кнопки нет: вести в никуда хуже, чем не вести. #}
-    {% if c.wowblogger_slug %}
-    <a class="btn btn--ghost" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
+    {% if ch.wowblogger_slug %}
+    <a class="btn btn--ghost" href="https://wowblogger.ru/bloggers/{{ ch.wowblogger_slug | urlencode }}"
        rel="nofollow noopener" target="_blank">Разместить рекламу в WOWBlogger</a>
     {% endif %}
+    {% if not own %}
+    <a class="btn btn--ghost" href="/{{ ch.platform }}/{{ ch.username_lower }}">Страница канала →</a>
+    {% endif %}
   </div>
-  {% endif %}
 
   {# Каждая плитка — колонка публичного слоя. Метрики, которой нет, на странице
      тоже нет: прочерк на большинстве страниц это тонкая страница, ради
      избавления от которых мы отсекали пустые каналы. #}
   <div class="m-tiles">
-    {% if c.subscribers is not none %}
-    <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ c.subscribers | num }}</span></div>
+    {% if ch.subscribers is not none %}
+    <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ ch.subscribers | num }}</span></div>
     {% endif %}
-    {% if c.views_organic is not none %}
-    <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ c.views_organic | num }}</span></div>
+    {% if ch.views_organic is not none %}
+    <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ ch.views_organic | num }}</span></div>
     {% endif %}
-    {% if c.coverage_ratio is not none %}
-    <div class="m"><span class="ds-label">Коэффициент охвата</span><span class="ds-value">{{ c.coverage_ratio | pct }}</span></div>
+    {% if ch.coverage_ratio is not none %}
+    <div class="m"><span class="ds-label">Коэффициент охвата</span><span class="ds-value">{{ ch.coverage_ratio | pct }}</span></div>
     {% endif %}
-    {% if c.er_percent is not none %}
-    <div class="m"><span class="ds-label">ER</span><span class="ds-value">{{ c.er_percent | pct }}</span></div>
+    {# ER не вырезан, а погашен порогом покрытия: заполнен у 37 каналов из
+       140 015. Починят расчёт в коллекторе — плитка вернётся сама. #}
+    {% if build.show_er and ch.er_percent is not none %}
+    <div class="m"><span class="ds-label">ER</span><span class="ds-value">{{ ch.er_percent | pct }}</span></div>
     {% endif %}
     <div class="m"><span class="ds-label">Постов за месяц</span>
-      <span class="ds-value">{{ c.posts_30d | num }}</span>
-      {% if c.last_post_at %}<span class="sub">последний {{ c.last_post_at | date_ru }}</span>{% endif %}</div>
-    {% if c.ad_share_30d is not none %}
+      <span class="ds-value">{{ ch.posts_30d | num }}</span>
+      {% if ch.last_post_at %}<span class="sub">последний {{ ch.last_post_at | date_ru }}</span>{% endif %}</div>
+    {% if ch.ad_share_30d is not none %}
     <div class="m"><span class="ds-label">Рекламных постов</span>
-      <span class="ds-value">{{ c.ads_30d | num }}</span>
-      <span class="sub adv">{{ c.ad_share_30d | pct }} ленты</span></div>
+      <span class="ds-value">{{ ch.ads_30d | num }}</span>
+      <span class="sub adv">{{ ch.ad_share_30d | pct }} ленты</span></div>
     {% endif %}
-    {% if c.views_ad is not none %}
+    {% if ch.views_ad is not none %}
     <div class="m"><span class="ds-label">Охват рекламного поста</span>
-      <span class="ds-value">{{ c.views_ad | num }}</span>
-      <span class="sub">обычный {{ c.views_organic | num }}</span></div>
+      <span class="ds-value">{{ ch.views_ad | num }}</span>
+      <span class="sub">обычный {{ ch.views_organic | num }}</span></div>
     {% endif %}
-    {% if c.growth_90d is not none %}
+    {% if ch.growth_90d is not none %}
     <div class="m"><span class="ds-label">Прирост аудитории</span>
-      <span class="ds-value {{ 'up' if c.growth_90d >= 0 else 'down' }}">{{ c.growth_90d | signed }}</span>
+      <span class="ds-value {{ 'up' if ch.growth_90d >= 0 else 'down' }}">{{ ch.growth_90d | signed }}</span>
       <span class="sub">за 90 дней</span></div>
     {% endif %}
-    {% if c.views_spread is not none %}
+    {% if ch.views_spread is not none %}
     <div class="m"><span class="ds-label">Разброс охвата</span>
-      <span class="ds-value">{{ c.views_spread | pct }}</span></div>
+      <span class="ds-value">{{ ch.views_spread | pct }}</span></div>
     {% endif %}
   </div>
 
-  {% if c.categories or c.siblings %}
+  {% if ch.categories %}
   <div class="sites">
-    {% if c.categories %}
     <span class="ds-label">Тематики</span>
     <div class="sites-list">
-      {% for cat in c.categories %}
+      {% for cat in ch.categories %}
         <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
       {% endfor %}
     </div>
-    {% endif %}
-    {% if c.siblings %}
-    <span class="ds-label">Другие площадки автора</span>
-    <div class="sites-list">
-      {% for s in c.siblings %}
-        <a class="chip" href="/{{ s.platform }}/{{ s.username_lower }}">
-          <span class="dot plat--{{ s.platform }}">{{ platform_codes[s.platform] }}</span>
-          {{ s.display_name or s.username }} · {{ s.subscribers | num }}</a>
-      {% endfor %}
-    </div>
-    {% endif %}
   </div>
   {% endif %}
 
-  <div class="updated">Данные обновлены {{ built_at | date_ru }}</div>
+  {% if own %}<div class="updated">Данные обновлены {{ built_at | date_ru }}</div>{% endif %}
 </div>
 
+{% set chart = charts[ch.id] %}
 {% if chart %}
 {# Меньше трёх точек — блока нет вовсе: пустой график хуже отсутствующего. #}
 <section class="panel">
@@ -125,8 +144,8 @@
 
 <section class="panel">
   <h2>Кто рекламировался в канале</h2>
-  {% if c.advertisers %}
-  {% for a in c.advertisers %}
+  {% if ch.advertisers %}
+  {% for a in ch.advertisers %}
   <div class="adv-line">
     <b>{{ a.label }}</b>
     {% if a.inn %}· ИНН {{ a.inn }}{% endif %}
@@ -136,17 +155,17 @@
   </div>
   {% endfor %}
   <p class="sub">Рекламодатели определяются по обязательной маркировке в тексте постов за
-     {{ c.adv_window_days | num }} дней. Показываем только открытые реквизиты из реестра.</p>
+     {{ ch.adv_window_days | num }} дней. Показываем только открытые реквизиты из реестра.</p>
   {% else %}
   <p class="none">Рекламных размещений с маркировкой не найдено.</p>
   {% endif %}
 </section>
 
-<section class="panel">
+<section class="panel"{% if own %} id="feed"{% endif %}>
   <h2>Публикации</h2>
-  {% if posts %}
+  {% if ch.posts %}
   <div class="feed">
-    {% for p in posts %}
+    {% for p in ch.posts %}
     <article class="post{% if p.is_ad %} post--ad{% endif %}">
       <div class="post-head">
         <span class="post-date">{{ p.posted_at | date_ru }}</span>
@@ -162,8 +181,21 @@
     </article>
     {% endfor %}
   </div>
+  {# «Ещё» — ссылка на следующий адрес, а не подгрузка: клиентского JS на сайте
+     нет. Якорь обязателен, без него человек со страницы из шести блоков
+     вернётся на её верх. У соседа «Ещё» ведёт на его собственную страницу:
+     адрес у него уже есть, новые плодить незачем. #}
+  {% if own and feed_page < c.feed_pages %}
+    <a class="btn btn--ghost more" rel="nofollow"
+       href="/{{ ch.platform }}/{{ ch.username_lower }}?posts={{ feed_page + 1 }}#feed">Ещё</a>
+  {% elif not own %}
+    <a class="btn btn--ghost more"
+       href="/{{ ch.platform }}/{{ ch.username_lower }}">Все публикации канала</a>
+  {% endif %}
   {% else %}
   <p class="none">Постов нет: за последний месяц канал ничего не публиковал.</p>
   {% endif %}
 </section>
+</section>
+{% endfor %}
 {% endblock %}

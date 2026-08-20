@@ -228,7 +228,10 @@ def test_switch_off_opens_indexing_but_keeps_deep_pages_closed(layer, make_clien
     assert "noindex, follow" in second.headers.get("x-robots-tag", "")
 
     robots = client.get("/robots.txt")
-    assert "Disallow: /" not in robots.text
+    # Проверяется отсутствие запрета на весь сайт, а не отсутствие запретов
+    # вообще: с T-65 в файле есть построчные `Disallow` на ключи фильтров, и
+    # подстрока «Disallow: /» теперь встречается законно.
+    assert "Disallow: /\n" not in robots.text
     assert "Sitemap:" in robots.text
 
 

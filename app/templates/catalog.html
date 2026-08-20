@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_filters.html" as f %}
 
 {% block title %}{{ title }} — Fomobase{% endblock %}
 {% block description %}{{ subtitle }}{% endblock %}
@@ -12,6 +13,15 @@
 {% endblock %}
 
 {% block body %}
+<div class="layout">
+{# Мобильная разметка колонки: свёрнута, стоит над списком. #}
+<details class="side-mobile">
+  <summary class="fbtn">Фильтры</summary>
+  {{ f.filter_form(base_url, filters, section, 'm') }}
+</details>
+<aside class="side-desktop">{{ f.filter_form(base_url, filters, section, 'd') }}</aside>
+
+<div class="listing">
 {% if categories %}
 <div class="sites-list">
   {% for cat in categories %}
@@ -21,10 +31,24 @@
 {% endif %}
 
 <div class="bar">
-  <span class="ds-label">Каналы</span>
+  {# Сортировка — ссылки, а не кнопки: кнопка без клиентского кода никуда не
+     ведёт. Краулеру они закрыты `nofollow`, иначе обход ушёл бы в четыре
+     варианта на каждую из 2 700 страниц каталога, все под noindex. #}
+  <span class="ds-label">Сортировка</span>
+  <span class="sort">
+    {% for key, name in sort_names.items() %}
+      {% if key == filters.sort %}
+        <span class="sbtn on">{{ name }}</span>
+      {% else %}
+        <a class="sbtn" rel="nofollow"
+           href="{{ filters.with_sort(key).url(base_url) }}">{{ name }}</a>
+      {% endif %}
+    {% endfor %}
+  </span>
   <span class="count">Найдено <b>{{ page.total | num }}</b>
     {{ plural(page.total, 'канал', 'канала', 'каналов') }}</span>
 </div>
+{% if coverage_line %}<p class="sub">{{ coverage_line }}</p>{% endif %}
 
 <div class="list">
   {% for c in page.rows %}
@@ -51,10 +75,19 @@
     <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ c.subscribers | num }}</span></div>
     <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ c.views_organic | num }}</span></div>
     <div class="m"><span class="ds-label">Коэф. охвата</span><span class="ds-value">{{ c.coverage_ratio | pct }}</span></div>
+    {% if build.show_er %}
+    <div class="m"><span class="ds-label">ER</span><span class="ds-value">{{ c.er_percent | pct }}</span></div>
+    {% endif %}
     <div class="m"><span class="ds-label">Доля рекламы</span><span class="ds-value adv">{{ c.ad_share_30d | pct }}</span></div>
   </div>
   {% else %}
-  <div class="row"><span class="none">Здесь пока пусто.</span></div>
+  {# Под фильтром пустая выдача — частое состояние, а не край. Человеку нужен
+     не только текст, но и дорога назад. #}
+  <div class="row"><span class="none">
+    {% if filters.active %}Под эти условия ничего не подошло.
+      <a href="{{ base_url }}">Сбросить фильтры</a>
+    {% else %}Здесь пока пусто.{% endif %}
+  </span></div>
   {% endfor %}
 </div>
 
@@ -63,20 +96,22 @@
    Со второй они отдаются под noindex, follow, чтобы в индекс не копились клоны. #}
 <nav class="pg">
   {% if page.number > 1 %}
-    <a href="{{ base_url }}{% if page.number > 2 %}?page={{ page.number - 1 }}{% endif %}">←</a>
+    <a href="{{ filters.url(base_url, page.number - 1) }}">←</a>
   {% else %}
     <span class="off">←</span>
   {% endif %}
   {% for n in page.window %}
     {% if n == page.number %}<span class="on">{{ n }}</span>
-    {% elif n %}<a href="{{ base_url }}{% if n > 1 %}?page={{ n }}{% endif %}">{{ n }}</a>
+    {% elif n %}<a href="{{ filters.url(base_url, n) }}">{{ n }}</a>
     {% else %}<span class="gap">…</span>{% endif %}
   {% endfor %}
   {% if page.has_next %}
-    <a href="{{ base_url }}?page={{ page.number + 1 }}">→</a>
+    <a href="{{ filters.url(base_url, page.number + 1) }}">→</a>
   {% else %}
     <span class="off">→</span>
   {% endif %}
 </nav>
 {% endif %}
+</div>
+</div>
 {% endblock %}

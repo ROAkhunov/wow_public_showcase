@@ -1,0 +1,70 @@
+{#
+  Колонка фильтров. Форма отправляется методом GET, то есть каждое состояние
+  получает свой адрес — иначе фильтр нельзя ни переслать, ни открыть в новой
+  вкладке, а без клиентского кода ещё и нельзя удержать при переходе на
+  следующую страницу.
+
+  Разметки две, и это не дублирование по недосмотру. На десктопе колонка стоит
+  раскрытой, на телефоне свёрнута — атрибут `open` у `details` один на всех и
+  медиазапросом не переключается, поэтому вариантов ровно два: клиентский код
+  (запрещён) или две разметки, каждая скрыта на чужой ширине. Лишний килобайт
+  дешевле скрипта. Идентификаторы полей поэтому разведены суффиксом.
+#}
+{% macro filter_form(base_url, filters, section, suffix) %}
+<form class="side" method="get" action="{{ base_url }}">
+  {# Сортировка переживает отправку формы: без этого поля выбор «по свежести»
+     слетал бы на умолчание при каждом уточнении диапазона. #}
+  {% if filters.sort != 'subscribers' %}
+    <input type="hidden" name="sort" value="{{ filters.sort }}">
+  {% endif %}
+  {% if filters.category %}
+    <input type="hidden" name="cat" value="{{ filters.category }}">
+  {% endif %}
+
+  <div class="side-head"><b>Фильтры</b></div>
+
+  <div class="group">
+    <label class="ds-label" for="subs-min-{{ suffix }}">Подписчики</label>
+    <div class="pair">
+      <input class="field" id="subs-min-{{ suffix }}" name="subs_min" inputmode="numeric"
+             placeholder="от" value="{{ filters.ranges.get('subs_min', '') }}">
+      <input class="field" name="subs_max" inputmode="numeric"
+             placeholder="до" value="{{ filters.ranges.get('subs_max', '') }}">
+    </div>
+  </div>
+
+  <div class="group">
+    <label class="ds-label" for="views-min-{{ suffix }}">Средний охват поста</label>
+    <div class="pair">
+      <input class="field" id="views-min-{{ suffix }}" name="views_min" inputmode="numeric"
+             placeholder="от" value="{{ filters.ranges.get('views_min', '') }}">
+      <input class="field" name="views_max" inputmode="numeric"
+             placeholder="до" value="{{ filters.ranges.get('views_max', '') }}">
+    </div>
+  </div>
+
+  <div class="group">
+    <label class="ds-label" for="ads-min-{{ suffix }}">Доля рекламы в ленте, %</label>
+    <div class="pair">
+      <input class="field" id="ads-min-{{ suffix }}" name="ads_min" inputmode="numeric"
+             placeholder="от" value="{{ filters.ranges.get('ads_min', '') }}">
+      <input class="field" name="ads_max" inputmode="numeric"
+             placeholder="до" value="{{ filters.ranges.get('ads_max', '') }}">
+    </div>
+  </div>
+
+  <div class="group">
+    <label class="check"><input type="checkbox" name="has_ads" value="1"
+      {% if 'has_ads' in filters.flags %}checked{% endif %}> Есть рекламная история</label>
+    {# Чекбокс узкий: площадки-соседи есть у 1 923 каналов из 140 015. Цифра
+       рядом, чтобы пустая выдача не выглядела поломкой. #}
+    <label class="check"><input type="checkbox" name="has_siblings" value="1"
+      {% if 'has_siblings' in filters.flags %}checked{% endif %}> Автор ведёт несколько площадок</label>
+  </div>
+
+  <button class="btn btn--primary" type="submit">Показать</button>
+  {% if filters.active %}
+    <a class="side-hide" href="{{ base_url }}">Сбросить фильтры</a>
+  {% endif %}
+</form>
+{% endmacro %}

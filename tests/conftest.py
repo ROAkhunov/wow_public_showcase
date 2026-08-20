@@ -64,6 +64,8 @@ def _reset(dsn: str) -> None:
                     channels_total   INTEGER NOT NULL DEFAULT 0,
                     posts_total      INTEGER NOT NULL DEFAULT 0,
                     empty_feed_share DOUBLE PRECISION NOT NULL DEFAULT 0,
+                    categories_covered INTEGER NOT NULL DEFAULT 0,
+                    er_covered         INTEGER NOT NULL DEFAULT 0,
                     is_live          BOOLEAN NOT NULL DEFAULT FALSE
                 )
             """)
@@ -121,7 +123,9 @@ class Layer:
         self._insert("channel", row)
         return id
 
-    def post(self, channel_id: int, post_id: str, **kw):
+    def post(self, channel_id: int, post_id: str, days_ago: int | None = None, **kw):
+        if days_ago is not None:
+            kw.setdefault("posted_at", NOW - timedelta(days=days_ago))
         row = dict(
             channel_id=channel_id, platform_post_id=post_id,
             text="Текст публикации", url=f"https://t.me/c/{post_id}",
@@ -158,16 +162,28 @@ class Layer:
         self._insert("channel_advertiser", row)
 
     # ── указатель ────────────────────────────────────────────────────────
-    def go_live(self, channels_total: int | None = None):
+    def go_live(self, channels_total: int | None = None, *,
+                categories_covered: int | None = None, er_covered: int | None = None):
+        """Сделать схему боевой.
+
+        Покрытия считаются по засеянному слою, если их не задали руками: тесты
+        про пороги (плитка ER, строка о тематиках) ставят свою цифру, остальным
+        достаточно честного счёта.
+        """
         with self.conn.cursor() as cur:
             cur.execute(f'SELECT count(*) FROM "{self.schema}".channel')
             total = channels_total if channels_total is not None else cur.fetchone()[0]
+            cur.execute(f'SELECT count(*) FROM "{self.schema}".channel WHERE er_percent IS NOT NULL')
+            er = er_covered if er_covered is not None else cur.fetchone()[0]
+            cur.execute(f'SELECT count(DISTINCT channel_id) FROM "{self.schema}".channel_category')
+            cats = categories_covered if categories_covered is not None else cur.fetchone()[0]
             cur.execute("UPDATE build_meta SET is_live = FALSE WHERE is_live")
             cur.execute("""
-                INSERT INTO build_meta (schema_name, built_at, channels_total, is_live)
-                VALUES (%s, %s, %s, TRUE)
+                INSERT INTO build_meta (schema_name, built_at, channels_total,
+                                        categories_covered, er_covered, is_live)
+                VALUES (%s, %s, %s, %s, %s, TRUE)
                 ON CONFLICT (schema_name) DO UPDATE SET is_live = TRUE
-            """, (self.schema, NOW, total))
+            """, (self.schema, NOW, total, cats, er))
         return self
 
 

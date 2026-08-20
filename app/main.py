@@ -22,6 +22,7 @@ from fastapi.templating import Jinja2Templates
 from app import format as fmt
 from app.chart import sparkline
 from app.db import Page, Showcase, ShowcaseUnavailable, pages_in
+from app.query import FLAGS, RANGES, SORT_NAMES, SORTS, Filters, parse
 from app.settings import PLATFORM_CODES, PLATFORM_NAMES, PLATFORMS, Settings, from_env
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -109,27 +110,55 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def catalog_page(request: Request, *, title: str, subtitle: str, base_url: str,
                      platform: str | None = None, category: str | None = None,
                      section: str | None = None, counts: dict | None = None,
-                     categories: list | None = None) -> HTMLResponse:
-        """Один ход всех каталожных страниц: номер → выборка → пометка → рендер.
+                     categories: list | None = None):
+        """Один ход всех каталожных страниц: номер → адрес → выборка → рендер.
 
         Каталог, раздел площадки и раздел категории отличаются только заголовком
-        и условием выборки, поэтому пагинация и её 404 живут в одном месте.
+        и условием выборки, поэтому пагинация, её 404 и нормализация адреса
+        живут в одном месте.
+
+        Порядок проверок важен: номер страницы разбирается ПЕРВЫМ. Мусор в нём
+        означает несуществующую страницу, и адрес с мусором в двух местах должен
+        отдавать 404 сразу, а не редиректиться перед этим.
         """
         n = page_number(request)
         if n is None:
             return not_found(request, "Такой страницы каталога нет")
+
+        # Канонический адрес собирается заново и сравнивается со строкой
+        # запроса целиком. Так одним правилом закрываются и мусор в значении, и
+        # пустые поля формы, и переставленные ключи, и чужие метки кампаний:
+        # список один, и адрес у него один.
+        filters, _ = parse(request.query_params, allow_category=category is None)
+        if request.url.query != filters.query(n):
+            return RedirectResponse(filters.url(base_url, n), status_code=301)
+
         page = app.state.db.catalog(platform=platform, category=category,
-                                    page=n, size=settings.page_size)
+                                    page=n, size=settings.page_size, filters=filters)
         # Страница за последней — такой же несуществующий адрес, как неизвестный
         # канал: пустой список со статусом 200 краулер копил бы себе в индекс.
-        if n > page.pages:
+        if n > page.pages and (n > 1 or page.total):
             return not_found(request, "Такой страницы каталога нет")
-        if page.number > 1:
+        # Фильтрованный адрес в индекс не идёт: написаний много, содержимое
+        # пересекается. Проходить насквозь краулеру никто не мешает, но и
+        # ссылок туда для него нет (`nofollow` плюс `robots.txt`).
+        if page.number > 1 or filters.active:
             request.state.robots = FOLLOW_ONLY
+        build = app.state.db.build()
+        # Тематика известна не у всех: под фильтром по ней исчезает три четверти
+        # каталога. Обе цифры приезжают колонками дампа — считать их на каждый
+        # показ дорого, а зашить в шаблон значит протухнуть на первой же сборке.
+        coverage = None
+        if category and build.categories_covered:
+            coverage = (f"Тематика известна у {fmt.num(build.categories_covered)} "
+                        f"каналов из {fmt.num(build.channels_total)}: "
+                        "у остальных её ещё не собрали.")
         return render(request, "catalog.html", page=page, title=title, subtitle=subtitle,
-                      base_url=base_url, section=section,
+                      base_url=base_url, section=section, filters=filters,
+                      sorts=SORTS, sort_names=SORT_NAMES, build=build,
+                      coverage_line=coverage,
                       counts=counts or {}, categories=categories or [],
-                      built_at=app.state.db.build().built_at)
+                      built_at=build.built_at)
 
     # ── каталог и разделы ────────────────────────────────────────────────
     @app.get("/", response_class=HTMLResponse)
@@ -145,6 +174,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         name = app.state.db.category_name(slug)
         if not name:
             return not_found(request, "Такой категории нет")
+        # Пара «площадка плюс тематика» несимметрична намеренно: живёт она
+        # параметром внутри раздела площадки. Зеркальный параметр площадки на
+        # адресе тематики дал бы одному списку два адреса.
+        chosen = request.query_params.get("platform")
+        if chosen in PLATFORMS:
+            return RedirectResponse(f"/{chosen}?cat={quote(slug)}", status_code=301)
         return catalog_page(
             request, title=name, subtitle=f"Каналы в категории «{name}»",
             base_url=f"/category/{quote(slug)}", category=slug,
@@ -175,7 +210,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             body = ("# Витрина закрыта от индексации до подтверждения владельца.\n"
                     "User-agent: *\nDisallow: /\n")
         else:
-            body = (f"User-agent: *\nAllow: /\n\n"
+            # Запреты поимённо по ключам, а не шаблоном на любую строку
+            # запроса: шаблон накрыл бы `?page`, то есть единственный путь
+            # краулера к 140 тысячам страниц каналов.
+            closed = "".join(f"Disallow: /*?*{key}=\n"
+                             for key in (*RANGES, *FLAGS, "cat", "sort", "posts"))
+            body = (f"User-agent: *\nAllow: /\n{closed}\n"
                     f"Sitemap: {settings.site_origin}/sitemap.xml\n")
         return PlainTextResponse(body)
 
@@ -209,7 +249,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         name = PLATFORM_NAMES[platform]
         return catalog_page(request, title=f"Каналы · {name}",
                             subtitle=f"Все площадки {name} в базе",
-                            base_url=f"/{platform}", platform=platform, section=platform)
+                            base_url=f"/{platform}", platform=platform, section=platform,
+                            categories=app.state.db.categories()[:24])
 
     @app.get("/{platform}/{username}", response_class=HTMLResponse)
     def channel(request: Request, platform: str, username: str):
@@ -220,11 +261,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # домена целиком (US19). Регистр приводим до похода в базу.
         if username != username.lower():
             return RedirectResponse(f"/{platform}/{username.lower()}", status_code=301)
-        row = app.state.db.channel(platform, username)
+        # `posts` это номер страницы ленты, а не фильтр: мусор в нём означает
+        # несуществующую страницу, то есть 404, а не нормализацию адреса.
+        raw = request.query_params.get("posts")
+        feed = 1 if raw is None else (positive_int(raw) or 0)
+        if not feed:
+            return not_found(request, "Такой страницы ленты нет")
+        if raw == "1":
+            return RedirectResponse(f"/{platform}/{username}", status_code=301)
+
+        row = app.state.db.channel(platform, username, feed_page=feed,
+                                   feed_size=settings.feed_size)
         if not row:
             return not_found(request, "Такого канала в базе нет")
-        return render(request, "channel.html", c=row, chart=sparkline(row["history"]),
-                      posts=row["posts"], built_at=row["built_at"])
+        if feed > max(row["feed_pages"], 1):
+            return not_found(request, "Такой страницы ленты нет")
+        if feed > 1:
+            request.state.robots = FOLLOW_ONLY
+        return render(request, "channel.html", c=row, family=row["family"],
+                      charts={r["id"]: sparkline(r["history"]) for r in row["family"]},
+                      feed_page=feed, build=app.state.db.build(),
+                      built_at=row["built_at"])
 
     # ── дамп ещё не собран ───────────────────────────────────────────────
     @app.exception_handler(ShowcaseUnavailable)

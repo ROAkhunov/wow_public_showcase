@@ -38,6 +38,9 @@ class Settings:
     avatar_base: str = "/avatars"
     site_origin: str = "https://fomobase.ru"
     page_size: int = 50
+    #: постов в одной странице ленты. Дальше кнопка «Ещё» обычной ссылкой: у
+    #: автора с пятью площадками полные блоки дали бы 180 постов на странице.
+    feed_size: int = 10
     #: адресов в одном файле sitemap; предел протокола — 50 000.
     sitemap_chunk: int = 45_000
     pool_min: int = 1
