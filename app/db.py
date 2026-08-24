@@ -102,6 +102,24 @@ class Showcase:
     def close(self) -> None:
         self._pool.closeall()
 
+    # ── соединение без привязки к боевой схеме ────────────────────────────
+    @contextmanager
+    def _raw_cursor(self):
+        """Курсор для запросов к `public`, которым живая схема дампа не нужна.
+
+        Обращения (T-67) обязаны переживать состояние «дамп ни разу не
+        собирался» — `public.data_report` их не теряет именно потому, что не
+        зависит от `build_meta`. Через `_cursor()` эта независимость сломалась
+        бы: он падает `ShowcaseUnavailable`, если живой схемы нет.
+        """
+        conn = self._pool.getconn()
+        try:
+            conn.autocommit = True
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                yield cur
+        finally:
+            self._pool.putconn(conn)
+
     # ── соединение с указателем на боевую схему ──────────────────────────
     @contextmanager
     def _cursor(self):
@@ -280,6 +298,41 @@ class Showcase:
         with self._cursor() as (cur, _):
             cur.execute("SELECT platform, count(*) AS n FROM channel GROUP BY platform")
             return {r["platform"]: r["n"] for r in cur.fetchall()}
+
+    # ── обращения «Сообщить о неточности» (T-67) ───────────────────────────
+    def channel_name(self, platform: str, username_lower: str) -> str | None:
+        """Показываемое имя канала для формы обращения, или None, если пары
+        нет в живой схеме — обращение всё равно принимается."""
+        with self._cursor() as (cur, _):
+            cur.execute("SELECT display_name FROM channel "
+                        "WHERE platform = %s AND username_lower = %s",
+                        (platform, username_lower))
+            row = cur.fetchone()
+            return row["display_name"] if row else None
+
+    def submit_report(self, *, platform: str | None, username_lower: str | None,
+                      kind: str, details: str, email: str | None,
+                      referrer: str | None) -> None:
+        """Записать обращение в `public.data_report` — единственная запись
+        сервиса витрины в базу, всё остальное здесь чтение.
+
+        Имя канала резолвится через живую схему дампа отдельным, необязательным
+        шагом: если дампа сейчас нет (`ShowcaseUnavailable`), обращение всё
+        равно должно сохраниться, просто без показываемого названия — public
+        не зависит от ротации дампа и не имеет права падать вместе с ней.
+        """
+        display_name = None
+        if platform and username_lower:
+            try:
+                display_name = self.channel_name(platform, username_lower)
+            except ShowcaseUnavailable:
+                display_name = None
+        with self._raw_cursor() as cur:
+            cur.execute("""
+                INSERT INTO public.data_report
+                    (platform, username_lower, display_name, kind, details, email, referrer)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (platform, username_lower, display_name, kind, details, email, referrer))
 
     # ── sitemap ──────────────────────────────────────────────────────────
     def channels_total(self) -> int:

@@ -69,6 +69,11 @@ def _reset(dsn: str) -> None:
                     is_live          BOOLEAN NOT NULL DEFAULT FALSE
                 )
             """)
+            # T-67: таблица обращений живёт в public и схему не пересоздаёт —
+            # чистим руками, чтобы прогоны тестов не копили чужие строки.
+            cur.execute("SELECT to_regclass('public.data_report')")
+            if cur.fetchone()[0]:
+                cur.execute("DELETE FROM public.data_report")
     finally:
         conn.close()
 

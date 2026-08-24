@@ -20,6 +20,7 @@ from fastapi.responses import (FileResponse, HTMLResponse, PlainTextResponse,
 from fastapi.templating import Jinja2Templates
 
 from app import format as fmt
+from app import report as rep
 from app.chart import sparkline
 from app.db import Page, Showcase, ShowcaseUnavailable, pages_in
 from app.query import FLAGS, RANGES, SORT_NAMES, SORTS, Filters, parse
@@ -215,7 +216,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # краулера к 140 тысячам страниц каналов.
             closed = "".join(f"Disallow: /*?*{key}=\n"
                              for key in (*RANGES, *FLAGS, "cat", "sort", "posts"))
-            body = (f"User-agent: *\nAllow: /\n{closed}\n"
+            # Форма ОС не индексируется: в закрытой ветке и так всё закрыто.
+            body = (f"User-agent: *\nAllow: /\n{closed}"
+                    f"Disallow: /report\nDisallow: /report/thanks\n\n"
                     f"Sitemap: {settings.site_origin}/sitemap.xml\n")
         return PlainTextResponse(body)
 
@@ -240,6 +243,60 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         xml = app.state.templates.get_template("sitemap.xml").render(
             rows=rows, origin=settings.site_origin)
         return Response(xml, media_type="application/xml")
+
+    # ── форма «Сообщить о неточности» (T-67) ─────────────────────────────
+    # Регистрируются до `/{platform}`, иначе `/report` разобрался бы как
+    # раздел несуществующей площадки, а `/report/thanks` — как страница
+    # канала «thanks» на площадке «report».
+    def report_page(request: Request, form: rep.ReportForm, status: int = 200) -> HTMLResponse:
+        request.state.robots = CLOSED
+        channel_name = None
+        if form.platform and form.username_lower:
+            channel_name = app.state.db.channel_name(form.platform, form.username_lower)
+        return render(request, "report.html", status=status, form=form,
+                      channel_name=channel_name, kinds=rep.KINDS,
+                      max_details=rep.MAX_DETAILS, max_email=rep.MAX_EMAIL,
+                      honeypot_field=rep.HONEYPOT_FIELD)
+
+    @app.get("/report", response_class=HTMLResponse)
+    def report_get(request: Request):
+        platform, username_lower = rep.channel_params(
+            request.query_params.get("platform"), request.query_params.get("channel"), PLATFORMS)
+        return report_page(request, rep.ReportForm(platform=platform, username_lower=username_lower))
+
+    @app.post("/report")
+    async def report_post(request: Request):
+        body = await request.form()
+        if body.get(rep.HONEYPOT_FIELD):
+            # Приманка заполнена — молча принимаем, в базу не пишем.
+            return RedirectResponse("/report/thanks", status_code=303)
+
+        form = rep.parse(body, platforms=PLATFORMS)
+        if not form.ok:
+            return report_page(request, form, status=422)
+
+        details = form.details[:rep.MAX_DETAILS]
+        if len(form.details) > rep.MAX_DETAILS:
+            log.info("обращение обрезано до %d символов (%s/%s)",
+                     rep.MAX_DETAILS, form.platform, form.username_lower)
+        try:
+            app.state.db.submit_report(
+                platform=form.platform, username_lower=form.username_lower,
+                kind=form.kind, details=details, email=form.email or None,
+                referrer=request.headers.get("referer"))
+        except Exception:
+            # Потерять обращение молча нельзя (правило проекта): это error,
+            # а не debug, и текст обращения остаётся в логе.
+            log.error("не удалось записать обращение (%s/%s, %s): %r",
+                     form.platform, form.username_lower, form.kind, details)
+            form.errors["_"] = "Не получилось отправить, попробуйте ещё раз."
+            return report_page(request, form, status=500)
+        return RedirectResponse("/report/thanks", status_code=303)
+
+    @app.get("/report/thanks", response_class=HTMLResponse)
+    def report_thanks(request: Request):
+        request.state.robots = CLOSED
+        return render(request, "report_thanks.html")
 
     # ── разделы площадок и страница канала ───────────────────────────────
     @app.get("/{platform}", response_class=HTMLResponse)

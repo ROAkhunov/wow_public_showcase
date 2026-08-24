@@ -1,0 +1,9 @@
+[Unit]
+Description=WOW Public Showcase — report sender (T-67)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/wow_public_showcase
+ExecStart=/opt/wow_public_showcase/venv/bin/python3 deploy/report_sender.py
+EnvironmentFile=/opt/wow_public_showcase/.env

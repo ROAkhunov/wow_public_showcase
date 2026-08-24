@@ -41,6 +41,33 @@ rm -rf /var/cache/nginx/fomobase/* && systemctl reload nginx
 `listen 80 default_server` с `return 444`. Внутренняя витрина на 8501 (`list.wowblogger.com`) при
 этом не затронута: у неё свой блок по имени.
 
+## Обращения «Сообщить о неточности» (T-67)
+
+Единственная запись сервиса витрины в базу — таблица `public.data_report`, живёт рядом с
+`public.build_meta`, ротацию схемы `dump_*` переживает. Миграция —
+`deploy/migrations/2026-08-24_t67_data_report.sql`, применяется вручную:
+
+```bash
+psql "$SHOWCASE_DSN" -f deploy/migrations/2026-08-24_t67_data_report.sql
+```
+
+**Отправка в Телеграм — не веб-процессом.** Отдельный systemd-таймер разбирает необработанные
+обращения раз в 5 минут и шлёт через `/opt/scripts/notify.sh --tag showcase`:
+
+```bash
+cp deploy/wow-showcase-report-sender.service deploy/wow-showcase-report-sender.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now wow-showcase-report-sender.timer
+```
+
+**Бэкап `public` базы showcase** — отдельно от `/opt/scripts/pg_backup.sh` (тот скрипт из
+репозитория датаколлектора, его ротация и disk-floor посчитаны под объёмы `datacollector`, а тут
+единицы мегабайт). Строка в cron:
+
+```cron
+10 8 * * * /opt/wow_public_showcase/deploy/backup-public-schema.sh >> /var/log/showcase_backup.log 2>&1
+```
+
 ## Файл подтверждения прав против catch-all
 
 В приложении есть маршрут `/{platform}`, который отвечает на любой односегментный адрес. Файл

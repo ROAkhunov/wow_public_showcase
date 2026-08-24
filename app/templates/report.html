@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Сообщить о неточности — Fomobase{% endblock %}
+{% block description %}Форма обратной связи по качеству данных каталога Fomobase.{% endblock %}
+
+{% block body %}
+<section class="panel">
+  <h1>Сообщить о неточности</h1>
+  {% if channel_name %}
+    <p class="sub">По каналу «{{ channel_name }}»</p>
+  {% elif form.platform %}
+    <p class="sub">По каналу {{ platform_names.get(form.platform, form.platform) }} / {{ form.username_lower }}</p>
+  {% else %}
+    <p class="sub">По данным каталога</p>
+  {% endif %}
+  {% if form.errors.get('_') %}<p class="sub">{{ form.errors['_'] }}</p>{% endif %}
+
+  <form method="post" action="/report">
+    {% if form.platform %}<input type="hidden" name="platform" value="{{ form.platform }}">{% endif %}
+    {% if form.username_lower %}<input type="hidden" name="username_lower" value="{{ form.username_lower }}">{% endif %}
+    {# Приманка: скрыта позиционированием, не display:none — так её видят и
+       заполняют автозаполнители-боты, а не только совсем примитивные. #}
+    <input type="text" name="{{ honeypot_field }}" value="" tabindex="-1" autocomplete="off"
+           aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">
+
+    <div class="group">
+      <label class="ds-label" for="rep-kind">Что не так</label>
+      <select class="field" id="rep-kind" name="kind">
+        {% for k in kinds %}
+          <option{% if k == form.kind %} selected{% endif %}>{{ k }}</option>
+        {% endfor %}
+      </select>
+      {% if form.errors.kind %}<p class="sub">{{ form.errors.kind }}</p>{% endif %}
+    </div>
+
+    <div class="group">
+      <label class="ds-label" for="rep-details">Подробности</label>
+      <textarea class="field" id="rep-details" name="details" rows="6" maxlength="{{ max_details }}"
+                placeholder="Опишите, что видите неверного и как правильно">{{ form.details }}</textarea>
+      {% if form.errors.details %}<p class="sub">{{ form.errors.details }}</p>{% endif %}
+    </div>
+
+    <div class="group">
+      <label class="ds-label" for="rep-email">Email для ответа <span class="sub">необязательно</span></label>
+      <input class="field" id="rep-email" name="email" maxlength="{{ max_email }}"
+             placeholder="you@example.com" value="{{ form.email }}">
+      {% if form.errors.email %}<p class="sub">{{ form.errors.email }}</p>{% endif %}
+    </div>
+
+    <button class="btn btn--primary" type="submit">Отправить</button>
+    <p class="sub">Сообщение попадёт в очередь на проверку. Мы сверим данные с источником и поправим каталог.</p>
+  </form>
+</section>
+{% endblock %}
