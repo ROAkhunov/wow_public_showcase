@@ -189,9 +189,10 @@ def test_platform_and_category_sections(layer, client):
     tg = client.get("/tg")
     assert tg.status_code == 200
     assert "tg_one" in tg.text and "vk_one" not in tg.text
-    # Раздел, в котором стоит посетитель, подсвечен в нав-панели именно свой.
-    assert '<a class="sec on" href="/tg">' in tg.text
-    assert '<a class="sec on" href="/">' in client.get("/").text
+    # Раздел, в котором стоит посетитель, подсвечен в колонке фильтров, а не в
+    # шапке: строка разделов из шапки убрана в T-66.
+    assert '<a class="chip on" href="/tg">' in tg.text
+    assert '<a class="chip on" href="/">' in client.get("/").text
 
     cat = client.get("/category/автомобили")
     assert cat.status_code == 200

@@ -268,15 +268,30 @@ class Showcase:
             if page > pages_in(total, size):
                 return Page([], total, page, size)
             cur.execute(f"""
-                {head}SELECT c.platform, c.username, c.username_lower, c.display_name,
-                       c.avatar_file,
+                {head}SELECT c.id, c.platform, c.username, c.username_lower, c.display_name,
+                       c.avatar_file, c.blogger_has_siblings, c.wowblogger_slug,
                        c.subscribers, c.views_organic, c.coverage_ratio, c.er_percent,
                        c.posts_30d, c.ad_share_30d, c.last_post_at
                 FROM channel c {clause}
                 ORDER BY {order}
                 LIMIT %s OFFSET %s
             """, params + [size, (page - 1) * size])
-            return Page(cur.fetchall(), total, page, size)
+            rows = cur.fetchall()
+
+            # Мини-строка площадок автора — второй запрос на страницу, одним
+            # батчем по всем строкам сразу (T-66), а не по строке: то же
+            # правило, что у семьи канала на странице (`channel()` выше).
+            ids = [r["id"] for r in rows if r["blogger_has_siblings"]]
+            siblings = self._by_channel(cur, """
+                SELECT s.channel_id, c.platform, c.username_lower
+                FROM channel_sibling s JOIN channel c ON c.id = s.sibling_channel_id
+                WHERE s.channel_id = ANY(%s)
+                ORDER BY s.channel_id, c.subscribers DESC NULLS LAST, c.id
+            """, ids) if ids else {}
+            for r in rows:
+                r["siblings"] = siblings.get(r["id"], [])
+
+            return Page(rows, total, page, size)
 
     def categories(self) -> list[dict]:
         with self._cursor() as (cur, _):

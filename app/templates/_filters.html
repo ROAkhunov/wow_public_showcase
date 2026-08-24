@@ -10,7 +10,7 @@
   (запрещён) или две разметки, каждая скрыта на чужой ширине. Лишний килобайт
   дешевле скрипта. Идентификаторы полей поэтому разведены суффиксом.
 #}
-{% macro filter_form(base_url, filters, section, suffix) %}
+{% macro filter_form(base_url, filters, section, suffix, categories_visible, categories_rest, selected_category) %}
 <form class="side" method="get" action="{{ base_url }}">
   {# Сортировка переживает отправку формы: без этого поля выбор «по свежести»
      слетал бы на умолчание при каждом уточнении диапазона. #}
@@ -22,6 +22,40 @@
   {% endif %}
 
   <div class="side-head"><b>Фильтры</b></div>
+
+  {# Площадка и тематика — адреса каталога (`/tg`, `/category/<slug>`), на
+     которых стоит вся индексация: список ссылок, стилизованный под фильтр, а
+     не поля формы (правка после разбора 23.08, T-66). Складываются, а не
+     сбрасывают друг друга: тематика внутри раздела площадки даёт `?cat=`,
+     площадка в разделе тематики ведёт на раздел площадки с тем же `?cat=`. #}
+  <div class="group">
+    <span class="ds-label">Площадка</span>
+    <div class="sites-list">
+      <a class="chip{% if not section %} on{% endif %}" href="{{ '/category/' ~ (selected_category | urlencode) if selected_category else '/' }}">Все площадки</a>
+      {% for p in platforms %}
+      <a class="chip{% if section == p %} on{% endif %}" href="{{ '/' ~ p ~ '?cat=' ~ (selected_category | urlencode) if selected_category else '/' ~ p }}"><span class="dot plat--{{ p }}">{{ platform_codes[p] }}</span>{{ platform_names[p] }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="group">
+    <span class="ds-label">Тематика</span>
+    <div class="sites-list">
+      {% for cat in categories_visible %}
+      <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ '/' ~ section ~ '?cat=' ~ (cat.category_slug | urlencode) if section else '/category/' ~ (cat.category_slug | urlencode) }}">{{ cat.category_name }}</a>
+      {% endfor %}
+    </div>
+    {% if categories_rest %}
+    <details class="cats-more">
+      <summary class="ds-label">Показать все</summary>
+      <div class="sites-list">
+        {% for cat in categories_rest %}
+        <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ '/' ~ section ~ '?cat=' ~ (cat.category_slug | urlencode) if section else '/category/' ~ (cat.category_slug | urlencode) }}">{{ cat.category_name }}</a>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </div>
 
   <div class="group">
     <label class="ds-label" for="subs-min-{{ suffix }}">Подписчики</label>

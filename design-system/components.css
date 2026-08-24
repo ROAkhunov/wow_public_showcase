@@ -454,3 +454,32 @@ a.sbtn { text-decoration: none; display: inline-flex; align-items: center; }
 .switch { margin-bottom: var(--sp-4); }
 .chip.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); }
 .more { margin-top: var(--sp-3); }
+
+/* ── Строка каталога: соседи автора, «Разместить», «Неточность?» (T-66) ─────
+   Соседи есть у 1,4% каналов — блок нечастый, но там, где есть, не должен
+   разъезжать строку: квадраты те же `.plat`, что и в шапке названия. */
+.pf-mini { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+.pf-mini .sub { margin: 0; }
+
+.row-actions { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-2); }
+.btn--sm { height: 28px; padding: 0 var(--sp-3); font-size: var(--fs-meta); }
+.report-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--fs-meta); color: var(--muted);
+}
+.report-link:hover { color: var(--ad); }
+
+/* ── Колонка канала: карточки размещения и обратной связи (T-66) ────────────
+   Ширина как у колонки фильтров каталога (`.side`), но она справа: канал
+   первый в разметке, аside вторая, поэтому раскладка зеркальная. На узких
+   экранах становится одной колонкой — аside идёт по порядку разметки, то
+   есть под контентом, без лишних правил. */
+.channel-layout { display: grid; grid-template-columns: 1fr 268px; gap: var(--sp-4); align-items: start; }
+.channel-side .updated { margin-top: 0; }
+@media (max-width: 860px) {
+  .channel-layout { grid-template-columns: 1fr; }
+}
+
+/* Раскрытие остальных 45 тематик в колонке фильтров — без JS (T-66). */
+.cats-more { margin-top: var(--sp-2); }
+.cats-more > summary { cursor: pointer; }

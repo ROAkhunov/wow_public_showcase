@@ -41,6 +41,29 @@ CLOSED = "noindex, nofollow"
 PUBLIC_ASSETS = ("index.css", "tokens.css", "components.css", "fonts/fonts.css")
 
 
+#: сколько тематик стоит в колонке фильтров без раскрытия «Показать все»
+#: (T-66, разбор скриншотов PO 23.08).
+CATEGORIES_PINNED = 12
+
+
+def split_categories(categories: list[dict], selected: str | None) -> tuple[list[dict], list[dict]]:
+    """Видимые тематики колонки и остальные под `<details>`.
+
+    Первые {CATEGORIES_PINNED} по числу каналов видны всегда. Выбранная
+    тематика видна тоже всегда, даже если по счёту она в хвосте: иначе человек
+    не понимает, где стоит текущий выбор (DoD T-66).
+    """
+    visible = categories[:CATEGORIES_PINNED]
+    rest = categories[CATEGORIES_PINNED:]
+    if selected and not any(c["category_slug"] == selected for c in visible):
+        for i, c in enumerate(rest):
+            if c["category_slug"] == selected:
+                visible = visible + [c]
+                rest = rest[:i] + rest[i + 1:]
+                break
+    return visible, rest
+
+
 def positive_int(raw: str) -> int | None:
     """Целое из строки адреса, или None, если это не номер.
 
@@ -110,8 +133,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def catalog_page(request: Request, *, title: str, subtitle: str, base_url: str,
                      platform: str | None = None, category: str | None = None,
-                     section: str | None = None, counts: dict | None = None,
-                     categories: list | None = None):
+                     section: str | None = None, counts: dict | None = None):
         """Один ход всех каталожных страниц: номер → адрес → выборка → рендер.
 
         Каталог, раздел площадки и раздел категории отличаются только заголовком
@@ -154,12 +176,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             coverage = (f"Тематика известна у {fmt.num(build.categories_covered)} "
                         f"каналов из {fmt.num(build.channels_total)}: "
                         "у остальных её ещё не собрали.")
+        # Тематика раздела задаёт выбор жёстко (адрес `/category/<slug>`), а на
+        # каталоге и разделе площадки её несёт `?cat=` в фильтрах — источник
+        # разный, а «что подсвечено в колонке» один (T-66).
+        selected_category = category or filters.category
+        categories_visible, categories_rest = split_categories(
+            app.state.db.categories(), selected_category)
         return render(request, "catalog.html", page=page, title=title, subtitle=subtitle,
                       base_url=base_url, section=section, filters=filters,
                       sorts=SORTS, sort_names=SORT_NAMES, build=build,
-                      coverage_line=coverage,
-                      counts=counts or {}, categories=categories or [],
-                      built_at=build.built_at)
+                      coverage_line=coverage, selected_category=selected_category,
+                      counts=counts or {}, categories_visible=categories_visible,
+                      categories_rest=categories_rest, built_at=build.built_at)
 
     # ── каталог и разделы ────────────────────────────────────────────────
     @app.get("/", response_class=HTMLResponse)
@@ -167,8 +195,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return catalog_page(
             request, title="Каталог каналов",
             subtitle="Аудитория, охваты и реклама по данным открытых источников",
-            base_url="/", counts=app.state.db.platform_counts(),
-            categories=app.state.db.categories()[:24])
+            base_url="/", counts=app.state.db.platform_counts())
 
     @app.get("/category/{slug}", response_class=HTMLResponse)
     def category(request: Request, slug: str):
@@ -183,8 +210,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return RedirectResponse(f"/{chosen}?cat={quote(slug)}", status_code=301)
         return catalog_page(
             request, title=name, subtitle=f"Каналы в категории «{name}»",
-            base_url=f"/category/{quote(slug)}", category=slug,
-            categories=app.state.db.categories()[:24])
+            base_url=f"/category/{quote(slug)}", category=slug)
 
     # ── статика дизайн-системы ───────────────────────────────────────────
     # Регистрируется до `/{platform}`, иначе раздел-заглушка перехватит адрес.
@@ -306,8 +332,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         name = PLATFORM_NAMES[platform]
         return catalog_page(request, title=f"Каналы · {name}",
                             subtitle=f"Все площадки {name} в базе",
-                            base_url=f"/{platform}", platform=platform, section=platform,
-                            categories=app.state.db.categories()[:24])
+                            base_url=f"/{platform}", platform=platform, section=platform)
 
     @app.get("/{platform}/{username}", response_class=HTMLResponse)
     def channel(request: Request, platform: str, username: str):

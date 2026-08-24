@@ -25,15 +25,6 @@
   </div>
 </header>
 
-<div class="sections">
-  <div class="inner">
-    <a class="sec{% if not section %} on{% endif %}" href="/">Все площадки</a>
-    {% for p in platforms %}
-      <a class="sec{% if section == p %} on{% endif %}" href="/{{ p }}">{{ platform_names[p] }}</a>
-    {% endfor %}
-  </div>
-</div>
-
 {% block hero %}{% endblock %}
 
 <main class="ds-wrap">
@@ -42,7 +33,10 @@
 
 <footer class="ds-wrap">
   <p class="sub">Данные собраны из открытых источников и обновляются раз в сутки.</p>
-  {% if built_at %}<p class="updated">Данные обновлены {{ built_at | date_ru }}</p>{% endif %}
+  {# Дата обновления — одна на страницу. У канала она в правой колонке, и
+     подвал её не повторяет (T-66); на каталоге правой колонки нет, подвал
+     остаётся единственным местом. #}
+  {% block footer_updated %}{% if built_at %}<p class="updated">Данные обновлены {{ built_at | date_ru }}</p>{% endif %}{% endblock %}
 </footer>
 
 </body>

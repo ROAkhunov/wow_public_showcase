@@ -17,19 +17,11 @@
 {# Мобильная разметка колонки: свёрнута, стоит над списком. #}
 <details class="side-mobile">
   <summary class="fbtn">Фильтры</summary>
-  {{ f.filter_form(base_url, filters, section, 'm') }}
+  {{ f.filter_form(base_url, filters, section, 'm', categories_visible, categories_rest, selected_category) }}
 </details>
-<aside class="side-desktop">{{ f.filter_form(base_url, filters, section, 'd') }}</aside>
+<aside class="side-desktop">{{ f.filter_form(base_url, filters, section, 'd', categories_visible, categories_rest, selected_category) }}</aside>
 
 <div class="listing">
-{% if categories %}
-<div class="sites-list">
-  {% for cat in categories %}
-    <a class="chip" href="/category/{{ cat.category_slug | urlencode }}">{{ cat.category_name }}</a>
-  {% endfor %}
-</div>
-{% endif %}
-
 <div class="bar">
   {# Сортировка — ссылки, а не кнопки: кнопка без клиентского кода никуда не
      ведёт. Краулеру они закрыты `nofollow`, иначе обход ушёл бы в четыре
@@ -66,6 +58,31 @@
       <div class="sub">{{ platform_names[c.platform] }} · {{ c.username }} ·
         {{ c.posts_30d | num }} {{ plural(c.posts_30d, 'пост', 'поста', 'постов') }} за месяц{%
         if c.last_post_at %} · последний {{ c.last_post_at | date_ru }}{% endif %}</div>
+      {% if c.siblings %}
+      {# Соседи есть у 1,4% каналов (замер 23.08) — блока нет вовсе у остальных,
+         строка не разъезжается пустым местом. #}
+      <div class="pf-mini">
+        {% for s in c.siblings %}
+          <a href="/{{ s.platform }}/{{ s.username_lower }}" title="{{ platform_names[s.platform] }}">
+            <span class="plat plat--{{ s.platform }}">{{ platform_codes[s.platform] }}</span></a>
+        {% endfor %}
+        <span class="sub">ещё {{ c.siblings | length }} у автора</span>
+      </div>
+      {% endif %}
+      <div class="row-actions">
+        {% if c.wowblogger_slug %}
+        <a class="btn btn--ghost btn--sm" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
+           rel="nofollow noopener" target="_blank">Разместить</a>
+        {% endif %}
+        <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}"
+           title="Сообщить о неточности в данных">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 9v4"/><path d="M12 17h.01"/>
+            <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+          </svg>
+          Неточность?
+        </a>
+      </div>
     </div>
     <span></span>
     {# Набор колонок в строке фиксирован, и метрика без значения показывается

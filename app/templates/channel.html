@@ -6,8 +6,11 @@
    запрос и какая страница ленты открыта: канонический собирается из площадки и
    имени, а не из пути запроса со строкой параметров. #}
 {% block canonical %}/{{ c.platform }}/{{ c.username_lower }}{% endblock %}
+{% block footer_updated %}{% endblock %}
 
 {% block body %}
+<div class="channel-layout">
+<div class="channel-main">
 <nav class="breadcrumbs">
   <a href="/">Каталог</a> · <a href="/{{ c.platform }}">{{ platform_names[c.platform] }}</a> ·
   {{ c.display_name or c.username }}
@@ -61,8 +64,11 @@
     <a class="btn btn--primary" href="{{ ch.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>
     {% endif %}
     {# Адрес карточки автора на WOWBlogger собирается из слага, который приехал
-       колонкой слоя. Слага нет — кнопки нет: вести в никуда хуже, чем не вести. #}
-    {% if ch.wowblogger_slug %}
+       колонкой слоя. Слага нет — кнопки нет: вести в никуда хуже, чем не вести.
+       У основного канала кнопка не задваивается: она живёт в правой колонке,
+       здесь остаётся только у соседних площадок — там это единственное её
+       место (T-66). #}
+    {% if ch.wowblogger_slug and not own %}
     <a class="btn btn--ghost" href="https://wowblogger.ru/bloggers/{{ ch.wowblogger_slug | urlencode }}"
        rel="nofollow noopener" target="_blank">Разместить рекламу в WOWBlogger</a>
     {% endif %}
@@ -107,10 +113,6 @@
       <span class="ds-value {{ 'up' if ch.growth_90d >= 0 else 'down' }}">{{ ch.growth_90d | signed }}</span>
       <span class="sub">за 90 дней</span></div>
     {% endif %}
-    {% if ch.views_spread is not none %}
-    <div class="m"><span class="ds-label">Разброс охвата</span>
-      <span class="ds-value">{{ ch.views_spread | pct }}</span></div>
-    {% endif %}
   </div>
 
   {% if ch.categories %}
@@ -123,8 +125,6 @@
     </div>
   </div>
   {% endif %}
-
-  {% if own %}<div class="updated">Данные обновлены {{ built_at | date_ru }}</div>{% endif %}
 </div>
 
 {% set chart = charts[ch.id] %}
@@ -198,4 +198,27 @@
 </section>
 </section>
 {% endfor %}
+</div>
+
+{# Правая колонка — только у основного канала, ширина как у колонки фильтров
+   каталога. У соседних площадок её нет: она про канал, на который пришли
+   (T-66, разбор скриншотов PO 23.08). #}
+<aside class="side channel-side">
+  {% if c.wowblogger_slug %}
+  <div class="group">
+    <b>Разместить рекламу</b>
+    <p class="sub">Канал есть на площадке WOWBlogger, условия и стоимость размещения на стороне
+       площадки.</p>
+    <a class="btn btn--primary" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
+       rel="nofollow noopener" target="_blank">Перейти к размещению</a>
+  </div>
+  {% endif %}
+  <div class="group">
+    <b>Нашли неточность?</b>
+    <p class="sub">Подписчики, охваты или рекламодатели указаны неверно, напишите, поправим.</p>
+    <a class="btn btn--ghost" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}">Сообщить</a>
+  </div>
+  <div class="updated">Данные обновлены {{ built_at | date_ru }}</div>
+</aside>
+</div>
 {% endblock %}
