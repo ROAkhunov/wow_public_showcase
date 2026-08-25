@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_sites_nav.html" as nav %}
 
 {% block title %}{{ c.display_name or c.username }} — статистика канала, охваты и реклама{% endblock %}
 {% block description %}{{ platform_names[c.platform] }} {{ c.username }}: {{ c.subscribers | num }} подписчиков, охват {{ c.views_organic | num }}, реклама и публикации за месяц.{% endblock %}
@@ -9,28 +10,23 @@
 {% block footer_updated %}{% endblock %}
 
 {% block body %}
-<div class="channel-layout">
-<div class="channel-main">
+{# Крошки стоят над обеими колонками: они про страницу, а не про её левую часть.
+   Пока они лежали внутри колонки, белая карточка канала уезжала вниз на их
+   высоту, и правая колонка выглядела поднятой над основной (T-68.3). #}
 <nav class="breadcrumbs">
   <a href="/">Каталог</a> · <a href="/{{ c.platform }}">{{ platform_names[c.platform] }}</a> ·
   {{ c.display_name or c.username }}
 </nav>
 
+<div class="channel-layout">
+<div class="channel-main">
 {% if c.siblings %}
-{# Переключатель площадок — якоря по этой же странице, а не табы (решение PO
-   27.07). Таб прячет половину содержимого и от человека, и от краулера, а блоки
-   ниже он видит целиком. #}
-<div class="switch">
+{# Оглавление площадок для узкого экрана. На десктопе оно живёт группой в правой
+   колонке и здесь скрыто — см. `_sites_nav.html`. Якоря те же `#ch-<id>`: табов
+   не появляется, блоки ниже краулер видит целиком (решение PO 27.07). #}
+<div class="switch sites-nav-mobile">
   <span class="ds-label">Площадки автора в нашей базе</span>
-  <div class="sites-list">
-    {% for s in family %}
-      <a class="chip{% if s.id == c.id %} on{% endif %}" href="#ch-{{ s.id }}">
-        <span class="dot plat--{{ s.platform }}">{{ platform_codes[s.platform] }}</span>
-        {{ s.display_name or s.username }} · {{ s.subscribers | num }}</a>
-    {% endfor %}
-  </div>
-  <p class="sub">Показываем только площадки, которые есть в нашей базе: часть соцсетей мы пока
-     не собираем. У каждой площадки своя страница — ссылка в её блоке.</p>
+  {{ nav.sites_nav(family, c, platform_codes) }}
 </div>
 {% endif %}
 
@@ -211,6 +207,15 @@
        площадки.</p>
     <a class="btn btn--primary" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
        rel="nofollow noopener" target="_blank">Перейти к размещению</a>
+  </div>
+  {% endif %}
+  {% if c.siblings %}
+  {# Площадки автора — группа панели, а не отдельная карточка: правая колонка
+     это одна панель с разделителями. На узком экране группа скрыта, список
+     стоит наверху основной колонки (T-68.3). #}
+  <div class="group sites-nav-desktop">
+    <b>Площадки автора</b>
+    {{ nav.sites_nav(family, c, platform_codes) }}
   </div>
   {% endif %}
   <div class="group">

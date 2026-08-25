@@ -134,19 +134,47 @@
   gap: var(--sp-4);
 }
 
-/* метрики плитками — на странице канала */
+/* метрики плитками — на странице канала.
+   Отступ сверху обязателен: над плитками стоит кнопка «Открыть канал», и без
+   него они слипались с ней на каждой странице (T-68.3). */
 .m-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--sp-3);
+  margin-top: var(--sp-5);
 }
+
+/* Плитка — сетка из трёх строк с резервом, а не свободная колонка. Лейблы
+   разной длины («ER» в строку, «Охват рекламного поста» в две), подпись под
+   значением есть у трёх плиток из восьми — на свободной колонке значение в
+   каждой плитке вставало на своей высоте. Резерв: две строки под лейбл, одна
+   под подпись. Строки заданы через `minmax`, а не жёсткой высотой: лейбл,
+   сорвавшийся в три строки, растянет свою плитку, а не наедет на значение —
+   поломка должна быть видна, а не спрятана.
+   Табличные цифры в `.ds-value` тут не помогают: дело не в начертании. */
 .m-tiles .m {
   padding: var(--sp-3);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
+  display: grid;
+  row-gap: 2px;
+  grid-template-rows:
+    minmax(calc(var(--fs-label) * 1.3 * 2), auto)  /* лейбл: две строки */
+    auto                                           /* значение */
+    minmax(calc(var(--fs-label) * var(--lh-body)), auto);  /* подпись */
 }
 .m-tiles .ds-value { font-size: var(--fs-h3); }
+
+/* Плитки встали столбиком — выравнивать нечего, а резерв дал бы по две пустые
+   строки в каждой. Порог считан, а не взят на глаз: два столбца с зазором
+   требуют 312 px, страница съедает 24+24 отступами обёртки, белая карточка ещё
+   24+24 своими и 1+1 рамкой — итого 98 px хромы, двухстолбцовая раскладка живёт
+   до окна в 410 px. «Около 370» промахнулось бы по самым ходовым телефонам
+   (375, 390, 393, 402) — на них резерв дал бы по две пустые строки. */
+@media (max-width: 409px) {
+  .m-tiles .m { display: flex; }
+}
 
 
 /* ── Скоринговый бейдж ──────────────────────────────────────────────────────
@@ -418,7 +446,7 @@
   font-size: var(--fs-meta); background: var(--surface);
 }
 .chip:hover { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-dark); }
-.chip .dot {
+.chip .dot, .sn-row .dot {
   width: 14px; height: 14px; border-radius: 4px;
   display: grid; place-items: center;
   color: #fff; font-size: 7px; font-weight: 700;
@@ -533,6 +561,42 @@ a.sbtn { text-decoration: none; display: inline-flex; align-items: center; }
 .channel-side .updated { margin-top: 0; }
 @media (max-width: 860px) {
   .channel-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Оглавление площадок автора (T-68.3) ───────────────────────────────────
+   Строка на площадку вместо чипов: в колонке 268 px чипы с именем и числом
+   подписчиков сворачивались в кашу. Имя обрезается на сервере до 20 символов
+   (длиннее — каждое третье имя у каналов с соседями), многоточие тут страховка
+   на случай широкого шрифта, а не основная обрезка. */
+.sites-nav { display: flex; flex-direction: column; gap: 2px; margin-top: var(--sp-2); }
+.sn-row {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2); border-radius: var(--r-md);
+  font-size: var(--fs-meta);
+}
+a.sn-row:hover { background: var(--accent-soft); color: var(--accent-dark); }
+/* Площадка, на которой стоим: выделена, но не ссылка (см. `_sites_nav.html`). */
+.sn-row.on { background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }
+.sn-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Число подписчиков у правого края и табличными цифрами: колонка чисел, по
+   которой глаз сравнивает площадки, не должна плясать. */
+.sn-subs { margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; }
+.sn-row.on .sn-subs { color: inherit; }
+.sites-nav + .sub { margin-top: var(--sp-2); }
+
+/* Разметки списка две, каждая скрыта на чужой ширине — тот же приём, что у
+   колонки фильтров. Полей формы в списке нет, разводить идентификаторы не
+   потребовалось. */
+.sites-nav-mobile { display: none; }
+@media (max-width: 860px) {
+  .sites-nav-mobile { display: block; }
+  .channel-side .group.sites-nav-desktop { display: none; }
+  /* У 8% каналов с соседями нет кнопки размещения, и скрытая группа площадок
+     остаётся первой в разметке: `.group:first-of-type` снял бы линию с неё, а
+     видимой первой группе досталась бы лишняя линия поверху. */
+  .channel-side .group.sites-nav-desktop:first-of-type + .group {
+    border-top: 0; padding-top: 0;
+  }
 }
 
 /* Раскрытие остальных 45 тематик в колонке фильтров — без JS (T-66). */
