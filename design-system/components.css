@@ -25,9 +25,16 @@
   overflow: hidden;
 }
 
+/* Четыре колонки: аватар, имя, блок метрик, действия. Метрики лежат внутри
+   `.m-cols` и переносятся целиком, а не рассыпаются по чужим колонкам; блок
+   действий стоит последним у правого края — это «сбоку» из замечаний PO.
+   Арифметика на максимальной ширине карточки (874 px): 46 + 400 + 112 и три
+   зазора по 16 = 606, имени остаётся 268. Минимум имени 200 упирается при
+   окне 1172 px, поэтому строка складывается на 1200 — с запасом, чтобы
+   правая колонка цифр не обрезалась молча (`.list` стоит с overflow: hidden). */
 .row {
   display: grid;
-  grid-template-columns: var(--avatar) minmax(220px, 1fr) 46px repeat(4, 96px);
+  grid-template-columns: var(--avatar) minmax(200px, 1fr) 400px 112px;
   align-items: center;
   gap: var(--sp-4);
   min-height: var(--row-h);
@@ -37,9 +44,26 @@
 .row:first-child { border-top: 0; }
 .row:hover { background: #fcfbf9; }
 
-@media (max-width: 860px) {
-  .row { grid-template-columns: var(--avatar) 1fr 46px; row-gap: var(--sp-3); }
-  .row .m { grid-column: span 1; }
+/* Пустая выдача — состояние частое, а не крайнее: текст занимает всю сетку,
+   а не сидит в колонке аватара, вылезая наружу. */
+.row .none { grid-column: 1 / -1; }
+
+/* Ниже порога строка — две зоны: аватар и три полосы под именем. Места
+   задаются явно, и строка тоже: действия в разметке идут последними, без
+   явной строки автораскладка положила бы их в первую свободную ячейку. */
+@media (max-width: 1200px) {
+  .row {
+    grid-template-columns: var(--avatar) 1fr;
+    align-items: start;
+    row-gap: var(--sp-3);
+  }
+  .row > .ava { grid-column: 1; grid-row: 1 / 4; }
+  .row > .row-name { grid-column: 2; grid-row: 1; }
+  .row > .m-cols {
+    grid-column: 2; grid-row: 2;
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  }
+  .row > .row-actions { grid-column: 2; grid-row: 3; }
 }
 
 /* аватар канала; --lg — на странице канала */
@@ -54,6 +78,9 @@
 }
 .ava--lg { width: 72px; height: 72px; font-size: var(--fs-h2); }
 
+/* Текстовая зона строки: min-width: 0 — иначе длинное имя распирает колонку
+   поверх заданного минимума и правая колонка цифр снова уезжает под обрезку. */
+.row-name { min-width: 0; }
 .name { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .name b {
   font-size: var(--fs-lead); font-weight: 600;
@@ -430,6 +457,26 @@
 
 .side-mobile { display: none; }
 .side-desktop { position: sticky; top: var(--sp-4); }
+
+/* Колонка выше экрана прокручивалась только вместе со страницей: до кнопки
+   «Показать» человек доезжал, пролистав чужую выдачу. Прокрутка вешается на
+   форму, а не на прилипшую обёртку — иначе полоса встаёт в зазоре между
+   колонкой и списком, а карточка с рамкой обрезается сверху и снизу. Селектор
+   через `.side-desktop`, а не по классу формы: разметки две, класс у них один,
+   и правило по классу накрыло бы мобильную панель. */
+.side-desktop .side {
+  max-height: calc(100vh - var(--sp-4) * 2);
+  overflow-y: auto;
+  padding-bottom: 0;
+}
+/* Кнопка применения не уезжает в прокрутку: фильтр без видимой кнопки — фильтр,
+   который не применяют. Фон обязателен, иначе под подвалом просвечивают чипы. */
+.side-desktop .side-foot {
+  position: sticky; bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line-soft);
+  padding: var(--sp-3) 0 var(--sp-4);
+}
 .side-mobile > summary { list-style: none; margin-bottom: var(--sp-3); }
 .side-mobile > summary::-webkit-details-marker { display: none; }
 .listing { min-width: 0; }
@@ -461,11 +508,19 @@ a.sbtn { text-decoration: none; display: inline-flex; align-items: center; }
 .pf-mini { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); }
 .pf-mini .sub { margin: 0; }
 
-.row-actions { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-2); }
+/* Действия — своя колонка у правого края строки, а не хвост текстового блока:
+   «Разместить» акцентная (единственное действие строки, ведущее наружу, в
+   WOWBlogger), «Неточность?» под ней. Высота малая: строка выдачи не должна
+   вырасти. У строк без слага здесь остаётся одна «Неточность?» — колонка не
+   пустует, правило T-66 «нет слага — нет кнопки» не меняется. */
+.row-actions {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: var(--sp-2);
+}
 .btn--sm { height: 28px; padding: 0 var(--sp-3); font-size: var(--fs-meta); }
 .report-link {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: var(--fs-meta); color: var(--muted);
+  font-size: var(--fs-meta); color: var(--dim);
 }
 .report-link:hover { color: var(--ad); }
 

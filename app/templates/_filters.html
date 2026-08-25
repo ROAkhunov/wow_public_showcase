@@ -96,9 +96,14 @@
       {% if 'has_siblings' in filters.flags %}checked{% endif %}> Автор ведёт несколько площадок</label>
   </div>
 
-  <button class="btn btn--primary" type="submit">Показать</button>
-  {% if filters.active %}
-    <a class="side-hide" href="{{ base_url }}">Сбросить фильтры</a>
-  {% endif %}
+  {# Подвал формы: на десктопе колонка прокручивается внутри себя, и подвал
+     прижат к её нижнему краю — кнопка применения не должна уезжать в
+     прокрутку вместе с 57 тематиками. На телефоне это обычный блок. #}
+  <div class="side-foot">
+    <button class="btn btn--primary" type="submit">Показать</button>
+    {% if filters.active %}
+      <a class="side-hide" href="{{ base_url }}">Сбросить фильтры</a>
+    {% endif %}
+  </div>
 </form>
 {% endmacro %}

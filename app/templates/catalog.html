@@ -50,7 +50,7 @@
     {% else %}
       <div class="ava">{{ (c.display_name or c.username)[:2] | upper }}</div>
     {% endif %}
-    <div>
+    <div class="row-name">
       <div class="name">
         <span class="plat plat--{{ c.platform }}">{{ platform_codes[c.platform] }}</span>
         <a href="/{{ c.platform }}/{{ c.username_lower }}"><b>{{ c.display_name or c.username }}</b></a>
@@ -69,33 +69,42 @@
         <span class="sub">ещё {{ c.siblings | length }} у автора</span>
       </div>
       {% endif %}
-      <div class="row-actions">
-        {% if c.wowblogger_slug %}
-        <a class="btn btn--ghost btn--sm" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
-           rel="nofollow noopener" target="_blank">Разместить</a>
-        {% endif %}
-        <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}"
-           title="Сообщить о неточности в данных">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M12 9v4"/><path d="M12 17h.01"/>
-            <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
-          </svg>
-          Неточность?
-        </a>
-      </div>
     </div>
-    <span></span>
     {# Набор колонок в строке фиксирован, и метрика без значения показывается
        прочерком: ячейки соседних строк обязаны стоять друг под другом. Правило
        «метрика показывается, когда она есть» относится к плиткам страницы
-       канала, где блок убирается без последствий (спека, «Метрики»). #}
-    <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ c.subscribers | num }}</span></div>
-    <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ c.views_organic | num }}</span></div>
-    <div class="m"><span class="ds-label">Коэф. охвата</span><span class="ds-value">{{ c.coverage_ratio | pct }}</span></div>
-    {% if build.show_er %}
-    <div class="m"><span class="ds-label">ER</span><span class="ds-value">{{ c.er_percent | pct }}</span></div>
-    {% endif %}
-    <div class="m"><span class="ds-label">Доля рекламы</span><span class="ds-value adv">{{ c.ad_share_30d | pct }}</span></div>
+       канала, где блок убирается без последствий (спека, «Метрики»).
+
+       Метрики лежат общим блоком, а не прямыми детьми строки: на узком экране
+       блок переносится целиком и раскладывается своими колонками. Колонок
+       четыре и блок под них посчитан — пятая (ER) потребует правки сетки в
+       `components.css`, см. `Build.show_er`. #}
+    <div class="m-cols">
+      <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ c.subscribers | num }}</span></div>
+      <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ c.views_organic | num }}</span></div>
+      <div class="m"><span class="ds-label">Коэф. охвата</span><span class="ds-value">{{ c.coverage_ratio | pct }}</span></div>
+      {% if build.show_er %}
+      <div class="m"><span class="ds-label">ER</span><span class="ds-value">{{ c.er_percent | pct }}</span></div>
+      {% endif %}
+      <div class="m"><span class="ds-label">Доля рекламы</span><span class="ds-value adv">{{ c.ad_share_30d | pct }}</span></div>
+    </div>
+    {# Действия — последняя колонка строки, у правого края. «Разместить»
+       ведёт наружу, в WOWBlogger, поэтому она акцентная; у 20–47 строк из 50
+       слага нет, и тогда здесь стоит одна «Неточность?». #}
+    <div class="row-actions">
+      {% if c.wowblogger_slug %}
+      <a class="btn btn--primary btn--sm" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
+         rel="nofollow noopener" target="_blank">Разместить</a>
+      {% endif %}
+      <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}"
+         title="Сообщить о неточности в данных">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M12 9v4"/><path d="M12 17h.01"/>
+          <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+        </svg>
+        Неточность?
+      </a>
+    </div>
   </div>
   {% else %}
   {# Под фильтром пустая выдача — частое состояние, а не край. Человеку нужен

@@ -206,8 +206,17 @@ def dsn():
 
 @pytest.fixture
 def layer(dsn):
-    """Пустая схема-кандидат. Боевой её делает вызов `.go_live()`."""
-    return Layer(dsn, "dump_t61_test")
+    """Пустая схема-кандидат. Боевой её делает вызов `.go_live()`.
+
+    Соединение закрывается за тестом: без этого каждый тест оставлял своё, и
+    на девятом десятке прогон упирался в `max_connections` — падал последний
+    тест, а причина выглядела как поломка в нём (T-68.1).
+    """
+    made = Layer(dsn, "dump_t61_test")
+    try:
+        yield made
+    finally:
+        made.conn.close()
 
 
 @pytest.fixture
@@ -228,6 +237,10 @@ def make_client(dsn):
 
     yield _make
     for client in created:
+        # Пул соединений закрывается руками: `lifespan` у TestClient
+        # отрабатывает только через `with`, а `.close()` гасит транспорт, но не
+        # базу — соединения копились до `max_connections` (T-68.1).
+        client.app.state.db.close()
         client.close()
 
 
