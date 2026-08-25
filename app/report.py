@@ -20,6 +20,10 @@ KINDS = (
 MAX_DETAILS = 5_000
 MAX_EMAIL = 254
 
+#: потолок длины адреса возврата. Хвост фильтров каталога в разы короче;
+#: всё, что длиннее, это не наша выдача, а чужая полезная нагрузка.
+MAX_BACK = 512
+
 #: имя поля-приманки в форме. Заполнено — значит форму отправил не человек:
 #: скрытое поле автозаполнитель браузера не видит и не трогает.
 HONEYPOT_FIELD = "hp_topic"
@@ -35,6 +39,7 @@ class ReportForm:
     kind: str = KINDS[0]
     details: str = ""
     email: str = ""
+    back: str | None = None
     errors: dict[str, str] = field(default_factory=dict)
 
     @property
@@ -46,6 +51,48 @@ def valid_email(raw: str) -> bool:
     """Наличие `@` и точки, не строже: строгая проверка отсекает живые адреса
     чаще, чем мусорные (решение в ТЗ T-67)."""
     return "@" in raw and "." in raw
+
+
+def safe_back(raw: str | None) -> str | None:
+    r"""Адрес возврата из параметра, или None, если ему нельзя доверять.
+
+    Проверяется только начало: хвост параметров сохраняется целиком, в нём и
+    лежат фильтры, ради которых адрес вообще передаётся. Обрезать всё после
+    вопросительного знака значит вернуть человека на голый каталог.
+
+    Обратный слэш перед проверкой считается тем же символом, что и прямой:
+    `/\evil.tld` проходит наивную проверку «один слэш в начале», а браузер
+    разворачивает его в переход на сторонний сайт.
+    """
+    raw = raw or ""
+    if not raw or len(raw) > MAX_BACK:
+        return None
+    # Перевод строки в адресе — это уже не адрес, а попытка дописать заголовок.
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in raw):
+        return None
+    # Свой путь начинается с одного прямого слэша — и до нормализации тоже:
+    # `\evil.tld` браузер развернёт в свой же корень, но адресом выдачи он не
+    # был никогда, и принимать его незачем.
+    if not raw.startswith("/"):
+        return None
+    # Обратный слэш дальше считается тем же символом: `/\evil.tld` проходит
+    # наивную проверку «один слэш в начале», а браузер уводит по нему наружу.
+    path = raw.replace("\\", "/")
+    if path.startswith("//"):
+        return None
+    return path
+
+
+def back_or_channel(back: str | None, platform: str | None,
+                     username_lower: str | None) -> str:
+    """Куда уводит «Отмена»: на переданную выдачу, иначе на страницу канала,
+    иначе в каталог. Вызывающий передаёт площадку и имя, только если такой
+    канал в дампе есть, — иначе возврат вёл бы на 404."""
+    if back:
+        return back
+    if platform and username_lower:
+        return f"/{platform}/{username_lower}"
+    return "/"
 
 
 def channel_params(platform: str | None, username_lower: str | None,
@@ -70,7 +117,8 @@ def parse(form: dict, *, platforms: tuple[str, ...]) -> ReportForm:
 
     out = ReportForm(platform=platform, username_lower=username_lower,
                       kind=kind if kind in KINDS else KINDS[0],
-                      details=details, email=email)
+                      details=details, email=email,
+                      back=safe_back(form.get("back")))
 
     if kind not in KINDS:
         out.errors["kind"] = "Выберите, что не так, из списка"

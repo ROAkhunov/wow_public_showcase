@@ -538,3 +538,43 @@ a.sbtn { text-decoration: none; display: inline-flex; align-items: center; }
 /* Раскрытие остальных 45 тематик в колонке фильтров — без JS (T-66). */
 .cats-more { margin-top: var(--sp-2); }
 .cats-more > summary { cursor: pointer; }
+
+/* ── Форма обращения и страница «спасибо» (T-68.2) ──────────────────────────
+   Своя ширина и свои отступы, а не правки в общем `.field`: те же поля стоят
+   в колонке фильтров каталога, и общая правка поехала бы туда. Исключение
+   одно — правило для `textarea` ниже: текстовых полей в фильтрах нет. */
+.form-narrow { max-width: 560px; }
+
+/* Разделительных линий между полями формы у `.group` быть не должно: в узкой
+   колонке они читаются списком настроек, а не одной формой. */
+.report-form .group { border-top: 0; padding: 0 0 var(--sp-4); }
+.report-form .group:last-of-type { padding-bottom: var(--sp-3); }
+.report-form .ds-label { display: block; margin-bottom: var(--sp-1); }
+.report-form .ds-label .sub { text-transform: none; letter-spacing: normal; }
+
+.form-actions { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
+.form-actions + .sub { margin-top: var(--sp-3); }
+
+/* «Отмена» и «В каталог» рядом с акцентной кнопкой: ссылка, а не кнопка —
+   кнопка внутри формы без JS отправляет форму. */
+.link-quiet { font-size: var(--fs-body); color: var(--dim); }
+.link-quiet:hover { color: var(--text); }
+
+/* Ошибка — это ошибка, а не подпись: до T-68.2 она шла тем же серым `.sub`,
+   что и пояснение «необязательно». */
+.field-error, .form-error { font-size: var(--fs-meta); color: var(--score-low-fg); }
+.field-error { margin: var(--sp-1) 0 0; }
+.form-error { margin: 0 0 var(--sp-4); }
+
+/* Многострочное поле. Общий `.field` задаёт высоту 40 px и интервал `/1`:
+   без переопределения обоих шесть строк не помещаются и слипаются, а высота
+   считается по слипшимся. Вертикальный отступ здесь свой: у однострочных
+   полей его нет вовсе, текст в них центрируется по высоте, и «как у соседей»
+   означало бы первую строку вплотную к рамке. */
+textarea.field {
+  height: auto;
+  min-height: calc(6 * var(--fs-body) * var(--lh-body) + 2 * var(--sp-2) + 2px);
+  padding: var(--sp-2) var(--sp-3);
+  line-height: var(--lh-body);
+  resize: vertical;
+}

@@ -4,7 +4,11 @@
 {% block description %}Форма обратной связи по качеству данных каталога Fomobase.{% endblock %}
 
 {% block body %}
-<section class="panel">
+{# Форма стоит своей узкой колонкой (T-68.2): в обёртке 1240 px поле под адрес
+   из двадцати символов растягивалось на 1200. Ширину и отступы задаёт
+   `.report-form`, а не общий `.field`: те же поля стоят в колонке фильтров
+   каталога, и правка в общем классе поехала бы туда. #}
+<section class="panel form-narrow report-form">
   <h1>Сообщить о неточности</h1>
   {% if channel_name %}
     <p class="sub">По каналу «{{ channel_name }}»</p>
@@ -13,11 +17,15 @@
   {% else %}
     <p class="sub">По данным каталога</p>
   {% endif %}
-  {% if form.errors.get('_') %}<p class="sub">{{ form.errors['_'] }}</p>{% endif %}
+  {# Ошибка отправки — про всю форму, а не про поле, и стоит наверху. #}
+  {% if form.errors.get('_') %}<p class="form-error">{{ form.errors['_'] }}</p>{% endif %}
 
   <form method="post" action="/report">
     {% if form.platform %}<input type="hidden" name="platform" value="{{ form.platform }}">{% endif %}
     {% if form.username_lower %}<input type="hidden" name="username_lower" value="{{ form.username_lower }}">{% endif %}
+    {# Адрес возврата переживает ошибку валидации только скрытым полем: после
+       POST в адресной строке его нет, а хвост фильтров нужен «Отмене». #}
+    {% if form.back %}<input type="hidden" name="back" value="{{ form.back }}">{% endif %}
     {# Приманка: скрыта позиционированием, не display:none — так её видят и
        заполняют автозаполнители-боты, а не только совсем примитивные. #}
     <input type="text" name="{{ honeypot_field }}" value="" tabindex="-1" autocomplete="off"
@@ -30,24 +38,28 @@
           <option{% if k == form.kind %} selected{% endif %}>{{ k }}</option>
         {% endfor %}
       </select>
-      {% if form.errors.kind %}<p class="sub">{{ form.errors.kind }}</p>{% endif %}
+      {% if form.errors.kind %}<p class="field-error">{{ form.errors.kind }}</p>{% endif %}
     </div>
 
     <div class="group">
       <label class="ds-label" for="rep-details">Подробности</label>
       <textarea class="field" id="rep-details" name="details" rows="6" maxlength="{{ max_details }}"
                 placeholder="Опишите, что видите неверного и как правильно">{{ form.details }}</textarea>
-      {% if form.errors.details %}<p class="sub">{{ form.errors.details }}</p>{% endif %}
+      {% if form.errors.details %}<p class="field-error">{{ form.errors.details }}</p>{% endif %}
     </div>
 
     <div class="group">
       <label class="ds-label" for="rep-email">Email для ответа <span class="sub">необязательно</span></label>
       <input class="field" id="rep-email" name="email" maxlength="{{ max_email }}"
              placeholder="you@example.com" value="{{ form.email }}">
-      {% if form.errors.email %}<p class="sub">{{ form.errors.email }}</p>{% endif %}
+      {% if form.errors.email %}<p class="field-error">{{ form.errors.email }}</p>{% endif %}
     </div>
 
-    <button class="btn btn--primary" type="submit">Отправить</button>
+    {# «Отмена» — ссылка, а не кнопка: кнопка внутри формы без JS отправляет её. #}
+    <div class="form-actions">
+      <button class="btn btn--primary" type="submit">Отправить</button>
+      <a class="link-quiet" href="{{ cancel_url }}">Отмена</a>
+    </div>
     <p class="sub">Сообщение попадёт в очередь на проверку. Мы сверим данные с источником и поправим каталог.</p>
   </form>
 </section>

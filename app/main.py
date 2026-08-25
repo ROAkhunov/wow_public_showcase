@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from fastapi import FastAPI, Request
 from fastapi.responses import (FileResponse, HTMLResponse, PlainTextResponse,
@@ -274,13 +274,35 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Регистрируются до `/{platform}`, иначе `/report` разобрался бы как
     # раздел несуществующей площадки, а `/report/thanks` — как страница
     # канала «thanks» на площадке «report».
+    def known_channel(platform: str | None, username_lower: str | None) -> str | None:
+        """Имя канала, если такая пара есть в дампе. Ссылка на канал строится
+        только по ней: подставленная в адрес выдумка иначе увела бы на 404."""
+        if not (platform and username_lower):
+            return None
+        return app.state.db.channel_name(platform, username_lower)
+
+    def thanks_url(platform: str | None, username_lower: str | None,
+                   back: str | None) -> str:
+        """Адрес страницы «спасибо» с дорогой назад. Параметры нужны только
+        ссылкам: запись обращения уже сделана, обновление страницы второй не
+        создаёт (PRG, T-67)."""
+        q = []
+        if platform and username_lower:
+            q += [("platform", platform), ("channel", username_lower)]
+        if back:
+            q.append(("back", back))
+        return "/report/thanks" + ("?" + urlencode(q) if q else "")
+
     def report_page(request: Request, form: rep.ReportForm, status: int = 200) -> HTMLResponse:
         request.state.robots = CLOSED
-        channel_name = None
-        if form.platform and form.username_lower:
-            channel_name = app.state.db.channel_name(form.platform, form.username_lower)
+        channel_name = known_channel(form.platform, form.username_lower)
+        # Возврат на канал предлагается, только если канал в дампе есть.
+        cancel_url = rep.back_or_channel(
+            form.back, form.platform if channel_name else None,
+            form.username_lower if channel_name else None)
         return render(request, "report.html", status=status, form=form,
                       channel_name=channel_name, kinds=rep.KINDS,
+                      cancel_url=cancel_url,
                       max_details=rep.MAX_DETAILS, max_email=rep.MAX_EMAIL,
                       honeypot_field=rep.HONEYPOT_FIELD)
 
@@ -288,16 +310,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def report_get(request: Request):
         platform, username_lower = rep.channel_params(
             request.query_params.get("platform"), request.query_params.get("channel"), PLATFORMS)
-        return report_page(request, rep.ReportForm(platform=platform, username_lower=username_lower))
+        return report_page(request, rep.ReportForm(
+            platform=platform, username_lower=username_lower,
+            back=rep.safe_back(request.query_params.get("back"))))
 
     @app.post("/report")
     async def report_post(request: Request):
         body = await request.form()
+        form = rep.parse(body, platforms=PLATFORMS)
         if body.get(rep.HONEYPOT_FIELD):
             # Приманка заполнена — молча принимаем, в базу не пишем.
-            return RedirectResponse("/report/thanks", status_code=303)
+            return RedirectResponse(
+                thanks_url(form.platform, form.username_lower, form.back), status_code=303)
 
-        form = rep.parse(body, platforms=PLATFORMS)
         if not form.ok:
             return report_page(request, form, status=422)
 
@@ -317,12 +342,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                      form.platform, form.username_lower, form.kind, details)
             form.errors["_"] = "Не получилось отправить, попробуйте ещё раз."
             return report_page(request, form, status=500)
-        return RedirectResponse("/report/thanks", status_code=303)
+        return RedirectResponse(
+            thanks_url(form.platform, form.username_lower, form.back), status_code=303)
 
     @app.get("/report/thanks", response_class=HTMLResponse)
     def report_thanks(request: Request):
         request.state.robots = CLOSED
-        return render(request, "report_thanks.html")
+        platform, username_lower = rep.channel_params(
+            request.query_params.get("platform"), request.query_params.get("channel"), PLATFORMS)
+        channel_name = known_channel(platform, username_lower)
+        channel_url = f"/{platform}/{username_lower}" if channel_name else None
+        # Возврат к выдаче показывается только если он ведёт не туда же, куда
+        # две другие ссылки: три дороги в одно место читаются как ошибка.
+        back = rep.safe_back(request.query_params.get("back"))
+        if back in (channel_url, "/"):
+            back = None
+        return render(request, "report_thanks.html", channel_name=channel_name,
+                      channel_url=channel_url, back=back)
 
     # ── разделы площадок и страница канала ───────────────────────────────
     @app.get("/{platform}", response_class=HTMLResponse)

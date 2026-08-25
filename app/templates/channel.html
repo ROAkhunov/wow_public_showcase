@@ -216,7 +216,7 @@
   <div class="group">
     <b>Нашли неточность?</b>
     <p class="sub">Подписчики, охваты или рекламодатели указаны неверно, напишите, поправим.</p>
-    <a class="btn btn--ghost" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}">Сообщить</a>
+    <a class="btn btn--ghost" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}&amp;back={{ request.url.path | urlencode }}">Сообщить</a>
   </div>
   <div class="updated">Данные обновлены {{ built_at | date_ru }}</div>
 </aside>

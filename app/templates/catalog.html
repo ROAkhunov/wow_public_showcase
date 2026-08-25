@@ -13,6 +13,10 @@
 {% endblock %}
 
 {% block body %}
+{# Адрес возврата для «Неточность?» — текущая выдача целиком, с фильтрами,
+   сортировкой и номером страницы. Каталог этот адрес уже канонизировал
+   редиректом, так что в параметр уходит ровно то, что человек видит. #}
+{% set back_url = request.url.path ~ ('?' ~ request.url.query if request.url.query else '') %}
 <div class="layout">
 {# Мобильная разметка колонки: свёрнута, стоит над списком. #}
 <details class="side-mobile">
@@ -96,7 +100,7 @@
       <a class="btn btn--primary btn--sm" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
          rel="nofollow noopener" target="_blank">Разместить</a>
       {% endif %}
-      <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}"
+      <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}&amp;back={{ back_url | urlencode }}"
          title="Сообщить о неточности в данных">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <path d="M12 9v4"/><path d="M12 17h.01"/>

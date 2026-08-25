@@ -3,9 +3,21 @@
 {% block title %}Спасибо — Fomobase{% endblock %}
 
 {% block body %}
-<section class="panel">
+{# Та же ширина, что и у формы: сузить только форму значит развести две
+   страницы одного действия по ширине вдвое (T-68.2). #}
+<section class="panel form-narrow">
   <h1>Спасибо</h1>
   <p class="sub">Обращение принято. Мы сверим данные с источником и поправим каталог.</p>
-  <p><a class="btn btn--primary" href="/">В каталог</a></p>
+  {# Дорога назад строится только по проверенным значениям: канал — если он
+     есть в дампе, выдача — если её адрес прошёл проверку. #}
+  <div class="form-actions">
+    {% if channel_url %}
+      <a class="btn btn--primary" href="{{ channel_url }}">Вернуться к каналу</a>
+    {% endif %}
+    {% if back %}
+      <a class="btn btn--ghost" href="{{ back }}">Вернуться к выдаче</a>
+    {% endif %}
+    <a class="{% if channel_url %}link-quiet{% else %}btn btn--primary{% endif %}" href="/">В каталог</a>
+  </div>
 </section>
 {% endblock %}
