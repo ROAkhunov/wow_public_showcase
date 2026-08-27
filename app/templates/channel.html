@@ -166,7 +166,7 @@
       <div class="post-head">
         <span class="post-date">{{ p.posted_at | date_ru }}</span>
         {% if p.is_ad %}<span class="flag">Реклама</span>{% endif %}
-        {% if p.url %}<a class="sub" href="{{ p.url }}" rel="nofollow noopener" target="_blank">Оригинал</a>{% endif %}
+        {% if p.url %}<a class="post-src" href="{{ p.url }}" rel="nofollow noopener" target="_blank">Оригинал</a>{% endif %}
       </div>
       <p class="post-text">{{ p.text | clip(420) }}</p>
       <div class="post-stats">

@@ -330,13 +330,20 @@
 .bar .count { font-size: var(--fs-meta); color: var(--dim); margin-left: auto; }
 .bar .count b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.sort { display: flex; gap: var(--sp-2); align-items: center; }
+/* Переносится и полоса, и сортировка внутри неё: без переноса `.sort` полоса
+   держала 381 px и вылезала за правый край окна уже на 410 (T-77, находка №3
+   аудита). Высота пилюли — минимальная, а не заданная: при фиксированных 30 px
+   длинная подпись рвалась на три строки и вылезала из пилюли. */
+.sort { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
 .sort .ds-label { margin-right: var(--sp-1); }
 
+/* Раскладка кнопки описана здесь одним местом: разметка ставит и ссылку, и
+   `<span>` у активной, а у инлайнового `<span>` высота не работает вовсе. */
 .sbtn {
-  height: 30px; padding: 0 var(--sp-3);
+  display: inline-flex; align-items: center; justify-content: center; text-align: center;
+  min-height: 30px; padding: var(--sp-1) var(--sp-3);
   border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface);
-  font: var(--fs-meta)/1 var(--font); color: var(--dim); cursor: pointer;
+  font: var(--fs-meta)/1.2 var(--font); color: var(--dim); cursor: pointer;
 }
 .sbtn:hover { border-color: var(--line-strong); color: var(--text); }
 .sbtn.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); font-weight: 600; }
@@ -505,6 +512,17 @@
   border-top: 1px solid var(--line-soft);
   padding: var(--sp-3) 0 var(--sp-4);
 }
+/* На телефоне до кнопки «Показать» человек доезжал через два экрана: она
+   стояла в 1669 px от верха при окне 900 (T-77, находка №4). Берётся только
+   липкость подвала — своей прокрутки колонке здесь не даём, иначе на телефоне
+   заведётся прокрутка внутри прокрутки. Липкость считается от окна, обёртка
+   для этого не нужна. */
+.side-mobile .side-foot {
+  position: sticky; bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line-soft);
+  padding: var(--sp-3) 0 var(--sp-4);
+}
 .side-mobile > summary { list-style: none; margin-bottom: var(--sp-3); }
 .side-mobile > summary::-webkit-details-marker { display: none; }
 .listing { min-width: 0; }
@@ -516,12 +534,7 @@
 }
 
 /* Сортировка — ссылки, а не кнопки: кнопка без обработчика никуда не ведёт. */
-a.sbtn { text-decoration: none; display: inline-flex; align-items: center; }
-.sbtn.on { background: var(--accent-soft); border-color: var(--accent-line);
-           color: var(--accent-dark); font-weight: 600;
-           display: inline-flex; align-items: center; padding: 0 var(--sp-3); height: 30px;
-           border-radius: var(--r-pill); border-style: solid; border-width: 1px;
-           font-size: var(--fs-meta); }
+a.sbtn { text-decoration: none; }
 
 /* Блок площадки автора: полные блоки идут вертикальным скроллом, без табов. */
 .ch-block + .ch-block { margin-top: var(--sp-6); }
@@ -642,3 +655,17 @@ textarea.field {
   line-height: var(--lh-body);
   resize: vertical;
 }
+
+/* Цель нажатия 44 px у ссылок-действий. Даётся накладкой, а не размером самой
+   ссылки: надпись, плотность строки и десктопный вид остаются прежними до
+   пикселя, растёт только область, в которую попадает палец. Накладка шириной
+   в саму ссылку — соседнее действие сбоку она не перекрывает. */
+.post-src, .link-quiet, .side-hide { position: relative; }
+.post-src::after, .link-quiet::after, .side-hide::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  top: 50%; height: 44px; transform: translateY(-50%);
+}
+
+/* «Оригинал» в ленте — свой класс, а не общий `.sub`: тот несёт шесть ролей,
+   и накладка уехала бы ещё в пять мест. */
+.post-src { font-size: var(--fs-meta); color: var(--dim); margin-top: 1px; }
