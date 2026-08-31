@@ -109,3 +109,21 @@ def test_sub_stays_untouched(css):
     """Страховка от лёгкого пути: накладка, повешенная на `.sub`, поедет на
     десктопе в пяти местах."""
     assert ".sub::after" not in css
+
+
+# ── находка на живых данных: канал ехал вбок от неразрывной строки ───────────
+
+def test_channel_columns_do_not_grow_with_their_content(css):
+    """Грид-элемент по умолчанию не сужается уже содержимого: один hex-ключ из
+    поста растягивал страницу канала до 703 px при окне 360 (замер на проде
+    27.08). В каталоге это закрыто `.listing`, у канала строку забыли."""
+    for selector in (".channel-main", ".channel-side"):
+        assert re.search(r"min-width\s*:\s*0", _rule(css, selector)), \
+            f"`{selector}` не ограничен по ширине — канал снова поедет вбок"
+
+
+@pytest.mark.parametrize("selector", [".post-text", ".desc", ".adv-line"])
+def test_foreign_text_wraps_anywhere(css, selector):
+    """Чужой текст переносится по любому месту: страницу он уже не растянет,
+    но без переноса вылезет из карточки за её край."""
+    assert "anywhere" in _rule(css, selector)
