@@ -57,7 +57,10 @@
     <div class="row-name">
       <div class="name">
         <span class="plat plat--{{ c.platform }}">{{ platform_codes[c.platform] }}</span>
-        <a href="/{{ c.platform }}/{{ c.username_lower }}"><b>{{ c.display_name or c.username }}</b></a>
+        {# title у всех имён, а не только у обрезанных: длину строки в шаблоне
+           не измерить, а обрезка идёт в браузере (`.name > a`, T-82). #}
+        <a href="/{{ c.platform }}/{{ c.username_lower }}"
+           title="{{ c.display_name or c.username }}"><b>{{ c.display_name or c.username }}</b></a>
       </div>
       <div class="sub">{{ platform_names[c.platform] }} · {{ c.username }} ·
         {{ c.posts_30d | num }} {{ plural(c.posts_30d, 'пост', 'поста', 'постов') }} за месяц{%
