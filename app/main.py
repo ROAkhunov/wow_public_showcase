@@ -354,11 +354,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         channel_url = f"/{platform}/{username_lower}" if channel_name else None
         # Возврат к выдаче показывается только если он ведёт не туда же, куда
         # две другие ссылки: три дороги в одно место читаются как ошибка.
+        # С каналом сравнивается путь без хвоста: с T-73 обращение со страницы
+        # ленты приносит `?posts=N#feed`, и точное сравнение не совпало бы
+        # никогда — на «спасибо» встали бы две кнопки в одно место. С корнем
+        # сравнение остаётся точным: отфильтрованная выдача это тот же корень с
+        # параметрами, по пути она бы совпала, и человек потерял бы фильтры.
+        # Режется сначала по `#`, потом по `?`: фрагмент в адресе всегда
+        # последний, и `?` внутри него — уже часть фрагмента, так что обрезка в
+        # другом порядке даёт другой ответ на `/tg/name#feed?x`. Обе стороны
+        # проверяются на пустоту: `channel_url` бывает None (канала нет в
+        # дампе), и наивная запись упала бы на `back=None`.
         back = rep.safe_back(request.query_params.get("back"))
-        if back in (channel_url, "/"):
+        back_path = back.split("#", 1)[0].split("?", 1)[0] if back else None
+        same_channel = bool(back_path) and back_path == channel_url
+        # Адрес для акцентной кнопки: та же страница ленты, с которой ушли.
+        # Снимается до обнуления `back` — иначе переменная всегда пустая, и
+        # кнопка молча остаётся на сегодняшнем поведении. Заполняется только
+        # при совпадении: `back or channel_url` увёл бы «Вернуться к каналу»
+        # на каталожную выдачу, когда обращение пришло из каталога.
+        channel_href = back if same_channel else None
+        if same_channel or back == "/":
             back = None
         return render(request, "report_thanks.html", channel_name=channel_name,
-                      channel_url=channel_url, back=back)
+                      channel_url=channel_url, channel_href=channel_href, back=back)
 
     # ── разделы площадок и страница канала ───────────────────────────────
     @app.get("/{platform}", response_class=HTMLResponse)
