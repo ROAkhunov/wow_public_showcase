@@ -38,7 +38,8 @@ CLOSED = "noindex, nofollow"
 #: что из дизайн-системы отдаётся наружу. Каталог целиком монтировать нельзя:
 #: рядом с этими файлами лежат `specimen.html` и превью компонентов, а это
 #: лишние индексируемые страницы на публичном домене.
-PUBLIC_ASSETS = ("index.css", "tokens.css", "components.css", "fonts/fonts.css")
+PUBLIC_ASSETS = ("index.css", "tokens.css", "components.css", "fonts/fonts.css",
+                 "favicon.svg", "favicon.ico", "apple-touch-icon.png")
 
 
 #: сколько тематик стоит в колонке фильтров без раскрытия «Показать все»
@@ -227,6 +228,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not target.is_relative_to(ASSETS_DIR.resolve()) or not target.is_file():
             return not_found(request, "Такого файла нет")
         return FileResponse(target)
+
+    # ── знак сайта ───────────────────────────────────────────────────────
+    # Оба адреса браузер и iOS дёргают с корня сами, без ссылок в разметке,
+    # поэтому регистрируются до `/{platform}`: заглушка раздела иначе ответит
+    # на них страницей 404, и во вкладке останется пустой лист.
+    @app.get("/favicon.ico")
+    def favicon():
+        return FileResponse(ASSETS_DIR / "favicon.ico", media_type="image/x-icon")
+
+    @app.get("/apple-touch-icon.png")
+    def apple_touch_icon():
+        return FileResponse(ASSETS_DIR / "apple-touch-icon.png", media_type="image/png")
 
     # ── краулер ──────────────────────────────────────────────────────────
     # Регистрируются до `/{platform}`: маршруты разбираются по порядку, и

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Fomobase">
+  <rect width="32" height="32" rx="8" fill="#0d6e63"/>
+  <g fill="#ffffff">
+    <rect x="10.5" y="7" width="4" height="18"/>
+    <rect x="10.5" y="7" width="11" height="4"/>
+    <rect x="10.5" y="14" width="9" height="4"/>
+  </g>
+</svg>
