@@ -12,7 +12,7 @@
 #}
 {% macro filter_form(base_url, filters, section, suffix, categories_visible, categories_rest, selected_category) %}
 <form class="side" method="get" action="{{ base_url }}">
-  {# Сортировка переживает отправку формы: без этого поля выбор «по свежести»
+  {# Сортировка переживает отправку формы: без этого поля выбор «по охвату»
      слетал бы на умолчание при каждом уточнении диапазона. #}
   {% if filters.sort != 'subscribers' %}
     <input type="hidden" name="sort" value="{{ filters.sort }}">

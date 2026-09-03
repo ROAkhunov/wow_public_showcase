@@ -89,14 +89,33 @@ def test_filter_narrows_the_counter_too(layer, client):
 def test_sort_changes_the_order_and_is_a_link_not_a_button(layer, client):
     """Кнопка сортировки в дизайн-системе нарисована `button`, но кнопка без
     клиентского кода никуда не ведёт: на витрине это ссылка с адресом."""
-    seed(layer).go_live()
-    body = client.get("/?sort=fresh").text
-    assert 'href="/?sort=fresh"' not in body, "текущая сортировка не ссылается сама на себя"
-    assert '<a class="sbtn' in body
+    seed(layer)
+    # У остальных каналов подписчики и охват растут вместе, и по обеим
+    # сортировкам порядок вышел бы один. Этот канал разводит их: по подписчикам
+    # он последний, по охвату первый.
+    layer.channel(7, "tg", "ch7", subscribers=5_000, views_organic=99_000)
+    layer.go_live()
 
-    ordered = client.get("/?sort=coverage").text
-    first = ordered.index("/tg/ch6")
-    assert first < ordered.index("/tg/ch1"), "по коэффициенту охвата первым идёт ch6"
+    body = client.get("/?sort=views").text
+    assert 'href="/?sort=views"' not in body, "текущая сортировка не ссылается сама на себя"
+    assert '<a class="sbtn' in body
+    assert body.index("/tg/ch7") < body.index("/tg/ch6"), "по охвату первым идёт ch7"
+
+    default = client.get("/").text
+    assert default.index("/tg/ch6") < default.index("/tg/ch7"), "по подписчикам ch7 последний"
+
+
+def test_removed_sorts_are_not_offered_and_their_addresses_lead_home(layer, client):
+    """Коэффициент охвата и свежесть убраны решением PO 03.09 (T-86). Плиток в
+    интерфейсе нет, а старые адреса не 404, а 301 на канонический: с ними
+    приходят из закладок и из чужих ссылок."""
+    seed(layer).go_live()
+    body = client.get("/").text
+    assert "по коэффициенту охвата" not in body and "по свежести" not in body
+
+    for gone in ("coverage", "fresh"):
+        r = client.get(f"/?sort={gone}", follow_redirects=False)
+        assert r.status_code == 301 and r.headers["location"] == "/"
 
 
 def test_unknown_sort_is_not_a_page_but_a_normalised_address(layer, client):
@@ -127,12 +146,14 @@ def test_filter_survives_the_move_to_the_second_page(layer, make_client):
 
 def test_sort_and_filter_live_in_the_same_address(layer, client):
     seed(layer).go_live()
-    body = client.get("/?subs_min=20000&sort=fresh").text
+    body = client.get("/?subs_min=20000&sort=views").text
     assert names(body) == {"ch2", "ch3", "ch4", "ch5", "ch6"}
     # Сортировка переживает отправку формы скрытым полем, фильтр переезжает в
     # ссылки сортировки: одно состояние — один адрес, и он не рассыпается.
-    assert '<input type="hidden" name="sort" value="fresh">' in body
-    assert "subs_min=20000&sort=views" in plain(body)
+    # Соседняя плитка здесь — умолчание, поэтому ключа `sort` в её адресе нет,
+    # а фильтр в нём остаться обязан.
+    assert '<input type="hidden" name="sort" value="views">' in body
+    assert 'href="/?subs_min=20000"' in plain(body)
 
 
 # ── пустая выдача ────────────────────────────────────────────────────────────
@@ -184,7 +205,7 @@ def test_robots_txt_closes_filters_by_key_not_by_any_query(layer, client, make_c
 
 @pytest.mark.parametrize("url,where", [
     ("/?subs_max=45000&subs_min=25000", "/?subs_min=25000&subs_max=45000"),
-    ("/?subs_min=&sort=fresh", "/?sort=fresh"),
+    ("/?subs_min=&sort=views", "/?sort=views"),
     ("/?subs_min=abc", "/"),
     ("/?utm_source=mail", "/"),
 ])
