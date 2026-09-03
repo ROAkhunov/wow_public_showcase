@@ -100,7 +100,7 @@
        слага нет, и тогда здесь стоит одна «Неточность?». #}
     <div class="row-actions">
       {% if c.wowblogger_slug %}
-      <a class="btn btn--primary btn--sm" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
+      <a class="btn btn--primary btn--sm" href="{{ wow_url(c.wowblogger_slug, 'list', c.blogger_id) }}"
          rel="nofollow noopener" target="_blank">Разместить</a>
       {% endif %}
       <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}&amp;back={{ back_url | urlencode }}"

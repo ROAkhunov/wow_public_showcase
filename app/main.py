@@ -23,6 +23,7 @@ from app import format as fmt
 from app import report as rep
 from app.chart import sparkline
 from app.db import Page, Showcase, ShowcaseUnavailable, pages_in
+from app.links import wow_url
 from app.query import FLAGS, RANGES, SORT_NAMES, SORTS, Filters, parse
 from app.settings import PLATFORM_CODES, PLATFORM_NAMES, PLATFORMS, Settings, from_env
 
@@ -90,7 +91,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                  date_ru=fmt.date_ru, clip=fmt.clip)
     templates.env.globals.update(plural=fmt.plural, platform_names=PLATFORM_NAMES,
                                  platform_codes=PLATFORM_CODES, platforms=PLATFORMS,
-                                 settings=settings)
+                                 settings=settings, wow_url=wow_url)
     app.state.templates = templates
 
     @asynccontextmanager

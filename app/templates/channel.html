@@ -73,7 +73,7 @@
        здесь остаётся только у соседних площадок — там это единственное её
        место (T-66). #}
     {% if ch.wowblogger_slug and not own %}
-    <a class="btn btn--ghost" href="https://wowblogger.ru/bloggers/{{ ch.wowblogger_slug | urlencode }}"
+    <a class="btn btn--ghost" href="{{ wow_url(ch.wowblogger_slug, 'card', ch.blogger_id) }}"
        rel="nofollow noopener" target="_blank">Разместить рекламу в WOWBlogger</a>
     {% endif %}
     {% if not own %}
@@ -213,7 +213,7 @@
     <b>Разместить рекламу</b>
     <p class="sub">Канал есть на площадке WOWBlogger, условия и стоимость размещения на стороне
        площадки.</p>
-    <a class="btn btn--primary" href="https://wowblogger.ru/bloggers/{{ c.wowblogger_slug | urlencode }}"
+    <a class="btn btn--primary" href="{{ wow_url(c.wowblogger_slug, 'card', c.blogger_id) }}"
        rel="nofollow noopener" target="_blank">Перейти к размещению</a>
   </div>
   {% endif %}

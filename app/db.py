@@ -275,7 +275,7 @@ class Showcase:
                 return Page([], total, page, size)
             cur.execute(f"""
                 {head}SELECT c.id, c.platform, c.username, c.username_lower, c.display_name,
-                       c.avatar_file, c.blogger_has_siblings, c.wowblogger_slug,
+                       c.avatar_file, c.blogger_id, c.blogger_has_siblings, c.wowblogger_slug,
                        c.subscribers, c.views_organic, c.coverage_ratio, c.er_percent,
                        c.posts_30d, c.ad_share_30d, c.last_post_at
                 FROM channel c {clause}
