@@ -329,7 +329,7 @@
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
 
 .check { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); cursor: pointer; }
-.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
 
 .topline { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
 .search { flex: 1; }
@@ -389,7 +389,7 @@
 .sbtn:hover { border-color: var(--line-strong); color: var(--text); }
 .sbtn.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-dark); font-weight: 600; }
 
-.pg { display: flex; gap: var(--sp-2); align-items: center; justify-content: center; flex-wrap: wrap; }
+.pg { display: flex; gap: var(--sp-2); align-items: center; justify-content: center; flex-wrap: wrap; margin: var(--sp-5) 0; }
 .pg a, .pg span {
   min-width: 36px; height: 36px; padding: 0 var(--sp-2);
   border-radius: var(--r-md);
@@ -487,15 +487,18 @@
 
 .sites { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line-soft); }
 .sites-list { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }
+/* Высота по содержимому, а не жёсткие 32px: длинное имя тематики (на проде таких три,
+   самое длинное 58 знаков) переносится внутри чипа и при фиксированной высоте вылезало
+   поверх соседнего ряда. Однострочный чип остаётся ровно 32px — приём тот же, что у `.sbtn`. */
 .chip {
   display: inline-flex; align-items: center; gap: var(--sp-2);
-  height: 32px; padding: 0 var(--sp-3);
+  min-height: 32px; padding: var(--sp-1) var(--sp-3);
   border: 1px solid var(--line); border-radius: var(--r-pill);
-  font-size: var(--fs-meta); background: var(--surface);
+  font-size: var(--fs-meta); line-height: 1.2; background: var(--surface);
 }
 .chip:hover { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-dark); }
 .chip .dot, .sn-row .dot {
-  width: 14px; height: 14px; border-radius: 4px;
+  width: 14px; height: 14px; flex-shrink: 0; border-radius: 4px;
   display: grid; place-items: center;
   color: #fff; font-size: 7px; font-weight: 700;
 }
