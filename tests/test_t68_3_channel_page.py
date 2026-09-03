@@ -6,6 +6,8 @@
 """
 import pytest
 
+from conftest import assert_metrika_is_the_only_script
+
 pytestmark = pytest.mark.integration
 
 
@@ -94,7 +96,7 @@ def test_no_platform_list_without_siblings(layer, client):
     assert "площадки автора" not in body.lower()
 
 
-def test_no_client_side_code_appeared(layer, client):
+def test_no_client_side_code_but_metrika_appeared(layer, client):
     family(layer)
     layer.go_live()
-    assert "<script" not in client.get("/tg/main_channel").text
+    assert_metrika_is_the_only_script(client.get("/tg/main_channel").text)

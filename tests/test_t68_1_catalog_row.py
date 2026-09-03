@@ -9,6 +9,8 @@ import re
 
 import pytest
 
+from conftest import assert_metrika_is_the_only_script
+
 pytestmark = pytest.mark.integration
 
 
@@ -69,7 +71,7 @@ def test_filter_column_has_a_footer_block(layer, client):
     assert "Показать" in foot.group(1)
 
 
-def test_no_client_side_script_appeared(layer, client):
+def test_no_client_side_script_but_metrika_appeared(layer, client):
     layer.channel(1, "tg", "example_channel")
     layer.go_live()
-    assert "<script" not in client.get("/").text
+    assert_metrika_is_the_only_script(client.get("/").text)

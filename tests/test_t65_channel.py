@@ -10,6 +10,8 @@
 """
 import pytest
 
+from conftest import assert_metrika_is_the_only_script
+
 pytestmark = pytest.mark.integration
 
 
@@ -148,12 +150,12 @@ def test_sibling_feed_sends_the_reader_to_the_siblings_own_page(layer, client):
     assert '/vk/vk_page' in body
 
 
-def test_channel_page_has_no_script_tag(layer, client):
+def test_channel_page_has_no_script_but_metrika(layer, client):
     """«Ещё» это ссылка, а не подгрузка: шов 3 не ослабляется."""
     family(layer)
     feed_of(layer, 1, 25)
     layer.go_live()
-    assert "<script" not in client.get("/tg/main_channel").text
+    assert_metrika_is_the_only_script(client.get("/tg/main_channel").text)
 
 
 # ── мёртвая метрика ──────────────────────────────────────────────────────────

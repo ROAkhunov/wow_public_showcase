@@ -10,12 +10,50 @@
 боевую базу, потому что DSN в окружении оказался прод-овым.
 """
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
 import pytest
+
+# ── шов 3: какой клиентский JS на странице разрешён ──────────────────────────
+#
+# До T-90 правило звучало «ни одного тега script» и проверялось шестью копиями
+# `assert "<script" not in body`. Счётчик Метрики его нарушил, а T-83 принесёт
+# на страницы JSON-LD. Поэтому правило сужено по типу скрипта, а не по числу:
+# исполняемый script на странице ровно один и он счётчик, микроразметка не в
+# счёт. Живёт одной функцией — шесть расходящихся копий однажды разъедутся.
+
+METRIKA_COUNTER = "112192205"
+METRIKA_TAG_SRC = "mc.yandex.ru/metrika/tag.js"
+
+_SCRIPT_TAG = re.compile(r"<script\b([^>]*)>", re.I)
+_SCRIPT_TYPE = re.compile(r"""\btype\s*=\s*["']?([^"'\s>]+)""", re.I)
+
+
+def assert_metrika_is_the_only_script(body: str, where: str = "") -> None:
+    """Исполняемый `<script>` на странице ровно один, и это счётчик Метрики.
+
+    Исполняемым считается тег без атрибута `type` либо с `type` из семейства
+    javascript. `type="application/ld+json"` это данные, а не код: такие теги
+    пропускаются (задел под микроразметку T-83).
+    """
+    executable = []
+    for attrs in _SCRIPT_TAG.findall(body):
+        found = _SCRIPT_TYPE.search(attrs)
+        kind = (found.group(1).lower() if found else "text/javascript")
+        if kind in ("text/javascript", "application/javascript", "module"):
+            executable.append(attrs.strip())
+
+    tail = f" ({where})" if where else ""
+    assert len(executable) == 1, (
+        f"исполняемых тегов script на странице {len(executable)}, а должен быть "
+        f"один — счётчик Метрики{tail}: {executable}"
+    )
+    assert METRIKA_TAG_SRC in body, f"на странице нет загрузки {METRIKA_TAG_SRC}{tail}"
+    assert METRIKA_COUNTER in body, f"на странице нет номера счётчика {METRIKA_COUNTER}{tail}"
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))

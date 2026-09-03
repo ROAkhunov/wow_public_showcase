@@ -9,6 +9,8 @@ from datetime import date, timedelta
 import psycopg2
 import pytest
 
+from conftest import assert_metrika_is_the_only_script
+
 pytestmark = pytest.mark.integration
 
 
@@ -270,7 +272,7 @@ def test_only_the_stylesheet_side_of_the_design_system_is_public(layer, client):
         assert client.get(path).status_code == 404, path
 
 
-def test_pages_carry_no_client_side_javascript(layer, client):
+def test_metrika_is_the_only_client_side_javascript(layer, client):
     cid = layer.channel(1, "tg", "example_channel")
     layer.post(cid, "p1")
     layer.history(cid, [(date.today() - timedelta(days=14 * i), 100_000 + i)
@@ -279,7 +281,7 @@ def test_pages_carry_no_client_side_javascript(layer, client):
 
     for path in ("/", "/tg", "/tg/example_channel"):
         body = client.get(path).text
-        assert "<script" not in body.lower(), path
+        assert_metrika_is_the_only_script(body, path)
         assert "onclick" not in body.lower(), path
 
 

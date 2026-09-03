@@ -3,8 +3,11 @@
   (`design-system/components.css`), второго набора стилей в репозитории нет:
   страниц в релизе сотни тысяч, и каждая новая иначе переизобретала бы вид.
 
-  Клиентского JS здесь нет и быть не должно: тест шва 3 проверяет отсутствие
-  тега script в теле ответа, а не подразумевает его.
+  Исполняемого клиентского JS здесь нет и быть не должно, кроме счётчика
+  Метрики внизу файла (T-90): тест шва 3 проверяет, что исполняемый script на
+  странице ровно один и он счётчик, а не подразумевает это. Скрипты
+  `type="application/ld+json"` под правило не подпадают — это данные
+  микроразметки, а не код.
 #}<!doctype html>
 <html lang="ru">
 <head>
@@ -41,6 +44,20 @@
      остаётся единственным местом. #}
   {% block footer_updated %}{% if built_at %}<p class="updated">Данные обновлены {{ built_at | date_ru }}</p>{% endif %}{% endblock %}
 </footer>
+
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=112192205', 'ym');
+
+    ym(112192205, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/112192205" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
 
 </body>
 </html>

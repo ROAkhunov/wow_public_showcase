@@ -11,6 +11,7 @@ import re
 import pytest
 
 from app.report import safe_back
+from conftest import assert_metrika_is_the_only_script
 
 CATALOG_BACK = "/?subs_min=1000&sort=subs&page=2"
 
@@ -172,6 +173,6 @@ def test_catalog_filter_column_is_untouched(client, live):
     assert "<textarea" not in r.text
 
 
-def test_no_script_in_the_answer(client, live):
+def test_no_script_but_metrika_in_the_answer(client, live):
     for url in ("/report", "/report/thanks?platform=tg&channel=example_channel"):
-        assert "<script" not in client.get(url).text
+        assert_metrika_is_the_only_script(client.get(url).text, url)
