@@ -3,7 +3,9 @@
 
 {% block title %}{{ title }} — Fomobase{% endblock %}
 {% block description %}{{ subtitle }}{% endblock %}
-{% block canonical %}{{ base_url }}{% if page.number > 1 %}?page={{ page.number }}{% endif %}{% endblock %}
+{# Канонический адрес пары «площадка + тематика» — её собственная страница,
+   а не адрес с параметром: список один, адрес у него один (T-83). #}
+{% block canonical %}{% if canonical_url %}{{ canonical_url }}{% else %}{{ base_url }}{% if page.number > 1 %}?page={{ page.number }}{% endif %}{% endif %}{% endblock %}
 
 {% block hero %}
 <div class="hero">
@@ -21,9 +23,9 @@
 {# Мобильная разметка колонки: свёрнута, стоит над списком. #}
 <details class="side-mobile">
   <summary class="fbtn">Фильтры</summary>
-  {{ f.filter_form(base_url, filters, section, 'm', categories_visible, categories_rest, selected_category) }}
+  {{ f.filter_form(base_url, filters, section, 'm', categories_visible, categories_rest, selected_category, landings) }}
 </details>
-<aside class="side-desktop">{{ f.filter_form(base_url, filters, section, 'd', categories_visible, categories_rest, selected_category) }}</aside>
+<aside class="side-desktop">{{ f.filter_form(base_url, filters, section, 'd', categories_visible, categories_rest, selected_category, landings) }}</aside>
 
 <div class="listing">
 <div class="bar">
@@ -44,6 +46,9 @@
   <span class="count">Найдено <b>{{ page.total | num }}</b>
     {{ plural(page.total, 'канал', 'канала', 'каналов') }}</span>
 </div>
+{# Цифры раздела: сколько каналов, медианный охват, доля с рекламной историей.
+   Всё посчитано сборщиком и приезжает колонками — витрина ничего не считает. #}
+{% if section_note %}<p class="sub section-note">{{ section_note }}</p>{% endif %}
 {% if coverage_line %}<p class="sub">{{ coverage_line }}</p>{% endif %}
 
 <div class="list">

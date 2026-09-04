@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{#- Разделы: корень, площадки с данными, тематики и посадочные «площадка +
+    тематика». До T-83 в карте были только карточки каналов, а посадочные
+    под частотные запросы — это как раз разделы. -#}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{%- for url in urls %}
+  <url><loc>{{ origin }}{{ url }}</loc><lastmod>{{ lastmod }}</lastmod></url>
+{%- endfor %}
+</urlset>

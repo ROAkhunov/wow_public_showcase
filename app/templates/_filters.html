@@ -10,7 +10,13 @@
   (запрещён) или две разметки, каждая скрыта на чужой ширине. Лишний килобайт
   дешевле скрипта. Идентификаторы полей поэтому разведены суффиксом.
 #}
-{% macro filter_form(base_url, filters, section, suffix, categories_visible, categories_rest, selected_category) %}
+{# Адрес тематики внутри раздела площадки. У пары «площадка + тематика» с
+   T-83 есть собственная страница, но только если каналов в ней хватает на
+   непустую выдачу; у остальных пар адрес остаётся параметром. Список пар
+   приезжает готовым из дампа — считать здесь нечего. #}
+{% macro cat_url(section, slug, landings) %}{% if not section %}/category/{{ slug | urlencode }}{% elif (section, slug) in landings %}/category/{{ slug | urlencode }}/{{ section }}{% else %}/{{ section }}?cat={{ slug | urlencode }}{% endif %}{% endmacro %}
+
+{% macro filter_form(base_url, filters, section, suffix, categories_visible, categories_rest, selected_category, landings) %}
 <form class="side" method="get" action="{{ base_url }}">
   {# Сортировка переживает отправку формы: без этого поля выбор «по охвату»
      слетал бы на умолчание при каждом уточнении диапазона. #}
@@ -33,7 +39,7 @@
     <div class="sites-list">
       <a class="chip{% if not section %} on{% endif %}" href="{{ '/category/' ~ (selected_category | urlencode) if selected_category else '/' }}">Все площадки</a>
       {% for p in platforms %}
-      <a class="chip{% if section == p %} on{% endif %}" href="{{ '/' ~ p ~ '?cat=' ~ (selected_category | urlencode) if selected_category else '/' ~ p }}"><span class="dot plat--{{ p }}">{{ platform_codes[p] }}</span>{{ platform_names[p] }}</a>
+      <a class="chip{% if section == p %} on{% endif %}" href="{{ cat_url(p, selected_category, landings) if selected_category else '/' ~ p }}"><span class="dot plat--{{ p }}">{{ platform_codes[p] }}</span>{{ platform_names[p] }}</a>
       {% endfor %}
     </div>
   </div>
@@ -42,7 +48,7 @@
     <span class="ds-label">Тематика</span>
     <div class="sites-list">
       {% for cat in categories_visible %}
-      <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ '/' ~ section ~ '?cat=' ~ (cat.category_slug | urlencode) if section else '/category/' ~ (cat.category_slug | urlencode) }}">{{ cat.category_name }}</a>
+      <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ cat_url(section, cat.category_slug, landings) }}">{{ cat.category_name }}</a>
       {% endfor %}
     </div>
     {% if categories_rest %}
@@ -50,7 +56,7 @@
       <summary class="ds-label">Показать все</summary>
       <div class="sites-list">
         {% for cat in categories_rest %}
-        <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ '/' ~ section ~ '?cat=' ~ (cat.category_slug | urlencode) if section else '/category/' ~ (cat.category_slug | urlencode) }}">{{ cat.category_name }}</a>
+        <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ cat_url(section, cat.category_slug, landings) }}">{{ cat.category_name }}</a>
         {% endfor %}
       </div>
     </details>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {%- for row in rows %}
-  <url><loc>{{ origin }}/{{ row.platform }}/{{ row.username_lower | urlencode }}</loc><lastmod>{{ row.built_at.date() }}</lastmod></url>
+  <url><loc>{{ origin }}/{{ row.platform }}/{{ row.username_lower | urlencode }}</loc><lastmod>{{ row.changed_at.date() }}</lastmod></url>
 {%- endfor %}
 </urlset>

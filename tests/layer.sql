@@ -46,6 +46,9 @@ CREATE TABLE "{schema}".channel (
     adv_window_days      INTEGER,
 
     stats_scraped_at     TIMESTAMPTZ,
+    -- T-83: когда карточка изменилась на самом деле. Едет в sitemap как
+    -- lastmod вместо built_at, одинакового у всех строк дампа.
+    changed_at           TIMESTAMPTZ,
     built_at             TIMESTAMPTZ NOT NULL,
 
     UNIQUE (platform, username_lower)
@@ -99,4 +102,28 @@ CREATE TABLE "{schema}".channel_advertiser (
     last_placed_at   TIMESTAMPTZ,
     rank             INTEGER NOT NULL,
     PRIMARY KEY (channel_id, rank)
+);
+
+-- T-83. Прежние адреса канала: имя на площадке меняется, а адрес страницы
+-- собран из имени. Наполняет сборщик, сравнивая со вчерашним дампом.
+CREATE TABLE "{schema}".channel_alias (
+    platform       TEXT NOT NULL,
+    username_lower TEXT NOT NULL,
+    channel_id     BIGINT NOT NULL REFERENCES "{schema}".channel(id) ON DELETE CASCADE,
+    PRIMARY KEY (platform, username_lower)
+);
+
+CREATE INDEX ON "{schema}".channel_alias (channel_id);
+
+-- T-83. Цифры разделов: корень, площадка, тематика и пара «площадка +
+-- тематика». Пустая строка в ключе значит «все».
+CREATE TABLE "{schema}".section (
+    platform      TEXT NOT NULL DEFAULT '',
+    category_slug TEXT NOT NULL DEFAULT '',
+    category_name TEXT,
+    channels      INTEGER NOT NULL DEFAULT 0,
+    subs_median   BIGINT,
+    views_median  BIGINT,
+    ads_share     DOUBLE PRECISION,
+    PRIMARY KEY (platform, category_slug)
 );

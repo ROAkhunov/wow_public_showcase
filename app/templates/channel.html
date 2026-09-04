@@ -1,12 +1,16 @@
 {% extends "base.html" %}
 {% import "_sites_nav.html" as nav %}
 
-{% block title %}{{ c.display_name or c.username }} — статистика канала, охваты и реклама{% endblock %}
+{# Заголовок собирается в одном месте и держится в 70 символах: площадка и
+   `@имя` в нём есть с T-83 — запрос человек набирает как «durov телеграм
+   статистика». #}
+{% block title %}{{ page_title }}{% endblock %}
 {% block description %}{{ platform_names[c.platform] }} {{ c.username }}: {{ c.subscribers | num }} подписчиков, охват {{ c.views_organic | num }}, реклама и публикации за месяц.{% endblock %}
 {# Адрес страницы один и тот же независимо от того, каким регистром пришёл
    запрос и какая страница ленты открыта: канонический собирается из площадки и
    имени, а не из пути запроса со строкой параметров. #}
 {% block canonical %}/{{ c.platform }}/{{ c.username_lower }}{% endblock %}
+{% block og_type %}profile{% endblock %}
 {% block footer_updated %}{% endblock %}
 
 {% block body %}
@@ -48,7 +52,12 @@
 <div class="head">
   <div class="top">
     {% if ch.avatar_file %}
-      <img class="ava ava--lg" src="{{ settings.avatar_base }}/{{ ch.avatar_file }}" alt="" width="72" height="72">
+      {# Осмысленный alt только у главной аватарки: она и есть предмет
+         страницы. У остальных он пустой намеренно — иконка рядом с именем,
+         которое стоит тут же текстом, читалке не нужна. #}
+      <img class="ava ava--lg" src="{{ settings.avatar_base }}/{{ ch.avatar_file }}"
+           alt="{% if own %}Аватар канала {{ ch.display_name or ch.username }}{% endif %}"
+           width="72" height="72">
     {% else %}
       <div class="ava ava--lg">{{ (ch.display_name or ch.username)[:2] | upper }}</div>
     {% endif %}
@@ -202,6 +211,22 @@
 </section>
 </section>
 {% endfor %}
+
+{% if similar %}
+{# Похожие каналы (T-83). До этого блока карточка была тупиком: 143 тысячи
+   страниц связаны только «вверх», крошками и тематиками, и вес с посадочных
+   до них не доходил, а краулер добирался перебором 2 700 страниц пагинации.
+   Ссылки обычные, без `nofollow`: они и есть дорога вглубь. #}
+<section class="panel similar">
+  <h2>Похожие каналы</h2>
+  <div class="sites-list">
+    {% for s in similar %}
+    <a class="chip" href="/{{ s.platform }}/{{ s.username_lower }}">
+      <span class="dot plat--{{ s.platform }}">{{ platform_codes[s.platform] }}</span>{{ s.display_name or s.username }}</a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 </div>
 
 {# Правая колонка — только у основного канала, ширина как у колонки фильтров

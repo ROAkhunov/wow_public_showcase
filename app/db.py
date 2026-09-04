@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import psycopg2
+import psycopg2.errors
 import psycopg2.extras
 import psycopg2.pool
 
@@ -355,6 +356,99 @@ class Showcase:
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (platform, username_lower, display_name, kind, details, email, referrer))
 
+    # ── прежние адреса канала (T-83) ─────────────────────────────────────
+    def alias_target(self, platform: str, username_lower: str) -> str | None:
+        """Текущее имя канала, который раньше жил по этому адресу.
+
+        Имя канала на площадке меняется, а адрес страницы собран из имени: без
+        этого шага переименование отдавало 404 и сжигало накопленный по адресу
+        индекс. Таблицу наполняет сборщик, сравнивая со вчерашним дампом.
+        """
+        rows = self._maybe("""
+            SELECT c.username_lower FROM channel_alias a
+            JOIN channel c ON c.id = a.channel_id
+            WHERE a.platform = %s AND a.username_lower = %s
+        """, (platform, username_lower))
+        return rows[0]["username_lower"] if rows else None
+
+    # ── похожие каналы в подвале карточки (T-83) ─────────────────────────
+    def similar(self, channel: dict, *, limit: int = 8) -> list[dict]:
+        """Соседи карточки: та же тематика и близкий охват, иначе — площадка.
+
+        Карточка канала была тупиком: 143 тысячи страниц связаны только вверх,
+        и вес с посадочных до них не доходил. Тематика известна у четверти
+        каналов, поэтому у остальных блок добирается соседями по площадке —
+        пустой блок оставил бы три четверти глубины тупиком.
+
+        Ближайшие ищутся с двух сторон от числа подписчиков: список каталога
+        и так идёт сверху вниз, а «похожий» — это соседний по размеру, а не
+        следующий за самым крупным.
+        """
+        slugs = [c["category_slug"] for c in channel.get("categories") or []]
+        subscribers = channel["subscribers"] or 0
+        head = ""
+        params: list = []
+        if slugs:
+            # Тематика материализуется первой — та же форма запроса, что в
+            # каталоге: с обычным join планировщик идёт по индексу подписчиков
+            # и проверяет тематику у каждой строки.
+            head = ("WITH ids AS MATERIALIZED ("
+                    " SELECT channel_id FROM channel_category "
+                    " WHERE category_slug = ANY(%s)) ")
+            params.append(slugs)
+        where = "c.platform = %s AND c.id <> %s"
+        if slugs:
+            where += " AND c.id IN (SELECT channel_id FROM ids)"
+        columns = ("c.id, c.platform, c.username, c.username_lower, c.display_name, "
+                   "c.avatar_file, c.subscribers, c.views_organic")
+        sql = f"""
+            {head}
+            (SELECT {columns} FROM channel c
+              WHERE {where} AND c.subscribers <= %s
+              ORDER BY c.subscribers DESC NULLS LAST, c.id LIMIT %s)
+            UNION ALL
+            (SELECT {columns} FROM channel c
+              WHERE {where} AND c.subscribers > %s
+              ORDER BY c.subscribers ASC, c.id LIMIT %s)
+        """
+        side = [channel["platform"], channel["id"]]
+        with self._cursor() as (cur, _):
+            # Тематика подставляется один раз: CTE общий на обе половины.
+            cur.execute(sql, params + side + [subscribers, limit]
+                        + side + [subscribers, limit])
+            rows = cur.fetchall()
+        # Порядок собирается здесь, а не запросом: две половины приезжают
+        # каждая со своей стороны, а показать надо ближайшие из обеих.
+        rows.sort(key=lambda r: abs((r["subscribers"] or 0) - subscribers))
+        return rows[:limit]
+
+    # ── разделы: цифры, карта сайта, порог посадочной (T-83) ─────────────
+    def sections(self) -> list[dict]:
+        """Все разделы дампа с их цифрами. Пустая строка в ключе значит «все»."""
+        return self._maybe("SELECT * FROM section ORDER BY platform, category_slug")
+
+    def section(self, platform: str = "", category_slug: str = "") -> dict | None:
+        rows = self._maybe("SELECT * FROM section WHERE platform = %s AND category_slug = %s",
+                           (platform, category_slug))
+        return rows[0] if rows else None
+
+    def _maybe(self, sql: str, params: tuple = ()) -> list[dict]:
+        """Выборка, которой может не быть в боевой схеме.
+
+        Схема дампа собрана вчерашним кодом: таблица, приехавшая с раскаткой,
+        появится в ней только после ночной сборки. Пустой ответ здесь означает
+        «сегодня этого в слое нет» — страница обходится без блока, а не падает
+        пятисоткой на всех адресах сразу.
+        """
+        try:
+            with self._cursor() as (cur, _):
+                cur.execute(sql, params)
+                return cur.fetchall()
+        except psycopg2.errors.UndefinedTable:
+            return []
+        except psycopg2.errors.UndefinedColumn:
+            return []
+
     # ── sitemap ──────────────────────────────────────────────────────────
     def channels_total(self) -> int:
         with self._cursor() as (cur, _):
@@ -362,10 +456,20 @@ class Showcase:
             return cur.fetchone()["n"]
 
     def sitemap_chunk(self, number: int, size: int) -> list[dict]:
+        # Колонка приехала с раскаткой T-83, а боевая схема собрана вчерашним
+        # кодом: до первой ночной сборки её там нет, и карта сайта обязана
+        # работать всё это время — со старой датой, но работать.
+        rows = self._maybe("""
+            SELECT platform, username_lower,
+                   COALESCE(changed_at, built_at) AS changed_at
+            FROM channel ORDER BY id LIMIT %s OFFSET %s
+        """, (size, (number - 1) * size))
+        if rows:
+            return rows
         with self._cursor() as (cur, _):
             # В карту едет только нижний регистр: адрес у страницы один.
             cur.execute("""
-                SELECT platform, username_lower, built_at FROM channel
+                SELECT platform, username_lower, built_at AS changed_at FROM channel
                 ORDER BY id LIMIT %s OFFSET %s
             """, (size, (number - 1) * size))
             return cur.fetchall()

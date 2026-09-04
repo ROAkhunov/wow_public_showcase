@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 138 тысяч адресов в один файл не помещаются: предел протокола 50 000. -->
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>{{ origin }}/sitemap-sections.xml</loc></sitemap>
 {%- for n in chunks %}
   <sitemap><loc>{{ origin }}/sitemap-{{ n }}.xml</loc></sitemap>
 {%- endfor %}

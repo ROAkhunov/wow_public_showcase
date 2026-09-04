@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import timezone
+from email.utils import format_datetime, parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
@@ -20,6 +22,7 @@ from fastapi.responses import (FileResponse, HTMLResponse, PlainTextResponse,
 from fastapi.templating import Jinja2Templates
 
 from app import format as fmt
+from app import jsonld
 from app import report as rep
 from app.chart import sparkline
 from app.db import Page, Showcase, ShowcaseUnavailable, pages_in
@@ -40,12 +43,21 @@ CLOSED = "noindex, nofollow"
 #: рядом с этими файлами лежат `specimen.html` и превью компонентов, а это
 #: лишние индексируемые страницы на публичном домене.
 PUBLIC_ASSETS = ("index.css", "tokens.css", "components.css", "fonts/fonts.css",
-                 "favicon.svg", "favicon.ico", "apple-touch-icon.png")
+                 "favicon.svg", "favicon.ico", "apple-touch-icon.png", "og-cover.png")
 
 
 #: сколько тематик стоит в колонке фильтров без раскрытия «Показать все»
 #: (T-66, разбор скриншотов PO 23.08).
 CATEGORIES_PINNED = 12
+
+#: с какого числа каналов у пары «площадка + тематика» заводится собственная
+#: посадочная страница (T-83). Замер на проде 04.09: пар с данными 157, из них
+#: 132 переваливают этот порог. Ниже порога страница была бы тонкой, а таких
+#: краулеру лучше не показывать вовсе — адрес отвечает 404.
+MIN_LANDING_CHANNELS = 10
+
+#: сколько похожих каналов стоит в подвале карточки.
+SIMILAR_LIMIT = 8
 
 
 def split_categories(categories: list[dict], selected: str | None) -> tuple[list[dict], list[dict]]:
@@ -124,6 +136,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def not_found(request: Request, what: str = "Страница не найдена") -> HTMLResponse:
         return render(request, "404.html", status=404, what=what)
 
+    def freshness(build) -> dict:
+        """Заголовки давности страницы. Всё содержимое сайта меняется разом —
+        новой сборкой дампа, поэтому и метка у страниц общая: имя схемы."""
+        # Время сборки приезжает в часовом поясе базы, а в заголовке HTTP
+        # время только по Гринвичу — иначе format_datetime отказывается его
+        # печатать вовсе.
+        return {"ETag": f'W/"{build.schema}"',
+                "Last-Modified": format_datetime(build.built_at.astimezone(timezone.utc),
+                                                 usegmt=True)}
+
+    def unchanged(request: Request, marks: dict) -> Response | None:
+        """Ответ 304, если у краулера уже есть эта версия страницы.
+
+        Обход каталога это 143 тысячи страниц каждый раз заново; условный
+        запрос экономит краулеру выкачку, а нам отдачу.
+        """
+        if request.headers.get("if-none-match") == marks["ETag"]:
+            return Response(status_code=304, headers=marks)
+        since = request.headers.get("if-modified-since")
+        if since:
+            try:
+                if parsedate_to_datetime(since) >= parsedate_to_datetime(marks["Last-Modified"]):
+                    return Response(status_code=304, headers=marks)
+            except (TypeError, ValueError):
+                return None
+        return None
+
     def page_number(request: Request) -> int | None:
         """Номер страницы из `?page=`, или None, если такой страницы не бывает.
 
@@ -135,7 +174,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def catalog_page(request: Request, *, title: str, subtitle: str, base_url: str,
                      platform: str | None = None, category: str | None = None,
-                     section: str | None = None, counts: dict | None = None):
+                     section: str | None = None, counts: dict | None = None,
+                     landing: bool = False):
         """Один ход всех каталожных страниц: номер → адрес → выборка → рендер.
 
         Каталог, раздел площадки и раздел категории отличаются только заголовком
@@ -184,12 +224,56 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         selected_category = category or filters.category
         categories_visible, categories_rest = split_categories(
             app.state.db.categories(), selected_category)
-        return render(request, "catalog.html", page=page, title=title, subtitle=subtitle,
-                      base_url=base_url, section=section, filters=filters,
-                      sorts=SORTS, sort_names=SORT_NAMES, build=build,
-                      coverage_line=coverage, selected_category=selected_category,
-                      counts=counts or {}, categories_visible=categories_visible,
-                      categories_rest=categories_rest, built_at=build.built_at)
+
+        # Пары «площадка + тематика», у которых есть собственный адрес: колонка
+        # фильтров ведёт на него, а не на параметр. Тонкие пары остаются
+        # параметром — заводить под них страницу незачем (T-83).
+        landings = landing_pairs()
+        # Канонический адрес фильтрованной пары — посадочная страница. Сам
+        # `?cat=` остаётся рабочим адресом (по нему ходят люди из колонки), но
+        # в индекс идёт один из двух.
+        canonical_url = None
+        if (platform and filters.category and not landing and page.number == 1
+                and (platform, filters.category) in landings):
+            canonical_url = category_url(filters.category, platform)
+        note = fmt.section_note(app.state.db.section(platform or "", selected_category or ""))             if (platform or selected_category) else None
+
+        # Организация и сайт — разметка корня, а не каждой страницы: на
+        # внутренних она ничего не добавляет, зато весит на 143 тысячах.
+        root = base_url == "/" and not filters.active and page.number == 1
+        marks = freshness(build)
+        already = unchanged(request, marks)
+        if already is not None:
+            return already
+        response = render(request, "catalog.html", page=page, title=title, subtitle=subtitle,
+                          base_url=base_url, section=section, filters=filters,
+                          sorts=SORTS, sort_names=SORT_NAMES, build=build,
+                          coverage_line=coverage, selected_category=selected_category,
+                          counts=counts or {}, categories_visible=categories_visible,
+                          categories_rest=categories_rest, built_at=build.built_at,
+                          canonical_url=canonical_url, landings=landings,
+                          section_note=note,
+                          ld=jsonld.item_list(settings.site_origin, title, page.rows,
+                                              offset=(page.number - 1) * settings.page_size),
+                          ld_org=jsonld.organization(settings.site_origin) if root else None,
+                          ld_site=jsonld.website(settings.site_origin) if root else None)
+        response.headers.update(marks)
+        return response
+
+    def landing_pairs() -> set:
+        """Пары «площадка + тематика» с собственным адресом.
+
+        Цифры приезжают из дампа посчитанными: сколько каналов в паре, знает
+        сборщик. Порог отсекает тонкие страницы — их в карте сайта и в колонке
+        фильтров быть не должно.
+        """
+        return {(row["platform"], row["category_slug"])
+                for row in app.state.db.sections()
+                if row["platform"] and row["category_slug"]
+                and row["channels"] >= MIN_LANDING_CHANNELS}
+
+    def category_url(slug: str, platform: str) -> str:
+        return f"/category/{quote(slug, safe='')}/{platform}"
 
     # ── каталог и разделы ────────────────────────────────────────────────
     @app.get("/", response_class=HTMLResponse)
@@ -207,12 +291,43 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Пара «площадка плюс тематика» несимметрична намеренно: живёт она
         # параметром внутри раздела площадки. Зеркальный параметр площадки на
         # адресе тематики дал бы одному списку два адреса.
+        # Зеркальный параметр площадки на адресе тематики дал бы одному списку
+        # два адреса. С T-83 у пары есть собственная страница, и параметр ведёт
+        # на неё, а не на раздел площадки с `?cat=`.
         chosen = request.query_params.get("platform")
         if chosen in PLATFORMS:
+            if (chosen, slug) in landing_pairs():
+                return RedirectResponse(category_url(slug, chosen), status_code=301)
             return RedirectResponse(f"/{chosen}?cat={quote(slug)}", status_code=301)
         return catalog_page(
             request, title=name, subtitle=f"Каналы в категории «{name}»",
             base_url=f"/category/{quote(slug)}", category=slug)
+
+    # Посадочная «площадка + тематика» (T-83): «телеграм-каналы про финансы» —
+    # тот самый низкочастотный запрос, ради которого затевалась витрина. До
+    # сих пор этот список жил параметром `?cat=` под `noindex`, то есть в
+    # индексе его не было вовсе. Адрес `/tg/<slug>` занят карточками канала,
+    # поэтому тематика идёт первой.
+    #
+    # Регистрируется здесь, до `/{platform}/{username}`: маршруты разбираются
+    # по порядку, и карточка канала перехватила бы адрес.
+    @app.get("/category/{slug}/{platform}", response_class=HTMLResponse)
+    def category_on_platform(request: Request, slug: str, platform: str):
+        if platform not in PLATFORMS:
+            return not_found(request, "Такой площадки нет")
+        name = app.state.db.category_name(slug)
+        if not name:
+            return not_found(request, "Такой категории нет")
+        # Ниже порога собственной страницы у пары нет: тонкую страницу краулеру
+        # показывать незачем, список остаётся доступен параметром в разделе.
+        if (platform, slug) not in landing_pairs():
+            return not_found(request, "Такой подборки нет")
+        site = PLATFORM_NAMES[platform]
+        return catalog_page(
+            request, title=f"{name} · {site}",
+            subtitle=f"Каналы {site} в категории «{name}»",
+            base_url=category_url(slug, platform), platform=platform, category=slug,
+            section=platform, landing=True)
 
     # ── статика дизайн-системы ───────────────────────────────────────────
     # Регистрируется до `/{platform}`, иначе раздел-заглушка перехватит адрес.
@@ -257,8 +372,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             closed = "".join(f"Disallow: /*?*{key}=\n"
                              for key in (*RANGES, *FLAGS, "cat", "sort", "posts"))
             # Форма ОС не индексируется: в закрытой ветке и так всё закрыто.
+            # Clean-param для Яндекса: то же самое, что перечисленные выше
+            # Disallow, но дешевле для обхода — параметр не закрывает адрес, а
+            # склеивает его с чистым.
+            clean = "&".join((*RANGES, *FLAGS, "cat", "sort", "posts"))
             body = (f"User-agent: *\nAllow: /\n{closed}"
-                    f"Disallow: /report\nDisallow: /report/thanks\n\n"
+                    f"Disallow: /report\nDisallow: /report/thanks\n"
+                    f"Clean-param: {clean}\n\n"
                     f"Sitemap: {settings.site_origin}/sitemap.xml\n")
         return PlainTextResponse(body)
 
@@ -269,6 +389,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def sitemap_index(request: Request):
         xml = app.state.templates.get_template("sitemap_index.xml").render(
             chunks=range(1, sitemap_chunks() + 1), origin=settings.site_origin)
+        return Response(xml, media_type="application/xml")
+
+    # Разделы отдельным файлом карты, а не в общей нумерации: карточек 143
+    # тысячи и они режутся на куски, а разделов две сотни. Регистрируется до
+    # `/sitemap-{number}.xml`: там номер разбирается руками и на «sections»
+    # ответил бы 404.
+    @app.get("/sitemap-sections.xml")
+    def sitemap_sections(request: Request):
+        build = app.state.db.build()
+        rows = app.state.db.sections()
+        # Пустой раздел в карту не идёт: площадок в коде пять, а данные есть
+        # у трёх — приглашать краулера на пустую страницу незачем.
+        urls = ["/"] if any(r["platform"] == "" and r["category_slug"] == ""
+                            and r["channels"] for r in rows) else []
+        for row in rows:
+            platform, slug, count = row["platform"], row["category_slug"], row["channels"]
+            if not count:
+                continue
+            if platform and not slug:
+                urls.append(f"/{platform}")
+            elif slug and not platform:
+                urls.append(f"/category/{quote(slug, safe='')}")
+            elif slug and platform and count >= MIN_LANDING_CHANNELS:
+                urls.append(category_url(slug, platform))
+        xml = app.state.templates.get_template("sitemap_sections.xml").render(
+            urls=urls, origin=settings.site_origin, lastmod=build.built_at.date())
         return Response(xml, media_type="application/xml")
 
     # Номер принимается строкой и проверяется руками: на `/sitemap-abc.xml`
@@ -423,15 +569,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         row = app.state.db.channel(platform, username, feed_page=feed,
                                    feed_size=settings.feed_size)
         if not row:
+            # Канал мог сменить имя на площадке, а адрес страницы собран из
+            # имени. Прежний адрес отвечает переездом, а не 404: иначе каждое
+            # переименование сжигало бы накопленный по адресу индекс (T-83).
+            moved = app.state.db.alias_target(platform, username)
+            if moved:
+                return RedirectResponse(f"/{platform}/{quote(moved)}", status_code=301)
             return not_found(request, "Такого канала в базе нет")
         if feed > max(row["feed_pages"], 1):
             return not_found(request, "Такой страницы ленты нет")
         if feed > 1:
             request.state.robots = FOLLOW_ONLY
-        return render(request, "channel.html", c=row, family=row["family"],
-                      charts={r["id"]: sparkline(r["history"]) for r in row["family"]},
-                      feed_page=feed, build=app.state.db.build(),
-                      built_at=row["built_at"])
+        build = app.state.db.build()
+        marks = freshness(build)
+        already = unchanged(request, marks)
+        if already is not None:
+            return already
+        name = row["display_name"] or row["username"]
+        # Блок похожих внизу карточки: до T-83 страница канала была тупиком —
+        # 143 тысячи карточек связаны только вверх, и краулер добирался до
+        # глубины перебором 2 700 страниц пагинации.
+        response = render(request, "channel.html", c=row, family=row["family"],
+                          charts={r["id"]: sparkline(r["history"]) for r in row["family"]},
+                          feed_page=feed, build=build,
+                          built_at=row["built_at"],
+                          similar=app.state.db.similar(row, limit=SIMILAR_LIMIT),
+                          page_title=fmt.channel_title(name, row["username"],
+                                                       PLATFORM_NAMES[platform]),
+                          ld=jsonld.breadcrumbs(settings.site_origin, [
+                              ("Каталог", "/"),
+                              (PLATFORM_NAMES[platform], f"/{platform}"),
+                              (name, None)]))
+        response.headers.update(marks)
+        return response
 
     # ── дамп ещё не собран ───────────────────────────────────────────────
     @app.exception_handler(ShowcaseUnavailable)

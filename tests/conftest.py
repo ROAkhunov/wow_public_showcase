@@ -160,7 +160,8 @@ class Layer:
             views_organic=22_200, views_ad=15_400, views_drop=-30.6, views_spread=18.0,
             last_post_at=NOW - timedelta(days=1), growth_90d=7.5,
             adv_total=4, adv_repeat=1, adv_window_days=180,
-            stats_scraped_at=NOW - timedelta(hours=6), built_at=NOW,
+            stats_scraped_at=NOW - timedelta(hours=6),
+            changed_at=NOW - timedelta(hours=6), built_at=NOW,
         )
         row.update(kw)
         self._insert("channel", row)
@@ -190,6 +191,22 @@ class Layer:
             cur.execute(f'INSERT INTO "{self.schema}".channel_category '
                         "(channel_id, category_name, category_slug) VALUES (%s, %s, %s)",
                         (channel_id, name, slug))
+
+    def alias(self, channel_id: int, username: str, platform: str = "tg"):
+        """Прежний адрес канала (T-83): по нему страница отвечает переездом."""
+        with self.conn.cursor() as cur:
+            cur.execute(f'INSERT INTO "{self.schema}".channel_alias '
+                        "(platform, username_lower, channel_id) VALUES (%s, %s, %s)",
+                        (platform, username.lower(), channel_id))
+
+    def section(self, platform: str = "", slug: str = "", *, name: str | None = None,
+                channels: int = 0, subs_median: int | None = None,
+                views_median: int | None = None, ads_share: float | None = None):
+        """Цифры раздела, как их кладёт сборщик: пустая строка значит «все»."""
+        self._insert("section", dict(
+            platform=platform, category_slug=slug, category_name=name,
+            channels=channels, subs_median=subs_median, views_median=views_median,
+            ads_share=ads_share))
 
     def sibling(self, channel_id: int, sibling_id: int):
         with self.conn.cursor() as cur:
