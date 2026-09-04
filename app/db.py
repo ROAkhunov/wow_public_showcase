@@ -386,39 +386,35 @@ class Showcase:
         """
         slugs = [c["category_slug"] for c in channel.get("categories") or []]
         subscribers = channel["subscribers"] or 0
-        head = ""
-        params: list = []
-        if slugs:
-            # Тематика материализуется первой — та же форма запроса, что в
-            # каталоге: с обычным join планировщик идёт по индексу подписчиков
-            # и проверяет тематику у каждой строки.
-            head = ("WITH ids AS MATERIALIZED ("
-                    " SELECT channel_id FROM channel_category "
-                    " WHERE category_slug = ANY(%s)) ")
-            params.append(slugs)
-        where = "c.platform = %s AND c.id <> %s"
-        if slugs:
-            where += " AND c.id IN (SELECT channel_id FROM ids)"
+        # Тематика проверяется EXISTS, а не отбором всех каналов тематики
+        # вперёд: в самой крупной их 7 157, и материализованный список уводил
+        # запрос в перебор с походом в таблицу за каждым (замер на проде 04.09:
+        # 765 мс против 3). Так индекс «площадка + подписчики» читается по
+        # порядку и останавливается, как только набралось восемь.
+        same_topic = ("""
+              AND EXISTS (SELECT 1 FROM channel_category cc
+                          WHERE cc.channel_id = c.id AND cc.category_slug = ANY(%s))
+        """ if slugs else "")
         columns = ("c.id, c.platform, c.username, c.username_lower, c.display_name, "
                    "c.avatar_file, c.subscribers, c.views_organic")
-        sql = f"""
-            {head}
-            (SELECT {columns} FROM channel c
-              WHERE {where} AND c.subscribers <= %s
-              ORDER BY c.subscribers DESC NULLS LAST, c.id LIMIT %s)
-            UNION ALL
-            (SELECT {columns} FROM channel c
-              WHERE {where} AND c.subscribers > %s
-              ORDER BY c.subscribers ASC, c.id LIMIT %s)
-        """
-        side = [channel["platform"], channel["id"]]
+        # Порядок у половин не зеркальный, а такой, каким его несёт индекс:
+        # обратный проход индекса даёт NULLS FIRST и id вниз. Развернёшь
+        # «красивее» — планировщик добавит сортировку по всей выдаче тематики.
+        sides = (("<=", "c.subscribers DESC NULLS LAST, c.id"),
+                 (">", "c.subscribers ASC NULLS FIRST, c.id DESC"))
+        rows: list[dict] = []
         with self._cursor() as (cur, _):
-            # Тематика подставляется один раз: CTE общий на обе половины.
-            cur.execute(sql, params + side + [subscribers, limit]
-                        + side + [subscribers, limit])
-            rows = cur.fetchall()
-        # Порядок собирается здесь, а не запросом: две половины приезжают
-        # каждая со своей стороны, а показать надо ближайшие из обеих.
+            for edge, order in sides:
+                cur.execute(f"""
+                    SELECT {columns} FROM channel c
+                     WHERE c.platform = %s AND c.id <> %s AND c.subscribers {edge} %s
+                     {same_topic}
+                     ORDER BY {order} LIMIT %s
+                """, ([channel["platform"], channel["id"], subscribers]
+                      + ([slugs] if slugs else []) + [limit]))
+                rows += cur.fetchall()
+        # Ближайшие выбираются здесь: половины приезжают каждая со своей
+        # стороны, а показать надо соседние по размеру из обеих.
         rows.sort(key=lambda r: abs((r["subscribers"] or 0) - subscribers))
         return rows[:limit]
 
