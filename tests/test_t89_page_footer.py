@@ -103,7 +103,10 @@ def test_page_root_never_becomes_the_scroll_port(tokens, components):
 
 def test_filter_column_still_scrolls_by_itself(components):
     """Колонка фильтров каталога прокручивается своей полосой, а не страницей —
-    правку подвала это не касается."""
-    body = _rule(components, ".side-desktop .side")
-    assert re.search(r"overflow-y\s*:\s*auto", body)
-    assert re.search(r"max-height\s*:", body)
+    правку подвала это не касается.
+
+    Носитель прокрутки с T-93 разделён: потолок высоты держит форма, полосу
+    везёт внутренняя обёртка. Контракт тот же — прокрутка внутри колонки."""
+    assert re.search(r"max-height\s*:", _rule(components, ".side-desktop .side"))
+    assert re.search(r"overflow-y\s*:\s*auto",
+                     _rule(components, ".side-desktop .side-scroll"))
