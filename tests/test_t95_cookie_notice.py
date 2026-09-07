@@ -26,7 +26,7 @@ def test_notice_stands_on_every_kind_of_page(live, client):
     for path in PAGES:
         body = client.get(path).text
         assert 'id="cookie-notice"' in body, path
-        assert "Сайт использует куки и Яндекс.Метрику" in body, path
+        assert "Сайт использует файлы cookie и Яндекс.Метрику" in body, path
         assert 'id="cookie-notice-ok"' in body, path
 
 
@@ -57,15 +57,25 @@ def test_notice_sets_no_cookie(live, client):
 def test_privacy_page_answers_with_its_own_title(live, client):
     r = client.get("/privacy")
     assert r.status_code == 200
-    assert "<title>Политика обработки данных · Fomobase</title>" in r.text
+    assert "<title>Политика обработки персональных данных · Fomobase</title>" in r.text
     assert "Яндекс.Метрика" in r.text
+
+
+def test_privacy_names_what_the_law_requires(live, client):
+    """Документ по статье 18.1 152-ФЗ: без этих разделов он не политика, а
+    пересказ. Проверяется наличие, а не формулировки, — текст правится с PO."""
+    body = client.get("/privacy").text
+    for must in ("152-ФЗ", "Правовые основания", "Цели обработки",
+                 "Порядок и условия обработки", "Права субъекта персональных данных",
+                 "Изменения политики", "10 рабочих дней"):
+        assert must in body, must
 
 
 def test_privacy_is_not_eaten_by_the_platform_catch_all(live, client):
     """`/{platform}` стоит ниже по файлу, но порядок маршрутов молчалив: если
     он однажды поедет, адрес отдаст 404 раздела, а не политику."""
     body = client.get("/privacy").text
-    assert "Политика обработки данных" in body
+    assert "Политика обработки персональных данных" in body
     assert "Такой страницы нет" not in body
 
 

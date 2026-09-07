@@ -64,7 +64,7 @@
   {% block footer_updated %}{% if built_at %}<p class="updated">Данные обновлены {{ built_at | date_ru }}</p>{% endif %}{% endblock %}
   {# Постоянный вход в политику: плашка исчезает после первого нажатия, и без
      ссылки страница осталась бы доступной только тому, кто её застал. #}
-  <p class="sub"><a class="link-quiet" href="/privacy">Политика обработки данных</a></p>
+  <p class="sub"><a class="link-quiet" href="/privacy">Политика обработки персональных данных</a></p>
 </footer>
 
 {# Плашка про куки (T-95). Уведомляет, ничего не блокирует: счётчик грузится
@@ -74,8 +74,8 @@
    своей куки плашка про куки не ставит, а `Set-Cookie` выбил бы страницу из
    кэша nginx (ключ кэша без кук). #}
 <div class="cookie-notice" id="cookie-notice" hidden>
-  <p class="cookie-notice-text">Сайт использует куки и Яндекс.Метрику, чтобы понимать, как им пользуются. Подробнее — в <a href="/privacy">политике обработки данных</a>.</p>
-  <button class="btn btn--primary" type="button" id="cookie-notice-ok">Хорошо</button>
+  <p class="cookie-notice-text">Сайт использует файлы cookie и Яндекс.Метрику, чтобы понимать, как им пользуются. Нажимая «ОК», вы соглашаетесь с обработкой данных на условиях <a href="/privacy">политики обработки персональных данных</a>. Отказаться можно в настройках браузера.</p>
+  <button class="btn btn--primary" type="button" id="cookie-notice-ok">ОК</button>
 </div>
 
 <!-- Yandex.Metrika counter -->
