@@ -469,6 +469,11 @@
   letter-spacing: var(--tracking-head); font-weight: 700;
 }
 
+/* Дорога назад над крошками (T-96). Обёртка блочная: `.btn` это `inline-flex`,
+   и голая ссылка стала бы строчным боксом — к отступу прибавился бы интерлиньяж,
+   и зазор ушёл бы со шкалы. Отступ тот же шаг, что у крошек ниже: два разных
+   между тремя строками подряд читаются как разъехавшаяся вёрстка. */
+.back-link { margin-bottom: var(--sp-3); }
 .breadcrumbs { font-size: var(--fs-meta); color: var(--dim); margin-bottom: var(--sp-3); }
 .breadcrumbs a:hover { color: var(--accent); }
 
