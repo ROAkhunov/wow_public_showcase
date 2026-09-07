@@ -6,7 +6,7 @@
 """
 import pytest
 
-from conftest import assert_metrika_is_the_only_script
+from conftest import assert_only_allowed_scripts
 
 pytestmark = pytest.mark.integration
 
@@ -99,4 +99,4 @@ def test_no_platform_list_without_siblings(layer, client):
 def test_no_client_side_code_but_metrika_appeared(layer, client):
     family(layer)
     layer.go_live()
-    assert_metrika_is_the_only_script(client.get("/tg/main_channel").text)
+    assert_only_allowed_scripts(client.get("/tg/main_channel").text)

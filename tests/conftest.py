@@ -21,39 +21,54 @@ import pytest
 # ── шов 3: какой клиентский JS на странице разрешён ──────────────────────────
 #
 # До T-90 правило звучало «ни одного тега script» и проверялось шестью копиями
-# `assert "<script" not in body`. Счётчик Метрики его нарушил, а T-83 принесёт
-# на страницы JSON-LD. Поэтому правило сужено по типу скрипта, а не по числу:
-# исполняемый script на странице ровно один и он счётчик, микроразметка не в
-# счёт. Живёт одной функцией — шесть расходящихся копий однажды разъедутся.
+# `assert "<script" not in body`. Счётчик Метрики его нарушил, T-83 принесла на
+# страницы JSON-LD, T-95 — плашку согласия на куки. Правило стало белым
+# списком: исполняемые скрипты на странице только поимённо разрешённые, любой
+# посторонний роняет проверку. Микроразметка `application/ld+json` не в счёт —
+# это данные, а не код. Живёт одной функцией: шесть расходящихся копий однажды
+# разъедутся.
+#
+# Разрешённые опознаются по самому тегу, а не по порядку на странице: счётчик —
+# по адресу загрузки в теле скрипта, плашка — по атрибуту
+# `data-script="cookie-notice"`.
 
 METRIKA_COUNTER = "112192205"
 METRIKA_TAG_SRC = "mc.yandex.ru/metrika/tag.js"
+COOKIE_NOTICE_SCRIPT = 'data-script="cookie-notice"'
 
-_SCRIPT_TAG = re.compile(r"<script\b([^>]*)>", re.I)
+_SCRIPT_BLOCK = re.compile(r"<script\b([^>]*)>(.*?)</script\s*>", re.I | re.S)
 _SCRIPT_TYPE = re.compile(r"""\btype\s*=\s*["']?([^"'\s>]+)""", re.I)
 
 
-def assert_metrika_is_the_only_script(body: str, where: str = "") -> None:
-    """Исполняемый `<script>` на странице ровно один, и это счётчик Метрики.
+def assert_only_allowed_scripts(body: str, where: str = "") -> None:
+    """Исполняемые `<script>` на странице — только из белого списка.
 
+    Разрешены двое: счётчик Метрики (T-90) и плашка согласия на куки (T-95).
     Исполняемым считается тег без атрибута `type` либо с `type` из семейства
     javascript. `type="application/ld+json"` это данные, а не код: такие теги
-    пропускаются (задел под микроразметку T-83).
+    пропускаются (микроразметка T-83).
     """
-    executable = []
-    for attrs in _SCRIPT_TAG.findall(body):
+    tail = f" ({where})" if where else ""
+    metrika = notice = 0
+    foreign = []
+    for attrs, code in _SCRIPT_BLOCK.findall(body):
         found = _SCRIPT_TYPE.search(attrs)
         kind = (found.group(1).lower() if found else "text/javascript")
-        if kind in ("text/javascript", "application/javascript", "module"):
-            executable.append(attrs.strip())
+        if kind not in ("text/javascript", "application/javascript", "module"):
+            continue
+        if METRIKA_TAG_SRC in code:
+            metrika += 1
+        elif COOKIE_NOTICE_SCRIPT in attrs:
+            notice += 1
+        else:
+            foreign.append(attrs.strip() or code.strip()[:120])
 
-    tail = f" ({where})" if where else ""
-    assert len(executable) == 1, (
-        f"исполняемых тегов script на странице {len(executable)}, а должен быть "
-        f"один — счётчик Метрики{tail}: {executable}"
-    )
-    assert METRIKA_TAG_SRC in body, f"на странице нет загрузки {METRIKA_TAG_SRC}{tail}"
+    assert not foreign, f"на странице посторонний исполняемый script{tail}: {foreign}"
+    assert metrika == 1, (
+        f"счётчиков Метрики на странице {metrika}, а должен быть один{tail}")
+    assert notice <= 1, f"плашка согласия на куки задвоилась{tail}"
     assert METRIKA_COUNTER in body, f"на странице нет номера счётчика {METRIKA_COUNTER}{tail}"
+
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))

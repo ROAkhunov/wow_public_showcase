@@ -3,11 +3,11 @@
   (`design-system/components.css`), второго набора стилей в репозитории нет:
   страниц в релизе сотни тысяч, и каждая новая иначе переизобретала бы вид.
 
-  Исполняемого клиентского JS здесь нет и быть не должно, кроме счётчика
-  Метрики внизу файла (T-90): тест шва 3 проверяет, что исполняемый script на
-  странице ровно один и он счётчик, а не подразумевает это. Скрипты
-  `type="application/ld+json"` под правило не подпадают — это данные
-  микроразметки, а не код.
+  Исполняемый клиентский JS здесь только поимённо разрешённый: счётчик Метрики
+  (T-90) и плашка согласия на куки (T-95), оба внизу файла. Тест шва 3
+  проверяет белый список, а не подразумевает его: посторонний третий скрипт
+  роняет сборку. Скрипты `type="application/ld+json"` под правило не подпадают
+  — это данные микроразметки, а не код.
 #}<!doctype html>
 <html lang="ru">
 <head>
@@ -62,7 +62,21 @@
      подвал её не повторяет (T-66); на каталоге правой колонки нет, подвал
      остаётся единственным местом. #}
   {% block footer_updated %}{% if built_at %}<p class="updated">Данные обновлены {{ built_at | date_ru }}</p>{% endif %}{% endblock %}
+  {# Постоянный вход в политику: плашка исчезает после первого нажатия, и без
+     ссылки страница осталась бы доступной только тому, кто её застал. #}
+  <p class="sub"><a class="link-quiet" href="/privacy">Политика обработки данных</a></p>
 </footer>
+
+{# Плашка про куки (T-95). Уведомляет, ничего не блокирует: счётчик грузится
+   как грузился. В разметку приезжает скрытой — HTML один на всех и лежит в
+   кэше nginx, видимая в разметке она мигала бы на каждой странице у того, кто
+   её уже закрыл. Показывает скрипт внизу файла, отметку держит localStorage:
+   своей куки плашка про куки не ставит, а `Set-Cookie` выбил бы страницу из
+   кэша nginx (ключ кэша без кук). #}
+<div class="cookie-notice" id="cookie-notice" hidden>
+  <p class="cookie-notice-text">Сайт использует куки и Яндекс.Метрику, чтобы понимать, как им пользуются. Подробнее — в <a href="/privacy">политике обработки данных</a>.</p>
+  <button class="btn btn--primary" type="button" id="cookie-notice-ok">Хорошо</button>
+</div>
 
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript">
@@ -77,6 +91,37 @@
 </script>
 <noscript><div><img src="https://mc.yandex.ru/watch/112192205" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 <!-- /Yandex.Metrika counter -->
+
+<script data-script="cookie-notice">
+    // Второй и последний исполняемый скрипт витрины (T-95). Каждое обращение к
+    // localStorage в try/catch: в приватном режиме и при запрете данных сайта
+    // оно бросает исключение, и без обёртки на каждой странице была бы ошибка
+    // в консоли. Не прочиталось — показываем плашку, не записалось — молча
+    // живём дальше, плашка вернётся на следующей странице.
+    (function () {
+        var KEY = 'fomobase.cookie-notice';
+        var box = document.getElementById('cookie-notice');
+        var ok = document.getElementById('cookie-notice-ok');
+        if (!box || !ok) { return; }
+        var seen = false;
+        try { seen = localStorage.getItem(KEY) === '1'; } catch (e) { seen = false; }
+        if (seen) { return; }
+        // Отступ снизу равен реальной высоте плашки: прибитая к низу, она иначе
+        // перекрывает кнопку отправки на /report, пагинацию каталога и низ
+        // карточки. Считается по факту, а не числом в стилях, — на телефоне
+        // текст переносится и высота другая.
+        var pad = function () { document.body.style.paddingBottom = box.offsetHeight + 'px'; };
+        box.hidden = false;
+        pad();
+        window.addEventListener('resize', pad);
+        ok.addEventListener('click', function () {
+            try { localStorage.setItem(KEY, '1'); } catch (e) {}
+            box.hidden = true;
+            window.removeEventListener('resize', pad);
+            document.body.style.paddingBottom = '';
+        });
+    })();
+</script>
 
 </body>
 </html>

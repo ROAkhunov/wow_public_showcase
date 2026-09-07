@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from conftest import assert_metrika_is_the_only_script
+from conftest import assert_only_allowed_scripts
 
 pytestmark = pytest.mark.integration
 
@@ -74,4 +74,4 @@ def test_filter_column_has_a_footer_block(layer, client):
 def test_no_client_side_script_but_metrika_appeared(layer, client):
     layer.channel(1, "tg", "example_channel")
     layer.go_live()
-    assert_metrika_is_the_only_script(client.get("/").text)
+    assert_only_allowed_scripts(client.get("/").text)

@@ -9,7 +9,7 @@ from datetime import date, timedelta
 import psycopg2
 import pytest
 
-from conftest import assert_metrika_is_the_only_script
+from conftest import assert_only_allowed_scripts
 
 pytestmark = pytest.mark.integration
 
@@ -281,7 +281,7 @@ def test_metrika_is_the_only_client_side_javascript(layer, client):
 
     for path in ("/", "/tg", "/tg/example_channel"):
         body = client.get(path).text
-        assert_metrika_is_the_only_script(body, path)
+        assert_only_allowed_scripts(body, path)
         assert "onclick" not in body.lower(), path
 
 

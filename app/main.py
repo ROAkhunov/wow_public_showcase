@@ -382,6 +382,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             clean = "&".join((*RANGES, *FLAGS, "cat", "sort", "posts", "back"))
             body = (f"User-agent: *\nAllow: /\n{closed}"
                     f"Disallow: /report\nDisallow: /report/thanks\n"
+                    f"Disallow: /privacy\n"
                     f"Clean-param: {clean}\n\n"
                     f"Sitemap: {settings.site_origin}/sitemap.xml\n")
         return PlainTextResponse(body)
@@ -541,6 +542,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             back = None
         return render(request, "report_thanks.html", channel_name=channel_name,
                       channel_url=channel_url, channel_href=channel_href, back=back)
+
+    # ── политика обработки данных (T-95) ─────────────────────────────────
+    # Регистрируется до `/{platform}`: заглушка раздела иначе перехватит адрес
+    # и ссылка из плашки и подвала привела бы на 404. Страница служебная и в
+    # индекс не идёт — как обе страницы формы обращений.
+    @app.get("/privacy", response_class=HTMLResponse)
+    def privacy(request: Request):
+        request.state.robots = CLOSED
+        return render(request, "privacy.html")
 
     # ── разделы площадок и страница канала ───────────────────────────────
     @app.get("/{platform}", response_class=HTMLResponse)

@@ -15,7 +15,7 @@ import re
 
 import pytest
 
-from conftest import assert_metrika_is_the_only_script
+from conftest import assert_only_allowed_scripts
 
 LD = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
 
@@ -101,7 +101,7 @@ def test_positions_in_the_list_continue_on_the_second_page(live, client):
 
 def test_markup_does_not_break_the_no_client_code_rule(live, client):
     for path in ("/", "/tg", "/tg/finance_1", "/category/finance/tg"):
-        assert_metrika_is_the_only_script(client.get(path).text, path)
+        assert_only_allowed_scripts(client.get(path).text, path)
 
 
 def test_a_quote_in_the_channel_name_does_not_break_the_markup(layer, client):

@@ -788,3 +788,43 @@ textarea.field {
    строка не растянет страницу (колонки держит `min-width: 0`), но вылезет из
    карточки за её край. Своим подписям это правило не нужно и не даётся. */
 .post-text, .desc, .title h1, .adv-line, .breadcrumbs { overflow-wrap: anywhere; }
+
+
+/* ── Плашка согласия на куки и страница политики (T-95) ─────────────────────
+   Плашка прибита к низу окна: положить её в поток внизу документа нельзя — на
+   каталоге с пагинацией её тогда не увидят вовсе. Отступ под неё выставляет
+   скрипт по реальной высоте, `height`/`overflow` у html/body здесь не при чём
+   и остаются запрещёнными (на них держатся четыре липкости).
+   `display: flex` перебивает браузерное `[hidden]`, поэтому скрытие задаётся
+   явно: без этой строки плашка приезжала бы видимой всем. */
+.cookie-notice {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--sp-4); flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: var(--shadow-pop);
+}
+.cookie-notice[hidden] { display: none; }
+.cookie-notice-text { margin: 0; max-width: 70ch; font-size: var(--fs-meta); color: var(--dim); }
+.cookie-notice-text a { color: var(--accent); text-decoration: underline; }
+
+/* Правовой текст: одна колонка читаемой ширины, заголовки — размерами системы. */
+.legal { max-width: 720px; }
+.legal h1 { font-size: var(--fs-h1); letter-spacing: var(--tracking-head); margin: 0 0 var(--sp-4); }
+.legal h2 { font-size: var(--fs-h3); letter-spacing: var(--tracking-head); margin: var(--sp-6) 0 var(--sp-3); }
+.legal p, .legal li { font-size: var(--fs-body); line-height: var(--lh-body); }
+.legal ul { padding-left: var(--sp-5); margin: 0 0 var(--sp-4); }
+.legal li { margin-bottom: var(--sp-2); }
+.legal a { color: var(--accent); text-decoration: underline; }
+
+/* Незаполненные реквизиты оператора: подсвечены нарочно, чтобы дыру в правовом
+   тексте нельзя было не заметить ни на проде, ни в вёрстке. Снимается вместе с
+   блоком, когда придут реквизиты от владельца. */
+.legal-todo {
+  background: var(--score-mid-bg); color: var(--score-mid-fg);
+  border: 1px solid var(--warn); border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4);
+  font-weight: 600;
+}

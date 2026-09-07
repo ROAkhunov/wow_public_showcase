@@ -10,7 +10,7 @@
 """
 import pytest
 
-from conftest import assert_metrika_is_the_only_script
+from conftest import assert_only_allowed_scripts
 
 pytestmark = pytest.mark.integration
 
@@ -155,7 +155,7 @@ def test_channel_page_has_no_script_but_metrika(layer, client):
     family(layer)
     feed_of(layer, 1, 25)
     layer.go_live()
-    assert_metrika_is_the_only_script(client.get("/tg/main_channel").text)
+    assert_only_allowed_scripts(client.get("/tg/main_channel").text)
 
 
 # ── мёртвая метрика ──────────────────────────────────────────────────────────

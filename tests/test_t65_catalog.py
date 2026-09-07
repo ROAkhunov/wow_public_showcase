@@ -1,7 +1,8 @@
 """T-65: фильтры, сортировка и адреса каталога.
 
 Фильтры серверные: своего клиентского кода на странице не появляется (кроме
-счётчика Метрики, T-90), состояние живёт в адресе. Отсюда две группы проверок — что фильтр действительно сужает
+счётчика Метрики, T-90, и плашки согласия на куки, T-95), состояние живёт в
+адресе. Отсюда две группы проверок — что фильтр действительно сужает
 выдачу и что у каждого состояния ровно один адрес.
 
 Классы параметров разные, и правила у них разные: `page` это путь краулера,
@@ -10,7 +11,7 @@
 """
 import pytest
 
-from conftest import assert_metrika_is_the_only_script
+from conftest import assert_only_allowed_scripts
 
 pytestmark = pytest.mark.integration
 
@@ -52,7 +53,7 @@ def test_every_listing_carries_the_filter_column(layer, client, url):
 
     body = client.get(url).text
     assert "Подписчики" in body and "Доля рекламы" in body
-    assert_metrika_is_the_only_script(body, url)
+    assert_only_allowed_scripts(body, url)
 
 
 # ── фильтр сужает выдачу ─────────────────────────────────────────────────────
