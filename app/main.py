@@ -343,7 +343,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         target = (ASSETS_DIR / path).resolve()
         if not target.is_relative_to(ASSETS_DIR.resolve()) or not target.is_file():
             return not_found(request, "Такого файла нет")
-        return FileResponse(target)
+        # `no-cache` это не «не кэшируй», а «спроси перед использованием»:
+        # файл остаётся в кэше браузера, но при заходе проверяется по ETag и
+        # возвращается 304. Без заголовка браузер кэширует по своей эвристике,
+        # и правка стилей доезжает до людей через сутки — PO 07.09 смотрел
+        # новую разметку со старым CSS и видел сбитую вёрстку.
+        return FileResponse(target, headers={"Cache-Control": "no-cache"})
 
     # ── знак сайта ───────────────────────────────────────────────────────
     # Оба адреса браузер и iOS дёргают с корня сами, без ссылок в разметке,

@@ -41,7 +41,7 @@
 {% if ld_site %}<script type="application/ld+json">{{ ld_site | tojson }}</script>{% endif %}
 {% if ld %}<script type="application/ld+json">{{ ld | tojson }}</script>{% endif %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
 <header class="hdr">
   <div class="inner">
@@ -64,7 +64,7 @@
   {% block footer_updated %}{% if built_at %}<p class="updated">Данные обновлены {{ built_at | date_ru }}</p>{% endif %}{% endblock %}
   {# Постоянный вход в политику: плашка исчезает после первого нажатия, и без
      ссылки страница осталась бы доступной только тому, кто её застал. #}
-  <p class="sub"><a class="link-quiet" href="/privacy">Политика обработки персональных данных</a></p>
+  <p class="sub"><a class="foot-link" href="/privacy">Политика обработки персональных данных</a></p>
 </footer>
 
 {# Плашка про куки (T-95). Уведомляет, ничего не блокирует: счётчик грузится

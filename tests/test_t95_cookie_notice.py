@@ -107,3 +107,17 @@ def test_footer_keeps_the_permanent_link(live, client):
     осталась бы доступной только тому, кто её застал."""
     for path in PAGES:
         assert 'href="/privacy"' in client.get(path).text, path
+
+
+def test_privacy_page_marks_itself_for_the_narrow_footer(live, client):
+    """Подвал на правовой странице идёт по краям колонки текста: без метки на
+    body он тянулся во всю обёртку, и края страницы разъезжались (PO 07.09)."""
+    body = client.get("/privacy").text
+    assert 'class="legal-page"' in body
+
+
+def test_footer_link_shares_the_size_of_its_neighbour(live, client):
+    """Ссылка на политику стоит в подвале тем же классом размера, что и строка
+    про источники: 14 px рядом с 12,5 px читались как два разных подвала."""
+    body = client.get("/").text
+    assert '<p class="sub"><a class="foot-link" href="/privacy">' in body

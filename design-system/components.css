@@ -814,6 +814,15 @@ textarea.field {
    `margin: auto` обязателен — без него панель шириной 720 прижималась к левому
    краю обёртки в 1240, и страница читалась как съехавшая. */
 .legal { max-width: 760px; margin-left: auto; margin-right: auto; }
+/* Подвал на правовой странице идёт по краям колонки текста, а не по всей
+   обёртке в 1240: разъехавшиеся края читаются как сбитая вёрстка. Ширина —
+   колонка плюс горизонтальные поля `.ds-wrap`, они внутри этой ширины. */
+.legal-page .ds-foot { max-width: calc(760px + var(--sp-5) * 2); }
+
+/* Строки подвала одного размера: ссылка на политику приезжала на 14 px рядом с
+   12,5 px соседней строки, и подвал выглядел собранным из двух разных мест. */
+.foot-link { color: var(--dim); text-decoration: underline; }
+.foot-link:hover { color: var(--text); }
 .legal h1 { font-size: var(--fs-h1); letter-spacing: var(--tracking-head); margin: 0 0 var(--sp-4); }
 .legal h2 { font-size: var(--fs-h3); letter-spacing: var(--tracking-head); margin: var(--sp-6) 0 var(--sp-3); }
 .legal p, .legal li { font-size: var(--fs-body); line-height: var(--lh-body); }
