@@ -109,11 +109,15 @@ def test_footer_keeps_the_permanent_link(live, client):
         assert 'href="/privacy"' in client.get(path).text, path
 
 
-def test_privacy_page_marks_itself_for_the_narrow_footer(live, client):
-    """Подвал на правовой странице идёт по краям колонки текста: без метки на
-    body он тянулся во всю обёртку, и края страницы разъезжались (PO 07.09)."""
-    body = client.get("/privacy").text
-    assert 'class="legal-page"' in body
+def test_privacy_footer_is_the_same_as_everywhere(live, client):
+    """Подвал у политики ничем не отличается от подвала каталога: та же ширина,
+    те же строки, та же дата сборки (PO 07.09)."""
+    catalog = client.get("/").text
+    privacy = client.get("/privacy").text
+    line = "Данные собраны из открытых источников. Последнее обновление"
+    assert line in catalog
+    assert line in privacy
+    assert "legal-page" not in privacy
 
 
 def test_footer_link_shares_the_size_of_its_neighbour(live, client):

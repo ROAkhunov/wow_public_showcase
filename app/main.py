@@ -555,7 +555,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/privacy", response_class=HTMLResponse)
     def privacy(request: Request):
         request.state.robots = CLOSED
-        return render(request, "privacy.html")
+        # Дата сборки нужна не самой политике, а подвалу: без неё строка внизу
+        # обрывалась на «Данные собраны из открытых источников», и подвал на
+        # этой странице отличался от всех остальных.
+        return render(request, "privacy.html", built_at=app.state.db.build().built_at)
 
     # ── разделы площадок и страница канала ───────────────────────────────
     @app.get("/{platform}", response_class=HTMLResponse)
