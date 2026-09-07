@@ -64,7 +64,12 @@
         <span class="plat plat--{{ c.platform }}">{{ platform_codes[c.platform] }}</span>
         {# title у всех имён, а не только у обрезанных: длину строки в шаблоне
            не измерить, а обрезка идёт в браузере (`.name > a`, T-82). #}
-        <a href="/{{ c.platform }}/{{ c.username_lower }}"
+        {# Хвост возврата уезжает в карточку только с отфильтрованной выдачи:
+           её и так не кэшируют и не индексируют (`filters.active` — тот же
+           признак). С голого каталога и раздела площадки ссылка остаётся
+           чистой, иначе краулер получил бы второе множество адресов на 143
+           тысячи карточек, а кэш — по копии на каждое состояние фильтров. #}
+        <a href="/{{ c.platform }}/{{ c.username_lower }}{% if filters.active %}?back={{ back_url | urlencode }}{% endif %}"
            title="{{ c.display_name or c.username }}"><b>{{ c.display_name or c.username }}</b></a>
       </div>
       <div class="sub">{{ platform_names[c.platform] }} · {{ c.username }} ·

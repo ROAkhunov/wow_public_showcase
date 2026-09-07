@@ -589,7 +589,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Блок похожих внизу карточки: до T-83 страница канала была тупиком —
         # 143 тысячи карточек связаны только вверх, и краулер добирался до
         # глубины перебором 2 700 страниц пагинации.
+        # Адрес возврата для кнопки «В каталог»: его кладёт каталог, но пришёл
+        # он из браузера, поэтому проверяется тем же `safe_back`, что и возврат
+        # формы обращений (T-73) — иначе параметр уводит на чужой домен.
         response = render(request, "channel.html", c=row, family=row["family"],
+                          back=rep.safe_back(request.query_params.get("back")),
                           charts={r["id"]: sparkline(r["history"]) for r in row["family"]},
                           feed_page=feed, build=build,
                           built_at=row["built_at"],
