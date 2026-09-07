@@ -120,13 +120,47 @@ def test_bare_catalog_links_to_cards_without_any_tail(layer, client):
     assert not [one for one in cards if "?" in one]
 
 
-def test_platform_section_links_to_cards_without_any_tail(layer, client):
-    """Раздел площадки индексируется наравне с корнем — по той же причине."""
+def test_platform_section_hands_its_address_to_the_card(layer, client):
+    """Площадка живёт в адресе, а не в фильтрах: без хвоста человек, выбравший
+    её в колонке, возвращался в голый каталог. На эту потерю PO и жаловался."""
     seed(layer)
     layer.go_live()
     cards = card_links(plain(client.get("/tg").text))
-    assert 'href="/tg/ch1"' in cards
+    assert 'href="/tg/ch1?back=/tg"' in cards
+
+
+def test_paged_root_keeps_its_card_links_clean(layer, client):
+    """Пагинация корня это дорога краулера ко всем 143 тысячам карточек, а
+    адреса с хвостом для него закрыты. Хвост здесь обрубил бы обход."""
+    seed(layer, n=60)
+    layer.go_live()
+    cards = card_links(plain(client.get("/?page=2").text))
+    assert cards, "на второй странице каталога нет карточек"
     assert not [one for one in cards if "?" in one]
+
+
+def test_the_tail_is_closed_from_the_index(layer, client, make_client):
+    """Содержимое карточки от хвоста не меняется, и в индексе нужен один адрес.
+    Тот же приём, что у фильтров: запрет в robots плюс `Clean-param`."""
+    layer.channel(1, "tg", "lonely")
+    layer.go_live()
+    body = make_client(noindex=False).get("/robots.txt").text
+    assert "Disallow: /*?*back=" in body
+    assert "back" in body.split("Clean-param: ")[1].splitlines()[0]
+
+
+def test_category_landing_hands_its_address_to_the_card(layer, client):
+    """Тематика тоже живёт адресом, а не фильтром: пара «площадка плюс
+    тематика» с T-83 имеет собственную страницу, и возврат с карточки обязан
+    приводить обратно на неё, а не в корень каталога."""
+    for i in range(1, 13):
+        layer.channel(i, "tg", f"ch{i}", subscribers=100_000 - i * 1000)
+        layer.category(i, "Финансы", "finance")
+    layer.section("tg", "finance", name="Финансы", channels=12)
+    layer.go_live()
+    cards = card_links(plain(client.get("/category/finance/tg").text))
+    assert cards, "на посадочной странице нет карточек"
+    assert all("?back=/category/finance/tg" in one for one in cards)
 
 
 def test_the_report_link_does_not_carry_the_tail_any_further(layer, client):

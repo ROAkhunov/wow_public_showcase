@@ -370,12 +370,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # запроса: шаблон накрыл бы `?page`, то есть единственный путь
             # краулера к 140 тысячам страниц каналов.
             closed = "".join(f"Disallow: /*?*{key}=\n"
-                             for key in (*RANGES, *FLAGS, "cat", "sort", "posts"))
+                             for key in (*RANGES, *FLAGS, "cat", "sort", "posts", "back"))
             # Форма ОС не индексируется: в закрытой ветке и так всё закрыто.
             # Clean-param для Яндекса: то же самое, что перечисленные выше
             # Disallow, но дешевле для обхода — параметр не закрывает адрес, а
             # склеивает его с чистым.
-            clean = "&".join((*RANGES, *FLAGS, "cat", "sort", "posts"))
+            # `back` тут не фильтр, а адрес возврата в кнопке карточки (T-96):
+            # содержимое у карточки с ним и без него одно и то же, и в индексе
+            # нужен один адрес. Краулеру он не нужен: обход идёт корневой
+            # пагинацией и картой сайта, где ссылки чистые.
+            clean = "&".join((*RANGES, *FLAGS, "cat", "sort", "posts", "back"))
             body = (f"User-agent: *\nAllow: /\n{closed}"
                     f"Disallow: /report\nDisallow: /report/thanks\n"
                     f"Clean-param: {clean}\n\n"
