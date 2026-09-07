@@ -49,7 +49,7 @@ def test_platforms_group_stands_between_placement_and_feedback(layer, client):
     body = client.get("/tg/main_channel").text
     side = body.split('<aside class="side channel-side">')[1]
     assert side.index("Разместить рекламу") < side.index("Площадки автора") \
-           < side.index("Нашли неточность?") < side.index("Данные обновлены")
+           < side.index("Нашли неточность?") < side.index("Последнее обновление")
 
 
 # ── список площадок ─────────────────────────────────────────────────────────

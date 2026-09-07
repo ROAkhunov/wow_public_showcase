@@ -1,0 +1,201 @@
+<title>Переход на WOWBlogger — охват тёмным</title>
+<link rel="stylesheet" href="./index.css">
+<style>
+/* Черновик направления: цифра охвата как обещание, тёмная гамма из варианта 4.
+   Оболочка страницы — не часть дизайн-системы. */
+body { background: #eeece7; }
+.page { max-width: 1180px; margin: 0 auto; padding: 32px 20px 120px; }
+h1 { font-size: 26px; margin: 0 0 6px; }
+.lead { color: var(--dim); max-width: 66ch; margin: 0 0 28px; }
+.v { margin: 0 0 34px; padding: 20px; background: var(--bg); border: 1px solid #dcd8d1; border-radius: 16px; }
+.v > h2 { font-size: 15px; margin: 0 0 2px; }
+.v > p { margin: 0 0 18px; color: var(--dim); font-size: 13px; max-width: 74ch; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
+
+/* ── тёмная гамма (из варианта 4) ────────────────────────────────────────── */
+:root {
+  --dk:        #10312d;
+  --dk-ink:    #eaf3f1;
+  --dk-dim:    #a9c6c1;
+  --dk-accent: #7fd7c4;   /* цифра: живой тон на тёмном, на светлом он бы кричал */
+}
+
+/* ═══ КАТАЛОГ: строка + всплывашка по наведению ═══════════════════════════ */
+.row { display: flex; align-items: center; gap: var(--sp-4); background: var(--surface);
+       border: 1px solid var(--line); border-radius: var(--r-md);
+       padding: var(--sp-3) var(--sp-4); margin-bottom: 10px; }
+.row:hover { border-color: var(--line-strong); }
+.row .who { flex: 1; min-width: 0; }
+.row .who b { display: block; font-size: var(--fs-lead); }
+.row .who span { font-size: var(--fs-meta); color: var(--dim); }
+
+/* Обёртка кнопки — якорь всплывашки. `position: relative` на ней, а не на
+   строке: всплывашка должна цепляться за кнопку, а не за правый край строки. */
+.buy { position: relative; display: inline-flex; }
+.pop {
+  position: absolute; bottom: calc(100% + 10px); right: 0;
+  width: 250px; padding: 12px 14px;
+  background: var(--dk); color: var(--dk-ink);
+  border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+  font-size: 13px; line-height: 1.4;
+  opacity: 0; transform: translateY(4px); pointer-events: none;
+  transition: opacity .13s ease, transform .13s ease;
+  z-index: 5;
+}
+.pop b { color: var(--dk-accent); font-weight: 700; white-space: nowrap; }
+.pop .fine { display: block; margin-top: 6px; color: var(--dk-dim); font-size: 11.5px; }
+/* Хвостик — квадрат под 45°, а не рисунок: цвет один, тени под ним нет. */
+.pop::after { content: ""; position: absolute; top: 100%; right: 26px; width: 10px; height: 10px;
+              background: var(--dk); transform: translateY(-5px) rotate(45deg); border-radius: 1px; }
+.buy:hover .pop, .buy:focus-within .pop { opacity: 1; transform: translateY(0); }
+
+/* Тач-экраны наведения не знают: там цифра стоит строкой под кнопкой, всегда. */
+.buy-fallback { display: none; font-size: var(--fs-meta); color: var(--dim); margin-top: 4px; text-align: right; }
+@media (hover: none) {
+  .pop { display: none; }
+  .buy-fallback { display: block; }
+}
+.row-actions { display: flex; flex-direction: column; align-items: flex-end; }
+
+/* ═══ КАРТОЧКА КАНАЛА: большая тёмная панель ═════════════════════════════ */
+.col { width: 268px; }
+.stage { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.fake { flex: 1; min-width: 300px; border: 1px dashed var(--line-strong); border-radius: 14px;
+        padding: 16px; color: var(--muted); font-size: 12.5px; background: var(--surface); }
+.fake b { display: block; color: var(--dim); font-size: 14px; margin-bottom: 6px; }
+
+.panel {
+  background: var(--dk); color: var(--dk-ink); border-radius: var(--r-lg);
+  padding: 20px 18px; display: flex; flex-direction: column; gap: 14px;
+}
+.panel .kicker { font-size: 11px; letter-spacing: var(--tracking-label); text-transform: uppercase;
+                 color: var(--dk-dim); margin: 0; }
+.panel .num { font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: -.03em;
+              color: var(--dk-accent); display: block; }
+.panel .say { font-size: 16px; line-height: 1.3; margin: 0; }
+.panel .say .num { margin-bottom: 6px; }
+.panel .sub { font-size: 12.5px; line-height: 1.45; color: var(--dk-dim); margin: 0; }
+.panel .fine { font-size: 11.5px; color: #85a8a2; margin: 0; }
+.btn--onDark { background: #fff; color: var(--dk); width: 100%; justify-content: center;
+               height: 46px; font-size: 15px; }
+.btn--onDark:hover { background: #d9efe9; }
+.rule { height: 1px; background: rgba(255,255,255,.12); margin: 2px 0; }
+.mini { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--dk-dim); }
+.mini b { color: var(--dk-ink); font-weight: 600; }
+.copyset { display: flex; gap: 20px; flex-wrap: wrap; }
+</style>
+
+<div class="page">
+<h1>Охват как обещание, тёмная гамма</h1>
+<p class="lead">Третий вариант в цветах четвёртого. В каталоге цифра приходит на наведение и не
+занимает места в строке; на карточке канала она же стоит крупно и постоянно. Внизу — три версии
+текста, выбрать надо одну.</p>
+
+<!-- ═══ КАТАЛОГ ══════════════════════════════════════════════════════════ -->
+<section class="v">
+  <h2>Каталог: наводишь на «Разместить»</h2>
+  <p>Наведи курсор на кнопку в любой строке. Всплывашка тёмная, живёт над кнопкой и не двигает
+  строку. С клавиатуры появляется по фокусу, на телефоне вместо неё стоит строчка под кнопкой —
+  наведения там нет.</p>
+
+  <div class="row">
+    <div class="who"><b>Агент правильного питания</b><span>ВКонтакте · 92 523 подписчика · охват поста 95 000</span></div>
+    <div class="row-actions">
+      <span class="buy">
+        <a class="btn btn--primary btn--sm" href="#">Разместить</a>
+        <span class="pop" role="tooltip">Вашу рекламу здесь увидят <b>≈95 тыс.</b> человек
+          <span class="fine">Средний охват поста за 30 дней. Цена и даты — на WOWBlogger</span></span>
+      </span>
+      <span class="buy-fallback">увидят ≈95 тыс.</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="who"><b>Будни мамы</b><span>Telegram · 41 200 подписчиков · охват поста 18 400</span></div>
+    <div class="row-actions">
+      <span class="buy">
+        <a class="btn btn--primary btn--sm" href="#">Разместить</a>
+        <span class="pop" role="tooltip">Вашу рекламу здесь увидят <b>≈18 тыс.</b> человек
+          <span class="fine">Средний охват поста за 30 дней. Цена и даты — на WOWBlogger</span></span>
+      </span>
+      <span class="buy-fallback">увидят ≈18 тыс.</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="who"><b>Академический — Котловка</b><span>ВКонтакте · 7 800 подписчиков · охват поста 2 100</span></div>
+    <div class="row-actions">
+      <span class="buy">
+        <a class="btn btn--primary btn--sm" href="#">Разместить</a>
+        <span class="pop" role="tooltip">Вашу рекламу здесь увидят <b>≈2 100</b> человек
+          <span class="fine">Средний охват поста за 30 дней. Цена и даты — на WOWBlogger</span></span>
+      </span>
+      <span class="buy-fallback">увидят ≈2 100</span>
+    </div>
+  </div>
+
+  <p class="hint">До 10 тысяч цифра не округляется до «тыс.»: «≈2 тыс.» из 2 100 съедает точность
+  там, где она ещё есть. Порог обсуждаемый.</p>
+</section>
+
+<!-- ═══ КАРТОЧКА ═════════════════════════════════════════════════════════ -->
+<section class="v">
+  <h2>Карточка канала: панель побольше</h2>
+  <p>Та же мысль, но развёрнутая: цифра — главный элемент блока, под ней обещание, ниже кнопка
+  во всю ширину. Стоит первой в правой колонке.</p>
+  <div class="stage">
+    <div class="col">
+      <div class="panel">
+        <p class="kicker">Реклама в канале</p>
+        <p class="say"><span class="num">95 000</span>человек увидят ваш пост в этом канале</p>
+        <a class="btn btn--onDark" href="#">Купить размещение →</a>
+        <p class="fine">Средний охват поста за 30 дней. Цена, свободные даты и оплата — на WOWBlogger</p>
+      </div>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <p class="kicker">Реклама в канале</p>
+        <p class="say"><span class="num">95 000</span>человек увидят ваш пост</p>
+        <div class="rule"></div>
+        <div class="mini"><span>Подписчиков</span><b>92 523</b></div>
+        <div class="mini"><span>Доля рекламы</span><b>12%</b></div>
+        <a class="btn btn--onDark" href="#">Купить размещение →</a>
+        <p class="fine">Средний охват поста за 30 дней. Цена и даты — на WOWBlogger</p>
+      </div>
+    </div>
+    <div class="fake"><b>Вариант с цифрами</b>Справа тот же блок, но с двумя строками из карточки.
+      Он тяжелее и тянет на себя больше внимания — вопрос, не мешает ли метрикам самой страницы,
+      которые стоят слева.</div>
+  </div>
+</section>
+
+<!-- ═══ ТЕКСТ ════════════════════════════════════════════════════════════ -->
+<section class="v">
+  <h2>Три версии текста</h2>
+  <p>Разница в том, что обещаем. А — охват как факт про канал. Б — прямое второе лицо, обещание
+  человеку. В — счёт в его пользу, ближе всего к тому, как продаёт сам WOWBlogger.</p>
+  <div class="copyset">
+    <div class="col"><div class="panel">
+      <p class="kicker">А · нейтрально</p>
+      <p class="say"><span class="num">95 000</span>средний охват одного поста в канале</p>
+      <a class="btn btn--onDark" href="#">Разместить рекламу →</a>
+      <p class="fine">Цена и свободные даты — на WOWBlogger</p>
+    </div></div>
+    <div class="col"><div class="panel">
+      <p class="kicker">Б · обещание</p>
+      <p class="say"><span class="num">95 000</span>человек увидят вашу рекламу в этом канале</p>
+      <a class="btn btn--onDark" href="#">Купить размещение →</a>
+      <p class="fine">Средний охват поста за 30 дней. Цена и даты — на WOWBlogger</p>
+    </div></div>
+    <div class="col"><div class="panel">
+      <p class="kicker">В · счёт</p>
+      <p class="say"><span class="num">95 000</span>просмотров за один пост — примерно 1 ₽ за человека</p>
+      <a class="btn btn--onDark" href="#">Посчитать и купить →</a>
+      <p class="fine">Цена размещения — на WOWBlogger</p>
+    </div></div>
+  </div>
+  <p class="hint">В требует цену: без неё «1 ₽ за человека» взять неоткуда. А и Б делаются на том,
+  что уже лежит в дампе.</p>
+</section>
+
+</div>

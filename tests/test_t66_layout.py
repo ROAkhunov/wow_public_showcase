@@ -114,7 +114,7 @@ def test_channel_right_column_has_three_blocks_once(layer, client):
     body = client.get("/tg/listed_one").text
     assert body.count("Разместить рекламу") == 1
     assert body.count("Нашли неточность?") == 1
-    assert body.count("Данные обновлены") == 1
+    assert body.count("Последнее обновление") == 1
 
 
 def test_right_column_absent_for_siblings_button_stays_in_their_header(layer, client):

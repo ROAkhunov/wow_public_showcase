@@ -306,4 +306,4 @@ def test_page_shows_when_the_data_was_updated(layer, client):
     layer.go_live()
 
     body = client.get("/tg/example_channel").text
-    assert "Данные обновлены" in body
+    assert "Последнее обновление" in body

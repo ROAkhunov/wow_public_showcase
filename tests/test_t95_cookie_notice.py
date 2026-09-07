@@ -120,4 +120,5 @@ def test_footer_link_shares_the_size_of_its_neighbour(live, client):
     """Ссылка на политику стоит в подвале тем же классом размера, что и строка
     про источники: 14 px рядом с 12,5 px читались как два разных подвала."""
     body = client.get("/").text
-    assert '<p class="sub"><a class="foot-link" href="/privacy">' in body
+    assert '<p class="foot-line"><a class="foot-link" href="/privacy">' in body
+    assert body.count('class="foot-line"') >= 2
