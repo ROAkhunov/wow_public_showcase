@@ -867,6 +867,12 @@ a.sn-row:hover { background: var(--accent-soft); color: var(--accent-dark); }
 .form-actions { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
 .form-actions + .sub { margin-top: var(--sp-3); }
 
+/* Строка про согласие под кнопкой (T-98). Ссылка внутри мелкого серого текста
+   сама по себе неразличима, отсюда акцент и подчёркивание — тем же приёмом,
+   что в плашке про куки. */
+.consent-note { margin-top: var(--sp-2); }
+.consent-note a { color: var(--accent); text-decoration: underline; }
+
 /* «Отмена» и «В каталог» рядом с акцентной кнопкой: ссылка, а не кнопка —
    кнопка внутри формы без JS отправляет форму. */
 .link-quiet { font-size: var(--fs-body); color: var(--dim); }

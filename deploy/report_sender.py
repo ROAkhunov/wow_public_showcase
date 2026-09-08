@@ -30,6 +30,14 @@ log = logging.getLogger("report-sender")
 
 
 def build_message(row: dict) -> str:
+    """Текст уведомления в служебный чат.
+
+    Почты посетителя здесь нет и быть не должно (T-98, решение PO от 07.09):
+    чат живёт в Телеграме, то есть за пределами страны, и контакт человека туда
+    не уезжает — только пометка, что он оставлен, и номер записи. Адрес читается
+    в базе на территории РФ по этому номеру. Цена решения принята сознательно:
+    интерфейса к таблице нет, и чтобы ответить, сотрудник лезет в базу.
+    """
     lines = ["<b>Обращение с витрины</b>"]
     if row["platform"] and row["username_lower"]:
         url = f"https://fomobase.ru/{row['platform']}/{row['username_lower']}"
@@ -40,8 +48,27 @@ def build_message(row: dict) -> str:
     lines.append(f"Что не так: {html.escape(row['kind'])}")
     lines.append(f"Подробности: {html.escape(row['details'])}")
     if row["email"]:
-        lines.append(f"Email: {html.escape(row['email'])}")
+        lines.append(f"Почта для ответа указана, лежит в базе: запись № {row['id']}")
     return "\n".join(lines)
+
+
+def purge_expired(cur) -> int:
+    """Удалить обращения старше срока хранения. Возвращает число удалённых.
+
+    Срок объявлен в политике приватности (год с даты обращения), и за
+    обещанием идёт код: до T-98 механизма удаления не было вовсе, строки лежали
+    бессрочно. Опора — created_at: колонки «дата рассмотрения» в таблице нет,
+    и заводить её ради формулировки незачем.
+
+    Живёт в этом же скрипте и в этом же таймере: отдельный таймер ради одного
+    DELETE в сутки — лишняя деталь, которая однажды окажется отключённой и
+    никем не замеченной.
+    """
+    cur.execute("""
+        DELETE FROM public.data_report
+        WHERE created_at < now() - INTERVAL '1 year'
+    """)
+    return cur.rowcount
 
 
 def main() -> int:
@@ -73,6 +100,10 @@ def main() -> int:
                     # и отказ это warning/error, а не debug.
                     log.error("не удалось отправить обращение id=%s (попытка %s): %s",
                              row["id"], attempts, (result.stderr or "").strip())
+
+            purged = purge_expired(cur)
+            if purged:
+                log.info("удалено обращений старше года: %s", purged)
     finally:
         conn.close()
     return 0
