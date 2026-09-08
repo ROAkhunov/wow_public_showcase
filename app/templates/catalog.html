@@ -115,8 +115,21 @@
        слага нет, и тогда здесь стоит одна «Неточность?». #}
     <div class="row-actions">
       {% if c.wowblogger_slug %}
-      <a class="btn btn--primary btn--sm" href="{{ wow_url(c.wowblogger_slug, 'list', c.blogger_id) }}"
-         rel="nofollow noopener" target="_blank">Разместить</a>
+      {# Обещание охвата (T-97). Всплывашка и подстрочник стоят в разметке
+         вместе, а разводит их CSS: всплывашка живёт только на десктопе с
+         мышью, подстрочник — везде, кроме него. Порог width тут не годится:
+         широкий тач-экран (планшет в альбомной, тач-ноутбук 1366) не попал бы
+         ни в одно условие и остался бы вообще без цифры. #}
+      {% set promise = c | reach_promise %}
+      <div class="invite">
+        <a class="btn btn--primary btn--sm{% if promise %} btn--invite{% endif %}"
+           href="{{ wow_url(c.wowblogger_slug, 'list', c.blogger_id) }}"
+           rel="nofollow noopener" target="_blank"><span class="invite-act">Разместить</span>
+          {%- if promise %}<span class="invite-sub">увидят до {{ promise }}</span>{% endif %}</a>
+        {% if promise %}
+        <span class="invite-pop">Вашу рекламу в этом канале увидит <b>до {{ promise }}</b> человек</span>
+        {% endif %}
+      </div>
       {% endif %}
       <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}&amp;back={{ back_url | urlencode }}"
          title="Сообщить о неточности в данных">

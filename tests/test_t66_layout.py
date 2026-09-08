@@ -112,7 +112,7 @@ def test_channel_right_column_has_three_blocks_once(layer, client):
     layer.go_live()
 
     body = client.get("/tg/listed_one").text
-    assert body.count("Разместить рекламу") == 1
+    assert body.count("Вашу рекламу в этом канале") == 1
     assert body.count("Нашли неточность?") == 1
     assert body.count("Последнее обновление") == 1
 

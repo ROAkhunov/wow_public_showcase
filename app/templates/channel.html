@@ -250,13 +250,21 @@
    каталога. У соседних площадок её нет: она про канал, на который пришли
    (T-66, разбор скриншотов PO 23.08). #}
 <aside class="side channel-side">
+  {# Приглашение к размещению (T-97). Нет слага — блока нет вовсе (T-66). Есть
+     слаг, но обещать нечего — панель остаётся тёмной и на том же месте, в ней
+     заголовок и кнопка: пропадать ей нельзя, это единственная дорога наружу с
+     карточки. Структурно это по-прежнему `.group`: под 860 px на первой группе
+     панели держится правило про лишнюю линию поверху. #}
   {% if c.wowblogger_slug %}
-  <div class="group">
-    <b>Разместить рекламу</b>
-    <p class="sub">Канал есть на площадке WOWBlogger, условия и стоимость размещения на стороне
-       площадки.</p>
-    <a class="btn btn--primary" href="{{ wow_url(c.wowblogger_slug, 'card', c.blogger_id) }}"
-       rel="nofollow noopener" target="_blank">Перейти к размещению</a>
+  {% set promise = c | reach_promise %}
+  <div class="group invite-panel">
+    {% if promise %}
+    <p class="invite-line">Вашу рекламу в этом канале увидит <b class="invite-num">до {{ promise }}</b> человек</p>
+    {% else %}
+    <b class="invite-head">Реклама в этом канале</b>
+    {% endif %}
+    <a class="btn invite-btn" href="{{ wow_url(c.wowblogger_slug, 'card', c.blogger_id) }}"
+       rel="nofollow noopener" target="_blank">Подробнее →</a>
   </div>
   {% endif %}
   {% if c.siblings %}

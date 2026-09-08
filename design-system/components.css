@@ -640,6 +640,121 @@ a.sbtn { text-decoration: none; }
 }
 .report-link:hover { color: var(--ad); }
 
+/* ── Приглашение к размещению: обещание охвата (T-97) ───────────────────────
+   Одна цифра в трёх местах: всплывашка каталога, подстрочник кнопки и панель
+   карточки канала. Строку выдачи цифра не двигает и в поток не встаёт.
+
+   Развод по устройствам держится на `(hover: hover)`, а не на ширине.
+   Всплывашка бесполезна там, где нет курсора, а `:hover` на телефоне ещё и
+   вреден: iOS тратит первый тап на показ состояния, и человек, нажавший
+   «Разместить», никуда не попадает. Подстрочник поэтому включён по умолчанию
+   и гасится ровно тем же условием, каким включается всплывашка: разведи их по
+   порогу ширины — и широкий тач-экран (планшет в альбомной, тач-ноутбук 1366)
+   не попал бы ни в одно условие и остался бы вовсе без цифры. */
+.invite { position: relative; }
+
+/* Кнопка с подстрочником: одна крупная цель нажатия вместо кнопки и
+   болтающейся рядом подписи. Высоту держит не `--control-h`, а `.btn--sm`,
+   поэтому снимаем именно её; 44px — это палец, ниже цель не опускаем. */
+.btn--invite {
+  height: auto; min-height: 44px;
+  flex-direction: column; align-items: flex-start; gap: 0;
+  padding: var(--sp-2) var(--sp-3);
+  line-height: var(--lh-tight);
+}
+.invite-act { font-size: var(--fs-meta); }
+.invite-sub {
+  font-size: var(--fs-meta); font-weight: 500;
+  color: rgba(255, 255, 255, .78);
+}
+
+/* Ниже порога строка сложена, и колонка действий занимает вторую колонку
+   целиком — от аватара до правого края. Кнопка идёт по её ширине, цифра
+   оказывается внутри акцентного пятна. `.report-link` под ней не растягиваем:
+   ссылка остаётся ссылкой. */
+@media (max-width: 1200px) {
+  .invite { width: 100%; }
+  .btn--invite { width: 100%; align-items: center; text-align: center; }
+}
+
+/* Всплывашка уходит ВЛЕВО от кнопки, внутрь колонки метрик, и укладывается в
+   высоту строки: `.list` стоит с `overflow: hidden`, и всё, что вылезет вверх,
+   у первой строки выдачи срежется по кромке списка. Снимать `overflow` нельзя
+   — им же список обрезает углы строк по своему радиусу.
+
+   Арифметика: 300 px ширины минус поля по 12 оставляют 276, фраза в 51 знак
+   кеглем `--fs-meta` ложится в две строки по 17,5 — это 59 px против 76 у
+   строки. Запас съест любая третья строка, поэтому во всплывашке нет ничего,
+   кроме фразы: «Подробнее →» из макета убрана и как лишняя высота, и как
+   ложная цель (жать надо на кнопку справа, через зазор, где `:hover` слетает).
+
+   Выравнивание по верху кнопки, а не по её центру. Кнопка стоит не в середине
+   строки: под ней висит «Неточность?», и центр кнопки лежит примерно в 25 px
+   от кромки строки — отцентрованная плашка вылезла бы наверх на 5 px и попала
+   под нож. Хвостик отсчитывается оттуда же: центр кнопки приходится на 20-й
+   пиксель плашки, а её собственная середина — на 30-й, и квадрат, поставленный
+   на 50%, указывал бы в пустоту под кнопкой. */
+.invite-pop {
+  display: none;
+  position: absolute; top: -6px; right: calc(100% + 10px);
+  width: 300px; padding: var(--sp-3);
+  background: var(--invite-bg); color: var(--invite-fg);
+  border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+  font-size: var(--fs-meta); line-height: 1.4;
+  pointer-events: none; z-index: 5;
+}
+.invite-pop b { color: var(--invite-num); font-weight: 600; }
+.invite-pop::after {
+  content: ""; position: absolute; top: 16px; right: -4px;
+  width: 8px; height: 8px; background: var(--invite-bg);
+  transform: rotate(45deg);
+}
+
+@media (min-width: 1201px) and (hover: hover) {
+  /* Подстрочник и высота снимаются вместе: оставь высоту — и десктопная строка
+     выдачи вырастет, а с ней уедет вся арифметика всплывашки. */
+  .invite-sub { display: none; }
+  .btn--invite {
+    height: 28px; min-height: 0;
+    flex-direction: row; align-items: center;
+    padding: 0 var(--sp-3);
+  }
+  .invite-pop { display: block; opacity: 0; transform: translateX(6px);
+    transition: opacity .13s ease, transform .13s ease; }
+  .invite:hover .invite-pop,
+  .invite:focus-within .invite-pop { opacity: 1; transform: none; }
+}
+
+/* Панель карточки канала: единственное тёмное пятно на светлой странице.
+   По структуре это по-прежнему `.group` — под 860 px на первой группе панели
+   держится правило про лишнюю линию поверху (см. ниже). Тёмный фон
+   разворачивается на всю ширину `.side` отрицательными полями внутрь её
+   `padding: 16px`: иначе получился бы тёмный прямоугольник внутри белой рамки.
+   Радиус на пиксель меньше, чем у карточки: у неё снаружи ещё рамка в 1 px. */
+.invite-panel {
+  margin: calc(var(--sp-4) * -1) calc(var(--sp-4) * -1) 0;
+  padding: var(--sp-4);
+  border-top: 0;
+  border-radius: calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px) 0 0;
+  background: var(--invite-bg); color: var(--invite-fg);
+  gap: var(--sp-3);
+}
+.invite-line { margin: 0; font-size: var(--fs-body); line-height: var(--lh-body); }
+/* Цифра стоит своей строкой и крупно, но фраза от этого не рвётся: сверху вниз
+   она читается ровно так, как написана. */
+.invite-num {
+  display: block; margin: 2px 0;
+  font-size: var(--fs-h1); font-weight: 700;
+  letter-spacing: var(--tracking-head);
+  color: var(--invite-num); line-height: var(--lh-tight);
+}
+.invite-head { font-size: var(--fs-lead); }
+.invite-btn {
+  width: 100%; justify-content: center;
+  background: var(--invite-fg); color: var(--invite-bg);
+}
+.invite-btn:hover { background: #fff; }
+
 /* ── Колонка канала: карточки размещения и обратной связи (T-66) ────────────
    Ширина как у колонки фильтров каталога (`.side`), но она справа: канал
    первый в разметке, аside вторая, поэтому раскладка зеркальная. На узких

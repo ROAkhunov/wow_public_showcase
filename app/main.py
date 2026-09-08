@@ -100,7 +100,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
     templates.env.filters.update(num=fmt.num, pct=fmt.pct, signed=fmt.signed,
-                                 date_ru=fmt.date_ru, clip=fmt.clip)
+                                 date_ru=fmt.date_ru, clip=fmt.clip,
+                                 reach=fmt.reach, reach_promise=fmt.reach_promise)
     templates.env.globals.update(plural=fmt.plural, platform_names=PLATFORM_NAMES,
                                  platform_codes=PLATFORM_CODES, platforms=PLATFORMS,
                                  settings=settings, wow_url=wow_url)

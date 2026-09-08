@@ -122,7 +122,8 @@ def test_wowblogger_button_appears_only_with_a_slug(layer, client):
 
     listed = client.get("/tg/listed_one").text
     assert "https://wowblogger.ru/bloggers/vykhino-zhulebino-2" in listed
-    assert "WOWBlogger" in listed
+    # Имя площадки в приглашении не звучит с T-97, а дорога наружу та же.
+    assert "Подробнее" in listed
 
     assert "wowblogger.ru" not in client.get("/tg/stranger_one").text
 
