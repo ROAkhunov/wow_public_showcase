@@ -127,7 +127,9 @@
            rel="nofollow noopener" target="_blank"><span class="invite-act">Разместить</span>
           {%- if promise %}<span class="invite-sub">увидят до {{ promise }}</span>{% endif %}</a>
         {% if promise %}
-        <span class="invite-pop">Вашу рекламу в этом канале увидит <b>до {{ promise }}</b> человек</span>
+        {# «до N человек» не разрывается переносом: цифра — то, ради чего плашку
+           и читают, и половина её на другой строке гасит весь смысл. #}
+        <span class="invite-pop">Вашу рекламу в этом канале увидит <span class="invite-nb"><b>до {{ promise }}</b> человек</span></span>
         {% endif %}
       </div>
       {% endif %}

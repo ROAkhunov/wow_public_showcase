@@ -704,6 +704,10 @@ a.sbtn { text-decoration: none; }
   pointer-events: none; z-index: 5;
 }
 .invite-pop b { color: var(--invite-num); font-weight: 600; }
+/* Концовка фразы идёт одним куском: «до 950 тыс. человек» — это 19 знаков,
+   в 276 px строки они помещаются с запасом, а разорванная цифра («до 70» на
+   одной строке, «тыс.» на другой) читается как другая цифра. */
+.invite-nb { white-space: nowrap; }
 .invite-pop::after {
   content: ""; position: absolute; top: 16px; right: -4px;
   width: 8px; height: 8px; background: var(--invite-bg);
