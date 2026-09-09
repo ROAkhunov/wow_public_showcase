@@ -4,11 +4,21 @@
   страниц в релизе сотни тысяч, и каждая новая иначе переизобретала бы вид.
 
   Исполняемый клиентский JS здесь только поимённо разрешённый: счётчик Метрики
-  (T-90) и плашка согласия на куки (T-95), оба внизу файла. Тест шва 3
-  проверяет белый список, а не подразумевает его: посторонний третий скрипт
-  роняет сборку. Скрипты `type="application/ld+json"` под правило не подпадают
-  — это данные микроразметки, а не код.
-#}<!doctype html>
+  (T-90) и плашка согласия на куки (T-95), оба внизу файла, и на длинных
+  страницах — кнопка «Наверх» (T-100, `_to_top.html`, включается блоком
+  `toup`). Правило «ровно два скрипта» снято решением PO 08.09. Тест шва 3
+  проверяет белый список, а не подразумевает его: посторонний скрипт роняет
+  сборку. Скрипты `type="application/ld+json"` под правило не подпадают — это
+  данные микроразметки, а не код.
+
+  `toup` — блок с кнопкой и её скриптом, его наполняют `catalog.html`,
+  `channel.html`, `privacy.html`. `toup_self_target` непустой у страницы,
+  которая ставит якорь `#to-top` сама (каталог — на выдачу): тогда шапка его
+  не получает, элемент с этим `id` на странице один.
+#}
+{%- set _toup %}{% block toup %}{% endblock %}{% endset -%}
+{%- set _toup_self %}{% block toup_self_target %}{% endblock %}{% endset -%}
+<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -43,7 +53,11 @@
 </head>
 <body>
 
-<header class="hdr">
+{# Цель кнопки «Наверх» (T-100) на страницах без своей цели — шапка, то есть
+   начало документа. Каталог объявляет цель сам (выдача, не логотип), и тогда
+   `id` здесь не ставится. `tabindex="-1"` — чтобы фокус после нажатия переехал
+   на цель, а не остался в середине страницы. #}
+<header class="hdr"{% if _toup.strip() and not _toup_self.strip() %} id="to-top" tabindex="-1"{% endif %}>
   <div class="inner">
     <a class="logo" href="/"><span class="logo-mark">F</span> Fomobase</a>
     <nav class="nav"><a class="on" href="/">Каталог</a></nav>
@@ -79,6 +93,11 @@
   <button class="btn btn--primary" type="button" id="cookie-notice-ok">ОК</button>
 </div>
 
+{# Кнопка «Наверх» (T-100) — только на длинных страницах, наполняется блоком
+   `toup`. Фиксированная, место в потоке на вид не влияет; стоит последним
+   блоком перед скриптами, чтобы экранный диктор дочитал документ до неё. #}
+{{ _toup }}
+
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript">
     (function(m,e,t,r,i,k,a){
@@ -110,8 +129,16 @@
         // Отступ снизу равен реальной высоте плашки: прибитая к низу, она иначе
         // перекрывает кнопку отправки на /report, пагинацию каталога и низ
         // карточки. Считается по факту, а не числом в стилях, — на телефоне
-        // текст переносится и высота другая.
-        var pad = function () { document.body.style.paddingBottom = box.offsetHeight + 'px'; };
+        // текст переносится и высота другая. Ту же высоту плашка объявляет
+        // переменной `--cookie-notice-h` на корне: над ней встаёт кнопка
+        // «Наверх» (T-100), и своего смещения она не считает. После «ОК» и
+        // когда плашка не показана — 0 (кнопка читает переменную с запасным
+        // значением `0px`, скрипт плашки для уже согласившихся выходит раньше).
+        var pad = function () {
+            var h = box.offsetHeight;
+            document.body.style.paddingBottom = h + 'px';
+            document.documentElement.style.setProperty('--cookie-notice-h', h + 'px');
+        };
         box.hidden = false;
         pad();
         window.addEventListener('resize', pad);
@@ -120,6 +147,7 @@
             box.hidden = true;
             window.removeEventListener('resize', pad);
             document.body.style.paddingBottom = '';
+            document.documentElement.style.setProperty('--cookie-notice-h', '0px');
         });
     })();
 </script>

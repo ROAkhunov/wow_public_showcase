@@ -14,12 +14,21 @@
 </div>
 {% endblock %}
 
+{# Кнопка «Наверх» (T-100). Цель на каталоге — не логотип, а управление
+   выдачей: `#to-top` висит на `.layout` ниже (первым внутри идёт мобильный
+   `details` с фильтрами, на десктопе — колонка фильтров и строка сортировки).
+   Якорь один на оба устройства: `_filters.html` рендерится дважды, два якоря
+   с одним смыслом разъехались бы. `toup_self_target` непустой — шапка `id` не
+   получает. #}
+{% block toup %}{% include "_to_top.html" %}{% endblock %}
+{% block toup_self_target %}layout{% endblock %}
+
 {% block body %}
 {# Адрес возврата для «Неточность?» — текущая выдача целиком, с фильтрами,
    сортировкой и номером страницы. Каталог этот адрес уже канонизировал
    редиректом, так что в параметр уходит ровно то, что человек видит. #}
 {% set back_url = request.url.path ~ ('?' ~ request.url.query if request.url.query else '') %}
-<div class="layout">
+<div class="layout" id="to-top" tabindex="-1">
 {# Мобильная разметка колонки: свёрнута, стоит над списком. #}
 <details class="side-mobile">
   <summary class="fbtn">Фильтры</summary>

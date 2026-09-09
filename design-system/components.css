@@ -966,3 +966,63 @@ textarea.field {
   padding: var(--sp-4); margin: 0 0 var(--sp-4);
   font-weight: 600;
 }
+
+
+/* ── Кнопка «Наверх» на длинных страницах (T-100) ──────────────────────────
+   Фиксирована в правом нижнем углу. Появляется после первого экрана: до тех
+   пор её в потоке восприятия нет, показывает атрибут `data-to-top="on"` на
+   `<body>` (скрипт трогает только его, не `hidden` и не `display`, иначе
+   инлайн перебил бы правило с `:has()` ниже).
+
+   Смещение над плашкой куки считает не она: плашка объявляет свою фактическую
+   высоту переменной `--cookie-notice-h` (0 после «ОК» и пока плашка не
+   показана). Запасное значение `0px` в `var()` обязательно — скрипт плашки
+   для уже согласившихся выходит раньше объявления, и `calc()` без запаса стал
+   бы невалидным.
+
+   `z-index` 15 — ниже плашки куки (20), выше всплывашки охвата (5). */
+.to-top {
+  position: fixed;
+  right: var(--sp-4);
+  bottom: calc(var(--sp-4) + var(--cookie-notice-h, 0px));
+  z-index: 15;
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  height: var(--control-h); padding: 0 var(--sp-4);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--surface); color: var(--text);
+  font-size: var(--fs-meta); font-weight: 600;
+  box-shadow: var(--shadow-pop);
+  cursor: pointer;
+  opacity: 0; visibility: hidden;
+  transition: opacity .15s ease;
+}
+.to-top:hover { border-color: var(--line-strong); }
+body[data-to-top="on"] .to-top { opacity: 1; visibility: visible; }
+
+/* На телефоне при раскрытых мобильных фильтрах кнопка уходит: иначе легла бы
+   поверх липкой «Показать» у нижнего края (T-77). Правило само, скрипту про
+   чужой `details` знать незачем. */
+body:has(details.side-mobile[open]) .to-top {
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+
+/* Узкий экран — остаётся стрелка без подписи (образец T-96), смысл держит
+   `aria-label`. Порог тот же, что у кнопки «В каталог». */
+@media (max-width: 560px) {
+  .to-top { padding: 0 var(--sp-3); }
+  .to-top-word { display: none; }
+}
+
+/* Зона нажатия 44 px — накладкой через `::after`, а не размером кнопки
+   (образец T-77): вид кнопки остаётся прежним, растёт только область под
+   палец. */
+.to-top::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  top: 50%; height: 44px; transform: translateY(-50%);
+}
+
+/* Фокус-кольцо гасится адресно у самой цели, а не правилом по `[tabindex="-1"]`
+   вообще: на каталоге цель — контейнер во всю выдачу, рамка вокруг неё
+   читалась бы как поломка. У будущих элементов с этим атрибутом кольцо
+   остаётся. */
+#to-top:focus { outline: none; }

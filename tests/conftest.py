@@ -22,19 +22,23 @@ import pytest
 #
 # До T-90 правило звучало «ни одного тега script» и проверялось шестью копиями
 # `assert "<script" not in body`. Счётчик Метрики его нарушил, T-83 принесла на
-# страницы JSON-LD, T-95 — плашку согласия на куки. Правило стало белым
-# списком: исполняемые скрипты на странице только поимённо разрешённые, любой
-# посторонний роняет проверку. Микроразметка `application/ld+json` не в счёт —
-# это данные, а не код. Живёт одной функцией: шесть расходящихся копий однажды
-# разъедутся.
+# страницы JSON-LD, T-95 — плашку согласия на куки, T-100 — кнопку «Наверх».
+# Правило стало белым списком: исполняемые скрипты на странице только поимённо
+# разрешённые, любой посторонний роняет проверку. Микроразметка
+# `application/ld+json` не в счёт — это данные, а не код. Живёт одной функцией:
+# шесть расходящихся копий однажды разъедутся.
 #
 # Разрешённые опознаются по самому тегу, а не по порядку на странице: счётчик —
 # по адресу загрузки в теле скрипта, плашка — по атрибуту
-# `data-script="cookie-notice"`.
+# `data-script="cookie-notice"`, кнопка «Наверх» — по `data-script="to-top"`.
+# Счётчик и плашка обязаны быть на каждой странице, кнопка «Наверх» — только на
+# длинных (каталог, карточка канала, политика), на 404/«Спасибо»/форме её нет,
+# и это не ошибка.
 
 METRIKA_COUNTER = "112192205"
 METRIKA_TAG_SRC = "mc.yandex.ru/metrika/tag.js"
 COOKIE_NOTICE_SCRIPT = 'data-script="cookie-notice"'
+TO_TOP_SCRIPT = 'data-script="to-top"'
 
 _SCRIPT_BLOCK = re.compile(r"<script\b([^>]*)>(.*?)</script\s*>", re.I | re.S)
 _SCRIPT_TYPE = re.compile(r"""\btype\s*=\s*["']?([^"'\s>]+)""", re.I)
@@ -43,13 +47,14 @@ _SCRIPT_TYPE = re.compile(r"""\btype\s*=\s*["']?([^"'\s>]+)""", re.I)
 def assert_only_allowed_scripts(body: str, where: str = "") -> None:
     """Исполняемые `<script>` на странице — только из белого списка.
 
-    Разрешены двое: счётчик Метрики (T-90) и плашка согласия на куки (T-95).
-    Исполняемым считается тег без атрибута `type` либо с `type` из семейства
-    javascript. `type="application/ld+json"` это данные, а не код: такие теги
-    пропускаются (микроразметка T-83).
+    Разрешены трое: счётчик Метрики (T-90) и плашка согласия на куки (T-95) —
+    на каждой странице, кнопка «Наверх» (T-100) — на длинных, её отсутствие
+    ошибкой не считается. Исполняемым считается тег без атрибута `type` либо с
+    `type` из семейства javascript. `type="application/ld+json"` это данные, а
+    не код: такие теги пропускаются (микроразметка T-83).
     """
     tail = f" ({where})" if where else ""
-    metrika = notice = 0
+    metrika = notice = to_top = 0
     foreign = []
     for attrs, code in _SCRIPT_BLOCK.findall(body):
         found = _SCRIPT_TYPE.search(attrs)
@@ -60,6 +65,8 @@ def assert_only_allowed_scripts(body: str, where: str = "") -> None:
             metrika += 1
         elif COOKIE_NOTICE_SCRIPT in attrs:
             notice += 1
+        elif TO_TOP_SCRIPT in attrs:
+            to_top += 1
         else:
             foreign.append(attrs.strip() or code.strip()[:120])
 
@@ -67,6 +74,7 @@ def assert_only_allowed_scripts(body: str, where: str = "") -> None:
     assert metrika == 1, (
         f"счётчиков Метрики на странице {metrika}, а должен быть один{tail}")
     assert notice <= 1, f"плашка согласия на куки задвоилась{tail}"
+    assert to_top <= 1, f"скрипт кнопки «Наверх» задвоился{tail}"
     assert METRIKA_COUNTER in body, f"на странице нет номера счётчика {METRIKA_COUNTER}{tail}"
 
 

@@ -1,0 +1,51 @@
+{#
+  Кнопка «Наверх» и её скрипт (T-100). Третий и последний исполняемый скрипт
+  витрины — заведён осознанно, ценой правки спеки: со дна длинной страницы
+  (каталог в 50 строк, карточка канала, политика) к фильтрам и шапке иначе
+  только колесо или Home. Включается блоком `toup` в `catalog.html`,
+  `channel.html`, `privacy.html`; на 404, «Спасибо» и форме обращения кнопки
+  нет, и её скрипта тоже — они едут вместе.
+
+  Это `<button>`, а не ссылка: ссылка сорила бы историей, и «Назад» после
+  нажатия вернул бы вниз той же страницы. Способ прокрутки и видимость кнопки
+  задаются только стилями — скрипт переключает состояние на `<body>` и
+  переносит фокус на цель, `hidden`/`style.display` не трогает.
+#}
+<button class="to-top" type="button" aria-label="Наверх">
+  <span aria-hidden="true">↑</span><span class="to-top-word">Наверх</span>
+</button>
+<script data-script="to-top">
+    // Третий и последний исполняемый скрипт витрины (T-100), по образцу плашки
+    // куки: в белом списке теста опознаётся по `data-script`, отсутствие на
+    // коротких страницах ошибкой не считается.
+    (function () {
+        var btn = document.querySelector('.to-top');
+        var target = document.getElementById('to-top');
+        if (!btn || !target) { return; }
+        // Появление после первого экрана — по смещению прокрутки больше высоты
+        // окна. Слушатель `passive`, раскладку на каждое событие не считаем:
+        // состояние меняем только на переходе через порог и не чаще кадра.
+        var shown = null;
+        var sync = function () {
+            var past = window.scrollY > window.innerHeight;
+            if (past === shown) { return; }
+            shown = past;
+            document.body.setAttribute('data-to-top', past ? 'on' : 'off');
+        };
+        var waiting = false;
+        window.addEventListener('scroll', function () {
+            if (waiting) { return; }
+            waiting = true;
+            requestAnimationFrame(function () { waiting = false; sync(); });
+        }, { passive: true });
+        sync();
+        btn.addEventListener('click', function () {
+            // Прокрутка — свойством скроллера (`scroll-behavior` в стилях, с
+            // отключением при `prefers-reduced-motion`). Фокус переносим следом
+            // и без повторной прокрутки: иначе он доскроллит мгновенно и съест
+            // плавность.
+            target.scrollIntoView();
+            target.focus({ preventScroll: true });
+        });
+    })();
+</script>
