@@ -209,11 +209,13 @@ class Showcase:
 
             for row in family:
                 own = posts.get(row["id"], [])
-                shown = own[(feed_page - 1) * feed_size:] if row["id"] == cid else own[:feed_size]
                 row["history"] = history.get(row["id"], [])
                 row["categories"] = categories.get(row["id"], [])
                 row["advertisers"] = advertisers.get(row["id"], [])
-                row["posts"] = shown[:feed_size]
+                # Своя лента накопительная (T-108): страница N несёт посты
+                # 1..N·feed_size, запрос уже ограничил `own` этим числом.
+                # У соседа всегда только первая страница.
+                row["posts"] = own if row["id"] == cid else own[:feed_size]
                 row["built_at"] = build.built_at
 
             channel["siblings"] = siblings

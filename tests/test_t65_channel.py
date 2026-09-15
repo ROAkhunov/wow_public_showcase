@@ -88,16 +88,19 @@ def test_feed_shows_ten_posts_and_offers_more(layer, client):
 
     body = client.get("/tg/talky").text
     assert body.count("Публикация номер") == 10
-    assert "?posts=2#feed" in body, "кнопка «Ещё» без якоря вернёт на верх страницы"
+    assert "?posts=2#post-11" in body, "кнопка «Ещё» без якоря на новый пост вернёт на верх страницы"
 
 
 def test_second_page_of_the_feed_continues_the_same_channel(layer, client):
+    """Лента накопительная (T-108): страница 2 несёт посты 1-20, а не только
+    второй десяток."""
     layer.channel(1, "tg", "talky")
     feed_of(layer, 1, 25)
     layer.go_live()
 
     body = client.get("/tg/talky?posts=2").text
-    assert "Публикация номер 10" in body and "Публикация номер 0" not in body
+    assert body.count("Публикация номер") == 20
+    assert "Публикация номер 0" in body and "Публикация номер 19" in body
 
 
 def test_last_page_of_the_feed_offers_nothing_more(layer, client):
@@ -105,6 +108,21 @@ def test_last_page_of_the_feed_offers_nothing_more(layer, client):
     feed_of(layer, 1, 12)
     layer.go_live()
     assert "posts=2" not in client.get("/tg/talky?posts=2").text
+
+
+def test_feed_anchor_lands_on_the_first_new_post_own_channel_only(layer, client):
+    """T-108: якорь «Ещё» клеит первый новый пост, не секцию целиком, и только
+    у своего канала — у соседа по семье карточки без `id`."""
+    main, vk = family(layer)
+    feed_of(layer, 1, 25)
+    layer.post(2, "vp1", text="Пост во вконтакте")
+    layer.go_live()
+
+    page2 = client.get("/tg/main_channel?posts=2").text
+    assert page2.count("Публикация номер") == 20
+    assert 'id="post-11"' in page2
+    assert page2.count('id="post-') == 20, "id должен быть только у своих постов"
+    assert "Все публикации канала" in page2, "у соседа своя ссылка на всю ленту"
 
 
 def test_feed_page_beyond_the_last_is_404_not_an_empty_page(layer, client):

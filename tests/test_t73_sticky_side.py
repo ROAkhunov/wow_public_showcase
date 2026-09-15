@@ -13,7 +13,7 @@ import pytest
 pytestmark = pytest.mark.integration
 
 CATALOG_BACK = "/?subs_min=1000&sort=subs&page=2"
-FEED_BACK = "/tg/talky?posts=3#feed"
+FEED_BACK = "/tg/talky?posts=3#post-21"
 
 
 @pytest.fixture
