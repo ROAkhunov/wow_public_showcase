@@ -110,10 +110,18 @@
        блок переносится целиком и раскладывается своими колонками. Колонок
        четыре и блок под них посчитан — пятая (ER) потребует правки сетки в
        `components.css`, см. `Build.show_er`. #}
+    {# У MAX вторая и третья плитка вхолостую (T-110): охваты постов из
+       агрегатора на витрину не пускаются (T-102). Вместо них — прирост за
+       90 дней и число рекламных постов, та же пара, что на странице канала. #}
     <div class="m-cols">
       <div class="m"><span class="ds-label">Подписчиков</span><span class="ds-value">{{ c.subscribers | num }}</span></div>
+      {% if c.platform == 'max' %}
+      <div class="m"><span class="ds-label">Прирост за 90 дней</span><span class="ds-value{% if c.growth_90d is not none %} {{ 'up' if c.growth_90d >= 0 else 'down' }}{% endif %}">{{ c.growth_90d | signed }}</span></div>
+      <div class="m"><span class="ds-label">Рекламных постов</span><span class="ds-value">{{ c.ads_30d | num }}</span></div>
+      {% else %}
       <div class="m"><span class="ds-label">Охват поста</span><span class="ds-value">{{ c.views_organic | num }}</span></div>
       <div class="m"><span class="ds-label">Коэф. охвата</span><span class="ds-value">{{ c.coverage_ratio | pct }}</span></div>
+      {% endif %}
       {% if build.show_er %}
       <div class="m"><span class="ds-label">ER</span><span class="ds-value">{{ c.er_percent | pct }}</span></div>
       {% endif %}

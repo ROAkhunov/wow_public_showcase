@@ -280,7 +280,7 @@ class Showcase:
                 {head}SELECT c.id, c.platform, c.username, c.username_lower, c.display_name,
                        c.avatar_file, c.blogger_id, c.blogger_has_siblings, c.wowblogger_slug,
                        c.subscribers, c.views_organic, c.views_ad, c.coverage_ratio, c.er_percent,
-                       c.posts_30d, c.ad_share_30d, c.last_post_at
+                       c.posts_30d, c.ads_30d, c.ad_share_30d, c.growth_90d, c.last_post_at
                 FROM channel c {clause}
                 ORDER BY {order}
                 LIMIT %s OFFSET %s
