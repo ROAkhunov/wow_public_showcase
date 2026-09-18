@@ -410,8 +410,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def sitemap_sections(request: Request):
         build = app.state.db.build()
         rows = app.state.db.sections()
-        # Пустой раздел в карту не идёт: площадок в коде пять, а данные есть
-        # у трёх — приглашать краулера на пустую страницу незачем.
+        # Пустой раздел в карту не идёт: приглашать краулера на пустую
+        # страницу незачем.
         urls = ["/"] if any(r["platform"] == "" and r["category_slug"] == ""
                             and r["channels"] for r in rows) else []
         for row in rows:

@@ -8,14 +8,13 @@
 import os
 from dataclasses import dataclass
 
-PLATFORMS = ("tg", "vk", "max", "yt", "ok")
+PLATFORMS = ("tg", "vk", "max", "yt")
 
 PLATFORM_NAMES = {
     "tg": "Telegram",
     "vk": "ВКонтакте",
     "max": "MAX",
     "yt": "YouTube",
-    "ok": "Одноклассники",
 }
 
 #: подпись на цветном квадрате площадки. Полное имя в него не влезает: квадрат
@@ -25,7 +24,6 @@ PLATFORM_CODES = {
     "vk": "VK",
     "max": "MAX",
     "yt": "YT",
-    "ok": "OK",
 }
 
 

@@ -169,7 +169,7 @@ def test_sections_map_holds_the_root_the_platforms_and_the_landings(live, client
     assert "/category/finance" in paths
     assert "/category/finance/tg" in paths
     # Площадка без каналов и тонкая пара в карту не идут.
-    assert "/max" not in paths and "/ok" not in paths
+    assert "/max" not in paths
     assert "/category/finance/vk" not in paths
 
 

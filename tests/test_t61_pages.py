@@ -44,6 +44,16 @@ def test_unknown_channel_is_404(layer, client):
     assert client.get("/xx/example_channel").status_code == 404
 
 
+def test_ok_platform_is_gone(layer, client):
+    """T-111: площадка снята с публикации — её раздел и чип фильтра больше не живут."""
+    layer.channel(1, "tg", "example_channel")
+    layer.go_live()
+
+    assert client.get("/ok").status_code == 404
+    assert client.get("/ok/example_channel").status_code == 404
+    assert "Одноклассники" not in client.get("/").text
+
+
 def test_address_in_upper_case_redirects_to_the_only_one(layer, client):
     """У канала ровно один адрес: два живых адреса это страницы-клоны (US19)."""
     layer.channel(1, "tg", "Example_Channel")
