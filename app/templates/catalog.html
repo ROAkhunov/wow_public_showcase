@@ -127,8 +127,9 @@
       {% endif %}
       <div class="m"><span class="ds-label">Доля рекламы</span><span class="ds-value adv">{{ c.ad_share_30d | pct }}</span></div>
     </div>
-    {# Действия — последняя колонка строки, у правого края. «Разместить»
-       ведёт наружу, в WOWBlogger, поэтому она акцентная; у 20–47 строк из 50
+    {# Действия — последняя колонка строки, у правого края. «Заказать рекламу»
+       ведёт наружу, в WOWBlogger, поэтому она акцентная (слово то же, что на
+       той стороне, T-118); у 20–47 строк из 50
        слага нет, и тогда здесь стоит одна «Неточность?». #}
     <div class="row-actions">
       {% if c.wowblogger_slug %}
@@ -141,7 +142,7 @@
       <div class="invite">
         <a class="btn btn--primary btn--sm{% if promise %} btn--invite{% endif %}"
            href="{{ wow_url(c.wowblogger_slug, 'list', c.blogger_id) }}"
-           rel="nofollow noopener" target="_blank"><span class="invite-act">Разместить</span>
+           rel="nofollow noopener" target="_blank"><span class="invite-act">Заказать рекламу</span>
           {%- if promise %}<span class="invite-sub">увидят до {{ promise }}</span>{% endif %}</a>
         {% if promise %}
         {# Перенос ровно один и всегда в одном месте: «Вашу рекламу в этом канале»

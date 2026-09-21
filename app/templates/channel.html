@@ -95,18 +95,25 @@
     </div>
   </div>
 
+  {# Выход в WOWBlogger — первое действие карточки, у основного канала и у
+     соседей одинаково (T-118). До этого у основного канала кнопка в шапке не
+     ставилась (T-66, «не задваивается»), и на телефоне единственный выход жил
+     в правой колонке, то есть последним блоком страницы. Трафик в WOWBlogger
+     стал главной целью витрины (решение PO 21.09), и акцент переехал сюда, а
+     «Открыть канал» ушла в призрачные: она уводит на площадку, не к нам.
+
+     Адрес собирается из слага, который приехал колонкой слоя. Слага нет —
+     кнопки нет: вести в никуда хуже, чем не вести. Подстрочник — тот же
+     крючок, что в строке каталога (`reach_promise`), одна цифра на все места. #}
   <div class="actions">
-    {% if ch.url %}
-    <a class="btn btn--primary" href="{{ ch.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>
+    {% if ch.wowblogger_slug %}
+    {% set promise = ch | reach_promise %}
+    <a class="btn btn--primary order-btn" href="{{ wow_url(ch.wowblogger_slug, 'card', ch.blogger_id) }}"
+       rel="nofollow noopener" target="_blank"><span>Заказать рекламу</span>
+      {%- if promise %}<span class="order-sub">увидят до {{ promise }}</span>{% endif %}</a>
     {% endif %}
-    {# Адрес карточки автора на WOWBlogger собирается из слага, который приехал
-       колонкой слоя. Слага нет — кнопки нет: вести в никуда хуже, чем не вести.
-       У основного канала кнопка не задваивается: она живёт в правой колонке,
-       здесь остаётся только у соседних площадок — там это единственное её
-       место (T-66). #}
-    {% if ch.wowblogger_slug and not own %}
-    <a class="btn btn--ghost" href="{{ wow_url(ch.wowblogger_slug, 'card', ch.blogger_id) }}"
-       rel="nofollow noopener" target="_blank">Разместить рекламу в WOWBlogger</a>
+    {% if ch.url %}
+    <a class="btn btn--ghost" href="{{ ch.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>
     {% endif %}
     {% if not own %}
     <a class="btn btn--ghost" href="/{{ ch.platform }}/{{ ch.username_lower }}">Страница канала →</a>
@@ -271,7 +278,7 @@
     <b class="invite-head">Реклама в этом канале</b>
     {% endif %}
     <a class="btn invite-btn" href="{{ wow_url(c.wowblogger_slug, 'card', c.blogger_id) }}"
-       rel="nofollow noopener" target="_blank">Подробнее →</a>
+       rel="nofollow noopener" target="_blank">Заказать рекламу →</a>
   </div>
   {% endif %}
   {% if c.siblings %}

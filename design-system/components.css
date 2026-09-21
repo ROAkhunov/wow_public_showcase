@@ -28,13 +28,16 @@
 /* Четыре колонки: аватар, имя, блок метрик, действия. Метрики лежат внутри
    `.m-cols` и переносятся целиком, а не рассыпаются по чужим колонкам; блок
    действий стоит последним у правого края — это «сбоку» из замечаний PO.
-   Арифметика на максимальной ширине карточки (874 px): 46 + 400 + 112 и три
-   зазора по 16 = 606, имени остаётся 268. Минимум имени 200 упирается при
-   окне 1172 px, поэтому строка складывается на 1200 — с запасом, чтобы
-   правая колонка цифр не обрезалась молча (`.list` стоит с overflow: hidden). */
+   Арифметика на максимальной ширине карточки (874 px): 46 + 400 + 140 и три
+   зазора по 16 = 634, имени остаётся 240. Минимум имени 200 упирается ровно
+   при окне 1200 px, и на нём же строка складывается — запаса больше нет, но
+   правая колонка цифр не обрезается молча (`.list` стоит с overflow: hidden).
+   Колонка действий была 112 и выросла до 140 под «Заказать рекламу» (T-118):
+   кнопка с этой надписью занимает 137 px, в 112 она ломалась на две строки
+   внутри своих 28 px высоты. */
 .row {
   display: grid;
-  grid-template-columns: var(--avatar) minmax(200px, 1fr) 400px 112px;
+  grid-template-columns: var(--avatar) minmax(200px, 1fr) 400px 140px;
   align-items: center;
   gap: var(--sp-4);
   min-height: var(--row-h);
@@ -631,7 +634,7 @@ a.sbtn { text-decoration: none; }
   display: flex; flex-direction: column; align-items: flex-start;
   gap: var(--sp-2);
 }
-.btn--sm { height: 28px; padding: 0 var(--sp-3); font-size: var(--fs-meta); }
+.btn--sm { height: 28px; padding: 0 var(--sp-3); font-size: var(--fs-meta); white-space: nowrap; }
 .report-link {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: var(--fs-meta); color: var(--dim);
@@ -662,6 +665,22 @@ a.sbtn { text-decoration: none; }
 }
 .invite-act { font-size: var(--fs-meta); }
 .invite-sub {
+  font-size: var(--fs-meta); font-weight: 500;
+  color: rgba(255, 255, 255, .78);
+}
+
+/* Кнопка заказа в шапке карточки (T-118): та же пара «действие + крючок»,
+   что у `.btn--invite` в каталоге, но своим классом. `.btn--invite` живёт
+   арифметикой строки выдачи: на десктопе с мышью она сжимается до 28 px и
+   прячет подстрочник под всплывашку, а в шапке ни всплывашки, ни строки нет —
+   подстрочник виден на любой ширине. 44 px — палец, ниже цель не опускаем. */
+.order-btn {
+  height: auto; min-height: 44px;
+  flex-direction: column; align-items: flex-start; gap: 0;
+  padding: var(--sp-2) var(--sp-4);
+  line-height: var(--lh-tight);
+}
+.order-sub {
   font-size: var(--fs-meta); font-weight: 500;
   color: rgba(255, 255, 255, .78);
 }

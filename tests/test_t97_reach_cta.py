@@ -113,7 +113,7 @@ def test_catalog_row_without_a_number_promises_nothing(layer, client):
     for slug in ("empty-reach", "tiny-ad"):
         block = invite_for(body, slug)
         assert block is not None, f"кнопка у строки {slug} должна остаться"
-        assert "Разместить" in block
+        assert "Заказать рекламу" in block
         assert "увидит" not in block and "увидят" not in block
     assert "до 5 тыс." not in body                   # подмены обычным охватом нет
 
@@ -150,7 +150,7 @@ def test_channel_panel_replaces_the_old_disclaimer(layer, client):
     assert panel is not None
     text = text_of(panel.group(1))
     assert PHRASE.format("95 тыс.") in text
-    assert "Подробнее" in text
+    assert "Заказать рекламу" in text
     assert "WOWBlogger" not in panel.group(1)
     assert "стоимость размещения на стороне" not in body
     assert "Перейти к размещению" not in body
@@ -165,7 +165,7 @@ def test_channel_panel_stays_dark_without_a_number(layer, client):
     body = client.get("/tg/silent_panel").text
     panel = INVITE_PANEL.search(body)
     assert panel is not None
-    assert text_of(panel.group(1)) == "Реклама в этом канале Подробнее →"
+    assert text_of(panel.group(1)) == "Реклама в этом канале Заказать рекламу →"
     assert "стоимость размещения на стороне" not in body
 
 
