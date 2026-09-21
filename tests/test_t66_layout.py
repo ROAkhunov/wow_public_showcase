@@ -112,7 +112,10 @@ def test_channel_right_column_has_three_blocks_once(layer, client):
     layer.go_live()
 
     body = client.get("/tg/listed_one").text
-    assert body.count("Вашу рекламу в этом канале") == 1
+    # С T-121 панель заказа размечена дважды (копия под метриками для
+    # телефона), поэтому считаем внутри правой колонки, а не по всей странице.
+    aside = body[body.index('<aside class="side channel-side">'):]
+    assert aside.count("Вашу рекламу в этом канале") == 1
     assert body.count("Нашли неточность?") == 1
     assert body.count("Последнее обновление") == 1
 

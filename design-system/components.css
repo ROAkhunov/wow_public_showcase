@@ -680,6 +680,9 @@ a.sbtn { text-decoration: none; }
   padding: var(--sp-2) var(--sp-4);
   line-height: var(--lh-tight);
 }
+/* Подстрочника нет — надпись одна, и «слева» прижало бы её к краю кнопки
+   (T-121, MAX без крючка). Центрируем, высота 44 px остаётся. */
+.order-btn--solo { align-items: center; }
 .order-sub {
   font-size: var(--fs-meta); font-weight: 500;
   color: rgba(255, 255, 255, .78);
@@ -779,6 +782,20 @@ a.sbtn { text-decoration: none; }
 }
 .invite-btn:hover { background: #fff; }
 
+/* Копия панели для телефона (T-121) стоит в основной колонке под метриками
+   основного канала: под 860 px aside идёт по порядку разметки, и панель
+   оказывалась последним блоком страницы. Своя обёртка, а не `.group
+   .invite-panel`: та разворачивается отрицательными полями внутрь `.side` и
+   скруглена только сверху, в основной колонке вылезла бы за края. Здесь
+   радиус со всех сторон и отступ сверху как у `.panel`. Скрыта по умолчанию,
+   показывается там же, где прячется оригинал (см. медиазапрос 860 px ниже). */
+.invite-mobile {
+  display: none; flex-direction: column; gap: var(--sp-3);
+  margin-top: var(--sp-4); padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  background: var(--invite-bg); color: var(--invite-fg);
+}
+
 /* ── Колонка канала: карточки размещения и обратной связи (T-66) ────────────
    Ширина как у колонки фильтров каталога (`.side`), но она справа: канал
    первый в разметке, аside вторая, поэтому раскладка зеркальная. На узких
@@ -855,13 +872,15 @@ a.sn-row:hover { background: var(--accent-soft); color: var(--accent-dark); }
 .sites-nav-mobile { display: none; }
 @media (max-width: 860px) {
   .sites-nav-mobile { display: block; }
+  .invite-mobile { display: flex; }
   .channel-side .group.sites-nav-desktop { display: none; }
-  /* У 8% каналов с соседями нет кнопки размещения, и скрытая группа площадок
-     остаётся первой в разметке: `.group:first-of-type` снял бы линию с неё, а
-     видимой первой группе досталась бы лишняя линия поверху. */
-  .channel-side .group.sites-nav-desktop:first-of-type + .group {
-    border-top: 0; padding-top: 0;
-  }
+  .channel-side .group.invite-panel { display: none; }
+  /* Панель заказа и площадки автора спрятаны, в aside видима одна группа —
+     «Нашли неточность?». Линия поверху и отступ ей не нужны, а
+     `.group:first-of-type` до неё не дотягивается: первой по тегу всегда
+     стоит скрытая панель заказа (T-121, раньше правило цеплялось за
+     `.sites-nav-desktop:first-of-type + .group` и с панелью перестало бы). */
+  .channel-side .group { border-top: 0; padding-top: 0; }
 }
 
 /* Раскрытие остальных 45 тематик в колонке фильтров — без JS (T-66). */
