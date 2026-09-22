@@ -6,8 +6,11 @@
 
 Фильтр `strip_ad_contacts` вырезает подпись контакта и сам контакт по правилу
 «маркер + токен контакта» (прототип C из замера 22.09, остаток 1,1%). Абзац
-описания уходит в конец шапки, после тематик, и показывается по результату
-фильтра, а не по оригиналу. Случаи ниже — дословно из замера.
+описания показывается по результату фильтра, а не по оригиналу. Случаи ниже —
+дословно из замера.
+
+С T-124 описание вернулось в шапку, под подпись канала: причину ухода вниз
+снял фильтр, а не место. Свёртка и порог длины — в `test_t124_desc_in_head`.
 """
 import re
 
@@ -81,17 +84,34 @@ def test_filter_is_pure():
     assert text == "Реклама: @promo Мы пишем о котиках"
 
 
-# ── страница ─────────────────────────────────────────────────────────────────
+# ── страница ─────────────────────────────────────────────────────────
 
 HEAD = re.compile(r'<div class="head">(.*?)(?=<div class="invite-mobile">|</section>)', re.S)
 TOP = re.compile(r'<div class="top">(.*?)<div class="actions">', re.S)
+SUB = '<div class="sub">'
 DESC = '<p class="desc">'
+DETAILS = '<details class="desc">'
 
 
 def heads(body: str) -> list[str]:
     found = HEAD.findall(body)
     assert found, "на странице нет шапки канала"
     return found
+
+
+def desc_at(html: str) -> int:
+    """Где в куске разметки начинается описание, какой бы ни была ветка.
+
+    С T-124 абзац у коротких описаний и `<details>` у длинных — одно и то же
+    место в шапке, и место проверяется одинаково для обоих.
+    """
+    spots = [html.index(one) for one in (DESC, DETAILS) if one in html]
+    assert spots, "описания в разметке нет"
+    return min(spots)
+
+
+def has_desc(html: str) -> bool:
+    return DESC in html or DETAILS in html
 
 
 def test_description_is_shown_without_the_ad_contact(layer, client):
@@ -103,45 +123,68 @@ def test_description_is_shown_without_the_ad_contact(layer, client):
     assert "@manager" not in body
 
 
-def test_description_stands_after_topics_inside_head(layer, client):
-    layer.channel(1, "tg", "kittens", description="Про котиков\nРеклама: @manager")
+def test_description_stands_in_the_top_under_the_sub(layer, client):
+    """T-124: описание вернулось в шапку, рядом с аватаром и под подписью.
+
+    T-120 уносила его в конец `.head`, после тематик. Причина ухода —
+    рекламный контакт выше нашей кнопки — снята фильтром, а не местом, и
+    после приёмки глазами 22.09 описание вернули наверх.
+    """
+    layer.channel(1, "tg", "kittens",
+                  description="Про котиков и их повадки каждый день\nРеклама: @manager")
     layer.category(1, "Животные", "zhivotnye")
     layer.go_live()
     head = heads(client.get("/tg/kittens").text)[0]
-    assert DESC in head
-    assert DESC not in TOP.search(head).group(1), "описание осталось в `.top`, над кнопками"
-    assert head.index('<div class="sites">') < head.index(DESC), "описание стоит выше тематик"
+    top = TOP.search(head).group(1)
+    assert has_desc(top), "описания в `.top` нет"
+    assert top.index(SUB) < desc_at(top), "описание стоит выше подписи"
+    after_top = head[head.index('<div class="actions">'):]
+    assert not has_desc(after_top), "вторая копия описания осталась ниже шапки"
 
 
-def test_description_follows_tiles_when_there_are_no_topics(layer, client):
-    layer.channel(1, "tg", "kittens", description="Про котиков")
+def test_description_stays_in_the_top_when_there_are_no_topics(layer, client):
+    layer.channel(1, "tg", "kittens", description="Про котиков и их повадки каждый день")
     layer.go_live()
     head = heads(client.get("/tg/kittens").text)[0]
     assert '<div class="sites">' not in head
-    assert head.index('<div class="m-tiles">') < head.index(DESC)
-    assert DESC not in TOP.search(head).group(1)
+    top = TOP.search(head).group(1)
+    assert has_desc(top)
+    assert desc_at(top) < head.index('<div class="m-tiles">'), "описание ушло под плитки"
 
 
 def test_emptied_description_leaves_no_paragraph(layer, client):
+    """Опустевшее после фильтра описание не даёт ни абзаца, ни `<details>`."""
     layer.channel(1, "tg", "kittens", description="Реклама: @promo")
     layer.go_live()
     body = client.get("/tg/kittens").text
     assert "@promo" not in body
     assert DESC not in body
+    assert DETAILS not in body
+
+
+def test_missing_description_leaves_no_paragraph(layer, client):
+    layer.channel(1, "tg", "kittens", description=None)
+    layer.go_live()
+    head = heads(client.get("/tg/kittens").text)[0]
+    assert not has_desc(head), "у канала без описания в шапке пустая строка"
 
 
 def test_sibling_description_is_filtered_too(layer, client):
     layer.channel(1, "tg", "main_channel", blogger_id=7, blogger_has_siblings=True,
-                  description="Про котиков")
+                  description="Про котиков и их повадки каждый день")
     layer.channel(2, "vk", "vk_page", blogger_id=7, blogger_has_siblings=True,
-                  description="Про собак\nПо всем вопросам: @sib_manager")
+                  description="Про собак и их повадки каждый день\nПо всем вопросам: @sib_manager")
     layer.sibling(1, 2)
     layer.sibling(2, 1)
     layer.go_live()
     body = client.get("/tg/main_channel").text
     assert "Про собак" in body
     assert "@sib_manager" not in body
-    assert all(DESC not in TOP.search(head).group(1) for head in heads(body))
+    assert len(heads(body)) == 2
+    for head in heads(body):
+        top = TOP.search(head).group(1)
+        assert has_desc(top), "у соседа описание не в `.top`"
+        assert top.index(SUB) < desc_at(top)
 
 
 # ── стиль ────────────────────────────────────────────────────────────────────
@@ -153,11 +196,16 @@ def css(client):
     return re.sub(r"/\*.*?\*/", " ", body.text, flags=re.S)
 
 
-def test_description_is_separated_from_tiles_like_topics(css):
+def test_description_no_longer_carries_the_separator_line(css):
+    """T-124: отбивки T-120 сняты — описание теперь часть шапки, а не хвост.
+
+    `max-width: 62ch` тоже снят: в колонке шапки он обрезал бы свёрнутую
+    строку посреди белого места.
+    """
     rule = ""
     for selector, decls in re.findall(r"([^{}]+)\{([^}]*)\}", css):
         if ".desc" in [one.strip() for one in selector.split(",")]:
             rule += decls + ";"
-    assert "border-top" in rule
-    assert re.search(r"margin-top\s*:\s*var\(--sp-5\)", rule)
-    assert re.search(r"padding-top\s*:\s*var\(--sp-4\)", rule)
+    assert rule, "правила `.desc` нет"
+    assert "border-top" not in rule
+    assert "max-width" not in rule
