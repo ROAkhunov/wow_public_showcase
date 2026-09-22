@@ -64,14 +64,21 @@ def test_reach_is_always_rounded_down(value, expected):
 # ── какое поле берётся ───────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("row, expected", [
-    ({"views_ad": 15_400, "views_organic": 22_200}, "15 тыс."),   # рекламный побеждает
-    ({"views_ad": None, "views_organic": 22_200}, "22 тыс."),     # и заменяется обычным
-    ({"views_ad": 0, "views_organic": 5_000}, ""),                # ноль это заполненное значение
-    ({"views_ad": 40, "views_organic": 5_000}, ""),               # порог подмены не делает
-    ({"views_ad": None, "views_organic": None}, ""),
+    ({"views_ad": 15_400, "views_organic": 22_200}, "до 15 тыс."),   # рекламный побеждает
+    ({"views_ad": None, "views_organic": 22_200}, "до 22 тыс."),     # и заменяется обычным
+    ({"views_ad": 0, "views_organic": 5_000}, None),                 # ноль это заполненное значение
+    ({"views_ad": 40, "views_organic": 5_000}, None),                # порог подмены не делает
+    ({"views_ad": None, "views_organic": None}, None),
 ])
 def test_ad_reach_wins_even_when_it_is_small(row, expected):
-    assert reach_promise(row).replace("\xa0", " ") == expected
+    """Без `ads_30d` в строке цепочка T-119 до рекламы не доходит: крючок
+    по охвату или никакой."""
+    hook = reach_promise(row)
+    if expected is None:
+        assert hook is None
+    else:
+        assert hook["kind"] == "reach"
+        assert hook["num"].replace("\xa0", " ") == expected
 
 
 # ── строка каталога ──────────────────────────────────────────────────────────
@@ -104,9 +111,9 @@ def test_catalog_row_falls_back_to_the_organic_reach(layer, client):
 def test_catalog_row_without_a_number_promises_nothing(layer, client):
     """Кнопка остаётся, обещания нет: ни всплывашки, ни подстрочника."""
     layer.channel(1, "tg", "empty_reach", subscribers=300_000,
-                  wowblogger_slug="empty-reach", views_organic=None, views_ad=None)
+                  wowblogger_slug="empty-reach", views_organic=None, views_ad=None, ads_30d=0)
     layer.channel(2, "tg", "tiny_ad", subscribers=200_000,
-                  wowblogger_slug="tiny-ad", views_organic=5_000, views_ad=40)
+                  wowblogger_slug="tiny-ad", views_organic=5_000, views_ad=40, ads_30d=0)
     layer.go_live()
 
     body = client.get("/").text
@@ -159,7 +166,7 @@ def test_channel_panel_replaces_the_old_disclaimer(layer, client):
 
 def test_channel_panel_stays_dark_without_a_number(layer, client):
     layer.channel(1, "tg", "silent_panel", wowblogger_slug="silent-panel",
-                  views_organic=None, views_ad=None)
+                  views_organic=None, views_ad=None, ads_30d=0)
     layer.go_live()
 
     body = client.get("/tg/silent_panel").text

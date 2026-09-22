@@ -60,7 +60,7 @@ def test_order_button_is_the_first_action_of_the_channel_head(layer, client):
 
 def test_order_button_without_a_number_has_no_subline(layer, client):
     layer.channel(1, "tg", "silent", wowblogger_slug="silent",
-                  url="https://t.me/silent", views_organic=None, views_ad=None)
+                  url="https://t.me/silent", views_organic=None, views_ad=None, ads_30d=0)
     layer.go_live()
 
     actions = ACTIONS.search(client.get("/tg/silent").text).group(1)
@@ -85,7 +85,7 @@ def test_sibling_head_orders_with_the_same_words(layer, client):
     layer.channel(1, "tg", "main_one", wowblogger_slug="author", blogger_id=5,
                   url="https://t.me/main_one", views_ad=95_400)
     layer.channel(2, "vk", "side_one", wowblogger_slug="author", blogger_id=5,
-                  url="https://vk.com/side_one", views_ad=None, views_organic=None)
+                  url="https://vk.com/side_one", views_ad=None, views_organic=None, ads_30d=0)
     layer.sibling(1, 2)
     layer.sibling(2, 1)
     layer.go_live()
@@ -106,7 +106,7 @@ def test_every_exit_to_wowblogger_says_order_ads(layer, client):
     layer.channel(1, "tg", "worded", subscribers=300_000, wowblogger_slug="worded",
                   url="https://t.me/worded", views_ad=95_400)
     layer.channel(2, "tg", "worded_silent", subscribers=200_000, wowblogger_slug="worded-silent",
-                  url="https://t.me/worded_silent", views_ad=None, views_organic=None)
+                  url="https://t.me/worded_silent", views_ad=None, views_organic=None, ads_30d=0)
     layer.go_live()
 
     catalog = client.get("/").text

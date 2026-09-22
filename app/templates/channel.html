@@ -113,7 +113,7 @@
     <a class="btn btn--primary order-btn{% if not promise %} order-btn--solo{% endif %}"
        href="{{ wow_url(ch.wowblogger_slug, 'card', ch.blogger_id) }}"
        rel="nofollow noopener" target="_blank"><span>Заказать рекламу</span>
-      {%- if promise %}<span class="order-sub">увидят до {{ promise }}</span>{% endif %}</a>
+      {%- if promise %}<span class="order-sub">{{ promise.sub }}</span>{% endif %}</a>
     {% endif %}
     {% if ch.url %}
     <a class="btn btn--ghost" href="{{ ch.url }}" rel="nofollow noopener" target="_blank">Открыть канал</a>
@@ -184,7 +184,7 @@
 {% set promise = c | reach_promise %}
 <div class="invite-mobile">
   {% if promise %}
-  <p class="invite-line">Вашу рекламу в этом канале увидит <b class="invite-num">до {{ promise }}</b> человек</p>
+  <p class="invite-line">{{ promise.lead }} {{ promise.verb }} <b class="invite-num">{{ promise.num }}</b> {{ promise.tail }}</p>
   {% else %}
   <b class="invite-head">Реклама в этом канале</b>
   {% endif %}
@@ -296,7 +296,7 @@
   {% set promise = c | reach_promise %}
   <div class="group invite-panel">
     {% if promise %}
-    <p class="invite-line">Вашу рекламу в этом канале увидит <b class="invite-num">до {{ promise }}</b> человек</p>
+    <p class="invite-line">{{ promise.lead }} {{ promise.verb }} <b class="invite-num">{{ promise.num }}</b> {{ promise.tail }}</p>
     {% else %}
     <b class="invite-head">Реклама в этом канале</b>
     {% endif %}

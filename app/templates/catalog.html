@@ -143,12 +143,13 @@
         <a class="btn btn--primary btn--sm{% if promise %} btn--invite{% endif %}"
            href="{{ wow_url(c.wowblogger_slug, 'list', c.blogger_id) }}"
            rel="nofollow noopener" target="_blank"><span class="invite-act">Заказать рекламу</span>
-          {%- if promise %}<span class="invite-sub">увидят до {{ promise }}</span>{% endif %}</a>
+          {%- if promise %}<span class="invite-sub">{{ promise.sub }}</span>{% endif %}</a>
         {% if promise %}
         {# Перенос ровно один и всегда в одном месте: «Вашу рекламу в этом канале»
            сверху, «увидит до N человек» целиком снизу. Цифра — то, ради чего
-           плашку и читают, и рвать вокруг неё нельзя. #}
-        <span class="invite-pop">Вашу рекламу в этом канале <span class="invite-nb">увидит <b>до {{ promise }}</b> человек</span></span>
+           плашку и читают, и рвать вокруг неё нельзя. Слова приходят из
+           `reach_promise` (T-119): у крючка по рекламе они другие. #}
+        <span class="invite-pop">{{ promise.lead }} <span class="invite-nb">{{ promise.verb }} <b>{{ promise.num }}</b> {{ promise.tail }}</span></span>
         {% endif %}
       </div>
       {% endif %}

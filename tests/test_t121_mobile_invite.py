@@ -68,7 +68,7 @@ def own_block(body: str, channel_id: int) -> str:
 
 def test_order_button_without_a_subline_centers_its_label(layer, client):
     layer.channel(1, "max", "solo", wowblogger_slug="solo", blogger_id=3,
-                  url="https://max.ru/solo", views_organic=None, views_ad=None)
+                  url="https://max.ru/solo", views_organic=None, views_ad=None, ads_30d=0)
     layer.go_live()
 
     actions = ACTIONS.search(client.get("/max/solo").text).group(1)
@@ -127,7 +127,7 @@ def test_mobile_invite_stands_between_the_head_and_the_first_panel(layer, client
 
 def test_mobile_invite_without_a_number_shows_the_heading(layer, client):
     layer.channel(1, "max", "quiet", wowblogger_slug="quiet", blogger_id=2,
-                  url="https://max.ru/quiet", views_organic=None, views_ad=None)
+                  url="https://max.ru/quiet", views_organic=None, views_ad=None, ads_30d=0)
     layer.go_live()
 
     copy = INVITE_MOBILE.search(client.get("/max/quiet").text).group(1)
@@ -152,7 +152,7 @@ def test_siblings_have_no_mobile_copy(layer, client):
     layer.channel(1, "tg", "main_two", wowblogger_slug="author", blogger_id=5,
                   url="https://t.me/main_two", views_ad=95_400)
     layer.channel(2, "vk", "side_two", wowblogger_slug="author", blogger_id=5,
-                  url="https://vk.com/side_two", views_ad=None, views_organic=None)
+                  url="https://vk.com/side_two", views_ad=None, views_organic=None, ads_30d=0)
     layer.sibling(1, 2)
     layer.sibling(2, 1)
     layer.go_live()
