@@ -71,6 +71,15 @@ def test_privacy_names_what_the_law_requires(live, client):
         assert must in body, must
 
 
+def test_privacy_promises_only_ogrnip_for_sole_traders(live, client):
+    """T-139: политика не обещает публиковать ИНН индивидуального предпринимателя."""
+    body = " ".join(client.get("/privacy").text.split())
+    assert "ИНН и ОГРНИП индивидуального" not in body
+    assert "публикуется ОГРНИП индивидуального предпринимателя" in body
+    assert "у индивидуальных предпринимателей — только ОГРНИП" in body
+    assert "Фамилии, имена и отчества физических лиц в сведениях о рекламодателях не публикуются" in body
+
+
 def test_privacy_is_not_eaten_by_the_platform_catch_all(live, client):
     """`/{platform}` стоит ниже по файлу, но порядок маршрутов молчалив: если
     он однажды поедет, адрес отдаст 404 раздела, а не политику."""

@@ -4,6 +4,7 @@
 тест сеет публичный слой руками и смотрит на ответ: код, тело, заголовки. Про
 устройство приложения тесты не знают ничего.
 """
+import re
 from datetime import date, timedelta
 
 import psycopg2
@@ -99,24 +100,31 @@ def test_channel_without_history_has_no_chart(layer, client):
 
 
 def test_individual_advertiser_shows_requisites_without_a_name(layer, client):
-    """У ИП наименование в реестре и есть ФИО, поэтому на странице реквизиты.
+    """У ИП наименование в реестре и есть ФИО, а ИНН не публикуется с T-139
+    (юристы, 24.09): на странице «ИП» и ОГРНИП. У юрлица ИНН и ОГРН как были.
 
     Защита структурная: в публичном слое нет колонок с именами, и положить туда
-    ФИО тесту просто некуда — что здесь и проверяется. Утечка возможна только
-    через сборщик (T-60), а не через шаблон.
+    ФИО тесту просто некуда — что здесь и проверяется. ИНН ИП сборщик (T-60)
+    пишет пустым, шаблон пустую строку реквизита не выводит.
     """
     cid = layer.channel(1, "tg", "example_channel")
-    layer.advertiser(cid, "ИП, ИНН 500100732259", entity_type="fl",
-                     inn="500100732259", ogrn="304500116000157")
+    layer.advertiser(cid, "ИП", entity_type="fl", inn=None, ogrn="304500116000157")
+    layer.advertiser(cid, "ООО «Ромашка»", rank=2, entity_type="ul",
+                     inn="7701234567", ogrn="1027700132195")
     layer.go_live()
 
     assert [c for c in layer.columns("channel_advertiser") if "name" in c] == []
     with pytest.raises(psycopg2.errors.UndefinedColumn):
-        layer.advertiser(cid, "ООО «Ромашка»", rank=2, name_short="Иванов Иван Иванович")
+        layer.advertiser(cid, "ООО «Ромашка»", rank=3, name_short="Иванов Иван Иванович")
 
     body = client.get("/tg/example_channel").text
-    assert "500100732259" in body
-    assert "ИП" in body
+    lines = re.findall(r'<div class="adv-line">(.*?)</div>', body, re.S)
+    person, company = (" ".join(line.split()) for line in lines)
+    assert person.startswith("<b>ИП</b>")
+    assert "ИНН" not in person
+    assert "ОГРНИП 304500116000157" in person
+    assert "ИНН 7701234567" in company
+    assert "ОГРН 1027700132195" in company
     assert "Иванов" not in body
 
 
