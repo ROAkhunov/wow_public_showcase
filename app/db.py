@@ -240,13 +240,19 @@ class Showcase:
     # ── каталог ──────────────────────────────────────────────────────────
     def catalog(self, platform: str | None = None, category: str | None = None,
                 page: int = 1, size: int = 50,
-                filters: Filters | None = None) -> Page:
+                filters: Filters | None = None, city: str | None = None) -> Page:
         filters = filters or Filters()
         category = category or filters.category
         where, params = [], []
         if platform:
             where.append("c.platform = %s")
             params.append(platform)
+        # Город (T-134): только местные каналы. У каталогов и API VK город
+        # это город автора, поэтому одного слага мало. Условие ровно такое,
+        # как у частичного индекса `cat_city_local`, иначе он не подхватится.
+        if city:
+            where.append("c.city_slug = %s AND c.is_local")
+            params.append(city)
         # Тематика материализуется первой, а не джойнится. С обычным JOIN после
         # появления индексов каталога планировщик идёт по индексу подписчиков и
         # пробует тематику у каждой строки: 10 292 строки ради 50 нужных, 168 мс
@@ -429,6 +435,35 @@ class Showcase:
         rows = self._maybe("SELECT * FROM section WHERE platform = %s AND category_slug = %s",
                            (platform, category_slug))
         return rows[0] if rows else None
+
+    # ── города (T-134) ───────────────────────────────────────────────────
+    def city(self, slug: str) -> dict | None:
+        """Город из справочника сборщика: имя и родительный падеж для заголовка."""
+        rows = self._maybe("SELECT city_slug, name, name_gen FROM city WHERE city_slug = %s",
+                           (slug,))
+        return rows[0] if rows else None
+
+    def city_sections(self, city_slug: str | None = None,
+                      pairs: list[tuple[str, str]] | None = None) -> list[dict]:
+        """Цифры пар «площадка + город» вместе с именем города.
+
+        Без аргументов — все пары (карта сайта), по городу — его пары
+        (`/city/<slug>`), по списку пар — только они (семья на странице
+        канала: один запрос на всех, а не по запросу на соседа).
+        """
+        where, params = "", ()
+        if city_slug is not None:
+            where, params = "WHERE s.city_slug = %s", (city_slug,)
+        elif pairs is not None:
+            if not pairs:
+                return []
+            where = "WHERE (s.platform, s.city_slug) IN (SELECT * FROM unnest(%s::text[], %s::text[]))"
+            params = ([p for p, _ in pairs], [c for _, c in pairs])
+        return self._maybe(f"""
+            SELECT s.*, c.name, c.name_gen FROM city_section s
+            JOIN city c ON c.city_slug = s.city_slug
+            {where} ORDER BY s.city_slug, s.platform
+        """, params)
 
     def _maybe(self, sql: str, params: tuple = ()) -> list[dict]:
         """Выборка, которой может не быть в боевой схеме.

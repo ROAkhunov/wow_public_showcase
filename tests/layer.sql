@@ -51,6 +51,12 @@ CREATE TABLE "{schema}".channel (
     changed_at           TIMESTAMPTZ,
     built_at             TIMESTAMPTZ NOT NULL,
 
+    -- T-133. Город канала и признак «местный». city_slug пуст у города вне
+    -- справочника сборщика: город есть, страницы у него нет.
+    city                 TEXT,
+    city_slug            TEXT,
+    is_local             BOOLEAN NOT NULL DEFAULT FALSE,
+
     UNIQUE (platform, username_lower)
 );
 
@@ -126,4 +132,23 @@ CREATE TABLE "{schema}".section (
     views_median  BIGINT,
     ads_share     DOUBLE PRECISION,
     PRIMARY KEY (platform, category_slug)
+);
+
+-- T-133. Городские страницы: справочник городов, у которых есть хоть один
+-- местный канал со слагом, и цифры по паре «площадка + город» по тем же
+-- формулам, что section. Порог посадочной страницы проверяет витрина.
+CREATE TABLE "{schema}".city (
+    city_slug TEXT PRIMARY KEY,
+    name      TEXT NOT NULL,
+    name_gen  TEXT NOT NULL
+);
+
+CREATE TABLE "{schema}".city_section (
+    platform     TEXT NOT NULL,
+    city_slug    TEXT NOT NULL REFERENCES "{schema}".city(city_slug),
+    channels     INTEGER NOT NULL DEFAULT 0,
+    subs_median  BIGINT,
+    views_median BIGINT,
+    ads_share    DOUBLE PRECISION,
+    PRIMARY KEY (platform, city_slug)
 );

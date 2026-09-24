@@ -196,7 +196,8 @@ channel            id, platform, username, url, display_name, description,
                    views_organic, views_ad, views_drop, views_spread,
                    last_post_at, growth_90d,
                    adv_total, adv_repeat, adv_window_days,
-                   stats_scraped_at, built_at
+                   stats_scraped_at, built_at,
+                   city, city_slug, is_local                  (T-133)
                    PK id · UNIQUE (platform, username_lower)
 
 channel_post       channel_id, platform_post_id, text, url,
@@ -211,9 +212,21 @@ channel_sibling    channel_id, sibling_channel_id             (обе сторо
 channel_advertiser channel_id, label, inn, ogrn, entity_type,
                    placements_count, last_placed_at, rank
 
+city               city_slug, name, name_gen                  (T-133, name_gen: «Казани»)
+                   PK city_slug
+
+city_section       platform, city_slug, channels, subs_median, views_median, ads_share
+                   PK (platform, city_slug) · строки только по местным каналам (T-133)
+
 build_meta         schema_name, built_at, channels_total, posts_total,
                    empty_feed_share, is_live
 ```
+
+🔸 **Правка 24.09 (T-133, T-134): город канала.** `city` это город канала как его знает источник,
+`city_slug` ключ справочника `city` (пуст у города вне справочника), `is_local` признак «местный
+канал» (тематика «Региональные» или город в названии). Считает всё это сборщик; порог в 10 местных
+каналов для страницы города проверяет витрина. Индекс `cat_city_local (platform, city_slug,
+subscribers DESC NULLS LAST, id) WHERE is_local` лежит в `showcase/catalog_indexes.sql` сборщика.
 
 Чего в слое нет и не будет: `platform_id`, ссылок на маркетплейсы, цен и `price_history`,
 `is_onboarded`, `has_fake_email`, `problem_reason`, affinity, модели и даты LLM-анализа, любых
@@ -370,6 +383,9 @@ ER выводится только при значении: прочерк на 
 - `/` главная с каталогом.
 - `/tg`, `/vk`, `/max`, `/yt` разделы по площадкам.
 - `/category/<slug>` разделы по категориям.
+- 🔸 **Правка 24.09 (T-134):** `/city/<city_slug>/<платформа>` местные каналы города на
+  площадке (tg, vk, max), страница есть у пары с 10 местными каналами и больше.
+  `/city/<city_slug>` без площадки отвечает 301 на самую крупную пару города.
 - 🆕 Пагинация каталога: 50 строк на страницу, `?page=N`. Страницы со второй и дальше отдают
   `noindex, follow`: краулер проходит их насквозь и добирается до карточек, а в индекс попадают
   только карточки и первые страницы разделов. Без пагинации 138 тысяч страниц недостижимы по

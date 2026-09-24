@@ -194,6 +194,18 @@
     </div>
   </div>
   {% endif %}
+
+  {# Страница города (T-134): у местного канала, чья пара «площадка + город»
+     проходит порог. Адрес и текст собирает сервис, шаблон только печатает. #}
+  {% set city_link = city_links.get(ch.id) %}
+  {% if city_link %}
+  <div class="sites">
+    <span class="ds-label">Город</span>
+    <div class="sites-list">
+      <a class="chip" href="{{ city_link[0] }}">{{ city_link[1] }}</a>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 {# Панель заказа для телефона (T-121): та же панель, что в правой колонке, но

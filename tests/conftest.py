@@ -231,6 +231,18 @@ class Layer:
             channels=channels, subs_median=subs_median, views_median=views_median,
             ads_share=ads_share))
 
+    def city(self, slug: str, name: str, name_gen: str):
+        """Город из справочника сборщика (T-133)."""
+        self._insert("city", dict(city_slug=slug, name=name, name_gen=name_gen))
+
+    def city_section(self, platform: str, slug: str, *, channels: int = 0,
+                     subs_median: int | None = None, views_median: int | None = None,
+                     ads_share: float | None = None):
+        """Цифры пары «площадка + город» (T-133): считаются по местным каналам."""
+        self._insert("city_section", dict(
+            platform=platform, city_slug=slug, channels=channels,
+            subs_median=subs_median, views_median=views_median, ads_share=ads_share))
+
     def sibling(self, channel_id: int, sibling_id: int):
         with self.conn.cursor() as cur:
             cur.execute(f'INSERT INTO "{self.schema}".channel_sibling '
