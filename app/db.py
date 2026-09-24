@@ -240,7 +240,8 @@ class Showcase:
     # ── каталог ──────────────────────────────────────────────────────────
     def catalog(self, platform: str | None = None, category: str | None = None,
                 page: int = 1, size: int = 50,
-                filters: Filters | None = None, city: str | None = None) -> Page:
+                filters: Filters | None = None, city: str | None = None,
+                platforms: tuple[str, ...] | None = None) -> Page:
         filters = filters or Filters()
         category = category or filters.category
         where, params = [], []
@@ -253,6 +254,11 @@ class Showcase:
         if city:
             where.append("c.city_slug = %s AND c.is_local")
             params.append(city)
+        # Общая страница города (T-137) идёт не по всем площадкам, а по тем,
+        # у которых есть городские страницы: у YT их нет.
+        if platforms and not platform:
+            where.append("c.platform = ANY(%s)")
+            params.append(list(platforms))
         # Тематика материализуется первой, а не джойнится. С обычным JOIN после
         # появления индексов каталога планировщик идёт по индексу подписчиков и
         # пробует тематику у каждой строки: 10 292 строки ради 50 нужных, 168 мс
@@ -464,6 +470,22 @@ class Showcase:
             JOIN city c ON c.city_slug = s.city_slug
             {where} ORDER BY s.city_slug, s.platform
         """, params)
+
+    def city_local_count(self, slug: str, platforms: tuple[str, ...]) -> int:
+        """Местных каналов города на этих площадках (порог общей страницы
+        города, T-137). Условие то же, что у каталога, и идёт по частичному
+        индексу `cat_city_local`: Москва по всем площадкам 3–8 мс на проде."""
+        rows = self._maybe("""
+            SELECT count(*) AS n FROM channel
+            WHERE city_slug = %s AND is_local AND platform = ANY(%s)
+        """, (slug, list(platforms)))
+        return rows[0]["n"] if rows else 0
+
+    def cities_named(self, name: str) -> list[str]:
+        """Слаги городов с таким именем без учёта регистра (поиск, T-137)."""
+        rows = self._maybe("SELECT city_slug FROM city WHERE lower(name) = lower(%s) "
+                           "ORDER BY city_slug", (name,))
+        return [r["city_slug"] for r in rows]
 
     def _maybe(self, sql: str, params: tuple = ()) -> list[dict]:
         """Выборка, которой может не быть в боевой схеме.

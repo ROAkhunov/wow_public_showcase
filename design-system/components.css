@@ -977,6 +977,10 @@ a.sn-row:hover { background: var(--accent-soft); color: var(--accent-dark); }
 /* Раскрытие остальных 45 тематик в колонке фильтров — без JS (T-66). */
 .cats-more { margin-top: var(--sp-2); }
 .cats-more > summary { cursor: pointer; }
+/* Поиск города под «Показать все» (T-137): поле и кнопка в строку. */
+.city-search { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); }
+.city-search .field { flex: 1; min-width: 0; }
+.city-search .btn { height: var(--control-h); }
 
 /* ── Форма обращения и страница «спасибо» (T-68.2) ──────────────────────────
    Своя ширина и свои отступы, а не правки в общем `.field`: те же поля стоят

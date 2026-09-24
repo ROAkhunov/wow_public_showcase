@@ -169,45 +169,46 @@ def test_the_page_keeps_the_no_client_code_rule(live, client):
 
 
 # ── параметр тематики ────────────────────────────────────────────────────────
+# Перевёрнуто T-137 (п. 2): правило «у города тематики нет» отменено, `?cat=`
+# работает параметром, а не срезается 301.
 
-def test_category_parameter_is_dropped_with_a_move(live, client):
-    moved = client.get("/city/kazan/tg?cat=finance", follow_redirects=False)
-    assert moved.status_code == 301
-    assert moved.headers["location"] == "/city/kazan/tg"
+def test_category_parameter_works_on_the_city_page(live, client):
+    got = client.get("/city/kazan/tg?cat=finance", follow_redirects=False)
+    assert got.status_code == 200
 
 
-def test_category_parameter_is_dropped_but_other_filters_stay(live, client):
-    moved = client.get("/city/kazan/tg?cat=finance&subs_min=100", follow_redirects=False)
-    assert moved.status_code == 301
-    assert moved.headers["location"] == "/city/kazan/tg?subs_min=100"
+def test_category_parameter_and_other_filters_stay(live, client):
+    got = client.get("/city/kazan/tg?subs_min=100&cat=finance", follow_redirects=False)
+    assert got.status_code == 200
 
 
 # ── колонка фильтров ─────────────────────────────────────────────────────────
+# Перевёрнуто T-137 (п. 4): чипы площадок и тематик на странице города больше
+# не уводят с города. Площадка ниже порога не показывается вовсе.
 
-def test_filter_chips_lead_where_they_lead_on_a_landing_and_drop_the_city(live, client):
+def test_filter_chips_stay_in_the_city(live, client):
     body = client.get("/city/kazan/tg").text
-    assert 'href="/vk"' in body and 'href="/max"' in body
-    assert 'href="/tg?cat=finance"' in body
-    assert 'href="/city/kazan/vk"' not in body
+    assert 'href="/city/kazan/tg?cat=finance"' in body
+    assert 'href="/tg?cat=finance"' not in body
+    assert 'href="/city/kazan/vk"' not in body, "пара ниже порога в чипах площадок"
+    assert 'href="/city/kazan"' in body
 
 
 # ── город без площадки ───────────────────────────────────────────────────────
+# Перевёрнуто T-137 (п. 1): вместо 301 на крупную пару у города общая страница
+# по tg, vk, max с порогом 10 местных каналов вместе. Здесь у Казани 10 местных
+# каналов в TG, у Москвы и Равнограда по одному в VK.
 
-def test_city_without_platform_moves_to_the_largest_pair(live, client):
-    moved = client.get("/city/moskva", follow_redirects=False)
-    assert moved.status_code == 301
-    assert moved.headers["location"] == "/city/moskva/vk"
-
-
-def test_city_without_platform_skips_pairs_below_the_threshold(live, client):
-    moved = client.get("/city/kazan", follow_redirects=False)
-    assert moved.status_code == 301
-    assert moved.headers["location"] == "/city/kazan/tg"
+def test_city_without_platform_is_a_page_at_the_threshold(live, client):
+    got = client.get("/city/kazan", follow_redirects=False)
+    assert got.status_code == 200
 
 
-def test_a_tie_goes_by_the_platform_order(live, client):
-    moved = client.get("/city/ravnograd", follow_redirects=False)
-    assert moved.headers["location"] == "/city/ravnograd/tg"
+def test_city_without_platform_counts_channels_not_pairs(live, client):
+    # Цифры пар у Москвы и Равнограда большие, а местных каналов в слое один
+    # и ноль: общий порог считается по каналам.
+    assert client.get("/city/moskva", follow_redirects=False).status_code == 404
+    assert client.get("/city/ravnograd", follow_redirects=False).status_code == 404
 
 
 def test_city_without_a_pair_over_the_threshold_is_a_404(live, client):
@@ -230,7 +231,7 @@ def test_sitemap_holds_city_pairs_over_the_threshold_only(live, client):
                  "/city/moskva/max", "/city/ravnograd/tg", "/city/ravnograd/vk"):
         assert good in paths, good
     for bad in ("/city/kazan/vk", "/city/kazan/yt", "/city/izhevsk/max",
-                "/city/pustograd/tg", "/city/kazan", "/city/moskva"):
+                "/city/pustograd/tg"):
         assert bad not in paths, bad
 
 

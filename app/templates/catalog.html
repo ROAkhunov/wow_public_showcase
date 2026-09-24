@@ -32,9 +32,9 @@
 {# Мобильная разметка колонки: свёрнута, стоит над списком. #}
 <details class="side-mobile">
   <summary class="fbtn">Фильтры</summary>
-  {{ f.filter_form(base_url, filters, section, 'm', categories_visible, categories_rest, selected_category, landings) }}
+  {{ f.filter_form(base_url, filters, section, 'm', categories_visible, categories_rest, selected_category, landings, city_filter) }}
 </details>
-<aside class="side-desktop">{{ f.filter_form(base_url, filters, section, 'd', categories_visible, categories_rest, selected_category, landings) }}</aside>
+<aside class="side-desktop">{{ f.filter_form(base_url, filters, section, 'd', categories_visible, categories_rest, selected_category, landings, city_filter) }}</aside>
 
 <div class="listing">
 <div class="bar">

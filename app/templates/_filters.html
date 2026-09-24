@@ -16,7 +16,15 @@
    приезжает готовым из дампа — считать здесь нечего. #}
 {% macro cat_url(section, slug, landings) %}{% if not section %}/category/{{ slug | urlencode }}{% elif (section, slug) in landings %}/category/{{ slug | urlencode }}/{{ section }}{% else %}/{{ section }}?cat={{ slug | urlencode }}{% endif %}{% endmacro %}
 
-{% macro filter_form(base_url, filters, section, suffix, categories_visible, categories_rest, selected_category, landings) %}
+{# Адрес города (T-137): площадка и тематика текущей страницы сохраняются,
+   диапазоны и сортировка сбрасываются, как у чипов площадок. #}
+{% macro city_href(slug, section, category) %}/city/{{ slug | urlencode }}{% if section %}/{{ section }}{% endif %}{% if category %}?cat={{ category | urlencode }}{% endif %}{% endmacro %}
+
+{# Адрес тематики: на странице города это тот же город с `?cat=` (T-137),
+   иначе как было (посадочная T-83 или параметр). #}
+{% macro topic_url(section, slug, landings, base_url, cityf) %}{% if cityf and cityf.selected %}{{ base_url }}?cat={{ slug | urlencode }}{% else %}{{ cat_url(section, slug, landings) }}{% endif %}{% endmacro %}
+
+{% macro filter_form(base_url, filters, section, suffix, categories_visible, categories_rest, selected_category, landings, cityf=none) %}
 <form class="side" method="get" action="{{ base_url }}">
   {# Сортировка переживает отправку формы: без этого поля выбор «по охвату»
      слетал бы на умолчание при каждом уточнении диапазона. #}
@@ -43,10 +51,19 @@
   <div class="group">
     <span class="ds-label">Площадка</span>
     <div class="sites-list">
+      {% if cityf and cityf.selected %}
+      {# На странице города площадки не уводят с города (T-137). Площадка без
+         страницы города не показывается: клик молча снимал бы город. #}
+      <a class="chip{% if not section %} on{% endif %}" href="{{ city_href(cityf.selected, none, selected_category) }}">Все площадки</a>
+      {% for p in platforms if p in cityf.platforms %}
+      <a class="chip{% if section == p %} on{% endif %}" href="{{ city_href(cityf.selected, p, selected_category) }}"><span class="dot plat--{{ p }}">{{ platform_codes[p] }}</span>{{ platform_names[p] }}</a>
+      {% endfor %}
+      {% else %}
       <a class="chip{% if not section %} on{% endif %}" href="{{ '/category/' ~ (selected_category | urlencode) if selected_category else '/' }}">Все площадки</a>
       {% for p in platforms %}
       <a class="chip{% if section == p %} on{% endif %}" href="{{ cat_url(p, selected_category, landings) if selected_category else '/' ~ p }}"><span class="dot plat--{{ p }}">{{ platform_codes[p] }}</span>{{ platform_names[p] }}</a>
       {% endfor %}
+      {% endif %}
     </div>
   </div>
 
@@ -54,7 +71,7 @@
     <span class="ds-label">Тематика</span>
     <div class="sites-list">
       {% for cat in categories_visible %}
-      <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ cat_url(section, cat.category_slug, landings) }}">{{ cat.category_name }}</a>
+      <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ topic_url(section, cat.category_slug, landings, base_url, cityf) }}">{{ cat.category_name }}</a>
       {% endfor %}
     </div>
     {% if categories_rest %}
@@ -62,12 +79,49 @@
       <summary class="ds-label">Показать все</summary>
       <div class="sites-list">
         {% for cat in categories_rest %}
-        <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ cat_url(section, cat.category_slug, landings) }}">{{ cat.category_name }}</a>
+        <a class="chip{% if selected_category == cat.category_slug %} on{% endif %}" href="{{ topic_url(section, cat.category_slug, landings, base_url, cityf) }}">{{ cat.category_name }}</a>
         {% endfor %}
       </div>
     </details>
     {% endif %}
   </div>
+
+  {# Город (T-137), по образцу тематик: первые десять по числу каналов, хвост
+     по алфавиту под «Показать все», там же поиск. Поле поиска, скрытые поля и
+     кнопка стоят внутри этой формы, но принадлежат форме поиска ниже
+     (атрибут `form`): вложенную форму браузер выкинул бы. #}
+  {% if cityf %}
+  {% set search = 'city-search-' ~ suffix %}
+  <div class="group">
+    <span class="ds-label">Город</span>
+    <div class="sites-list">
+      <a class="chip{% if not cityf.selected %} on{% endif %}" href="{% if selected_category %}{{ cat_url(section, selected_category, landings) }}{% elif section %}/{{ section }}{% else %}/{% endif %}">Все города</a>
+      {% for c in cityf.visible %}
+      <a class="chip{% if cityf.selected == c.slug %} on{% endif %}" href="{{ city_href(c.slug, section, selected_category) }}">{{ c.name }}</a>
+      {% endfor %}
+    </div>
+    <details class="cats-more">
+      <summary class="ds-label">Показать все</summary>
+      {% if cityf.rest %}
+      <div class="sites-list">
+        {% for c in cityf.rest %}
+        <a class="chip{% if cityf.selected == c.slug %} on{% endif %}" href="{{ city_href(c.slug, section, selected_category) }}">{{ c.name }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="city-search">
+        <input class="field" type="search" name="q" form="{{ search }}" list="cities-{{ suffix }}"
+               placeholder="Найти город" aria-label="Найти город" autocomplete="off">
+        <datalist id="cities-{{ suffix }}">
+          {% for c in cityf.names %}<option value="{{ c.name }}">{% endfor %}
+        </datalist>
+        {% if section %}<input type="hidden" name="platform" value="{{ section }}" form="{{ search }}">{% endif %}
+        {% if selected_category %}<input type="hidden" name="cat" value="{{ selected_category }}" form="{{ search }}">{% endif %}
+        <button class="btn btn--ghost btn--sm" type="submit" form="{{ search }}">Найти</button>
+      </div>
+    </details>
+  </div>
+  {% endif %}
 
   <div class="group">
     <label class="ds-label" for="subs-min-{{ suffix }}">Подписчики</label>
@@ -120,4 +174,6 @@
     {% endif %}
   </div>
 </form>
+{# Форма поиска города: пустая, поля привязаны к ней атрибутом `form`. #}
+{% if cityf %}<form id="city-search-{{ suffix }}" method="get" action="/city" hidden></form>{% endif %}
 {% endmacro %}

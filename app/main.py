@@ -73,6 +73,15 @@ CITY_TEXTS = {
 }
 
 
+#: площадки, у которых есть городские страницы; по ним же общая страница
+#: города `/city/<slug>` (T-137).
+CITY_PLATFORMS = tuple(CITY_TEXTS)
+
+#: сколько городов стоит в колонке фильтров без раскрытия «Показать все»
+#: (T-137). Остальные под `details`, по алфавиту, с поиском.
+CITIES_PINNED = 10
+
+
 def city_title(platform: str, name_gen: str) -> str:
     return CITY_TEXTS[platform][0].format(name_gen)
 
@@ -87,6 +96,58 @@ def city_pages(rows: list[dict]) -> list[dict]:
     тех, что умеет витрина, и местных каналов не меньше порога посадочной."""
     return [r for r in rows
             if r["platform"] in CITY_TEXTS and r["channels"] >= MIN_LANDING_CHANNELS]
+
+
+def city_totals(rows: list[dict]) -> dict[str, dict]:
+    """Города с цифрами по площадкам общей страницы (T-137).
+
+    Строки «все площадки» у города в дампе нет, поэтому сумма складывается из
+    пар tg, vk, max. `city_section` считается сборщиком по тем же местным
+    каналам, что и порог страницы, так что сумма с ним сходится.
+    """
+    out: dict[str, dict] = {}
+    for r in rows:
+        if r["platform"] not in CITY_PLATFORMS:
+            continue
+        city = out.setdefault(r["city_slug"], {"slug": r["city_slug"], "name": r["name"],
+                                               "channels": 0, "platforms": 0})
+        city["channels"] += r["channels"]
+        city["platforms"] += 1 if r["channels"] else 0
+    return out
+
+
+def alphabetical(city: dict) -> str:
+    return city["name"].lower().replace("ё", "е")
+
+
+def city_choices(rows: list[dict], platform: str | None) -> list[dict]:
+    """Города колонки фильтров (T-137), от крупного к мелкому.
+
+    С площадкой это пары этой площадки от порога, то есть ровно те, у которых
+    есть `/city/<slug>/<platform>`. Без площадки это города с общей страницей.
+    """
+    if platform:
+        found = [{"slug": r["city_slug"], "name": r["name"], "channels": r["channels"]}
+                 for r in rows
+                 if r["platform"] == platform and r["channels"] >= MIN_LANDING_CHANNELS]
+    else:
+        found = [c for c in city_totals(rows).values()
+                 if c["channels"] >= MIN_LANDING_CHANNELS]
+    return sorted(found, key=lambda c: (-c["channels"], alphabetical(c)))
+
+
+def split_cities(cities: list[dict], selected: str | None) -> tuple[list[dict], list[dict]]:
+    """Видимые города колонки и хвост под `details`.
+
+    Первые CITIES_PINNED по числу каналов, хвост по алфавиту: в нём ищут
+    глазами по названию. Выбранный город виден всегда, как выбранная тематика.
+    """
+    visible = cities[:CITIES_PINNED]
+    rest = sorted(cities[CITIES_PINNED:], key=alphabetical)
+    if selected and not any(c["slug"] == selected for c in visible):
+        visible = visible + [c for c in rest if c["slug"] == selected]
+        rest = [c for c in rest if c["slug"] != selected]
+    return visible, rest
 
 
 def split_categories(categories: list[dict], selected: str | None) -> tuple[list[dict], list[dict]]:
@@ -226,16 +287,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # запроса целиком. Так одним правилом закрываются и мусор в значении, и
         # пустые поля формы, и переставленные ключи, и чужие метки кампаний:
         # список один, и адрес у него один.
-        # У города тематики нет (T-134): `?cat=` там отбрасывается 301, как
-        # на разделе тематики, хотя `category` пуст.
-        filters, _ = parse(request.query_params,
-                           allow_category=category is None and city is None)
+        # На городе тематика работает параметром (T-137), срезается `?cat=`
+        # только там, где тематика уже задана адресом.
+        filters, _ = parse(request.query_params, allow_category=category is None)
         if request.url.query != filters.query(n):
             return RedirectResponse(filters.url(base_url, n), status_code=301)
 
         page = app.state.db.catalog(platform=platform, category=category,
                                     page=n, size=settings.page_size, filters=filters,
-                                    city=city)
+                                    city=city,
+                                    platforms=CITY_PLATFORMS if city else None)
         # Страница за последней — такой же несуществующий адрес, как неизвестный
         # канал: пустой список со статусом 200 краулер копил бы себе в индекс.
         if n > page.pages and (n > 1 or page.total):
@@ -269,17 +330,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # `?cat=` остаётся рабочим адресом (по нему ходят люди из колонки), но
         # в индекс идёт один из двух.
         canonical_url = None
-        if (platform and filters.category and not landing and page.number == 1
-                and (platform, filters.category) in landings):
+        # У города с `?cat=` своего адреса нет: посадочная T-83 это другой
+        # список, без города.
+        if (platform and filters.category and not landing and not city
+                and page.number == 1 and (platform, filters.category) in landings):
             canonical_url = category_url(filters.category, platform)
         # Цифры страницы города лежат не в `section`, а в `city_section`: без
         # явной строки абзац печатал бы цифры всего раздела площадки.
-        if note_row is not None:
-            note = fmt.section_note(note_row)
+        # На общей странице города (T-137) абзаца нет вовсе: цифр «все
+        # площадки» по городу в дампе нет.
+        if city:
+            note = fmt.section_note(note_row) if note_row else None
         elif platform or selected_category:
             note = fmt.section_note(app.state.db.section(platform or "", selected_category or ""))
         else:
             note = None
+
+        # Блок «Город» колонки фильтров (T-137). У YT городских страниц нет,
+        # блока там тоже нет. Набор городов зависит от площадки: чип ведёт на
+        # страницу, которая есть.
+        city_filter = None
+        if platform != "yt":
+            city_rows = app.state.db.city_sections()
+            cities = city_choices(city_rows, platform)
+            if cities or city:
+                visible, rest = split_cities(cities, city)
+                city_filter = {
+                    "selected": city, "visible": visible, "rest": rest,
+                    "names": sorted(cities, key=alphabetical),
+                    # Площадки выбранного города, у которых есть страница:
+                    # чип площадки ниже порога молча снимал бы город.
+                    "platforms": {r["platform"] for r in city_pages(city_rows)
+                                  if r["city_slug"] == city},
+                }
 
         # Организация и сайт — разметка корня, а не каждой страницы: на
         # внутренних она ничего не добавляет, зато весит на 143 тысячах.
@@ -295,7 +378,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                           counts=counts or {}, categories_visible=categories_visible,
                           categories_rest=categories_rest, built_at=build.built_at,
                           canonical_url=canonical_url, landings=landings,
-                          section_note=note,
+                          section_note=note, city_filter=city_filter,
                           ld=jsonld.item_list(settings.site_origin, title, page.rows,
                                               offset=(page.number - 1) * settings.page_size),
                           ld_org=jsonld.organization(settings.site_origin) if root else None,
@@ -394,15 +477,47 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             base_url=city_url(slug, platform), platform=platform, section=platform,
             city=slug, note_row=rows[0])
 
-    # Своего общего списка у города нет: адрес ведёт на самую крупную пару.
+    # Общая страница города (T-137): местные каналы tg, vk, max вместе. Порог
+    # тот же, что у пары, но по всем трём площадкам; YT не в счёт, у него нет
+    # городских страниц.
     @app.get("/city/{slug}", response_class=HTMLResponse)
     def city_any(request: Request, slug: str):
-        rows = city_pages(app.state.db.city_sections(city_slug=slug))
-        if not rows:
+        city = app.state.db.city(slug)
+        if not city:
             return not_found(request, "Такого города нет")
-        order = list(CITY_TEXTS)
-        best = min(rows, key=lambda r: (-r["channels"], order.index(r["platform"])))
-        return RedirectResponse(city_url(slug, best["platform"]), status_code=301)
+        if app.state.db.city_local_count(slug, CITY_PLATFORMS) < MIN_LANDING_CHANNELS:
+            return not_found(request, "Такой подборки нет")
+        gen = city["name_gen"]
+        return catalog_page(
+            request, title=f"Каналы и группы {gen}",
+            subtitle=(f"Местные каналы и группы {gen} в Telegram, ВКонтакте и MAX: "
+                      "подписчики, охваты и реклама"),
+            base_url=city_url(slug), city=slug)
+
+    # Поиск города из колонки фильтров (T-137): форма GET без JS. Площадка и
+    # тематика текущей страницы едут скрытыми полями и сохраняются. Ищется
+    # город с общей страницей; если у него нет страницы на этой площадке,
+    # ведём на общую, а не на 404.
+    @app.get("/city", response_class=HTMLResponse)
+    def city_search(request: Request):
+        q = (request.query_params.get("q") or "").strip()
+        platform = request.query_params.get("platform")
+        cat = (request.query_params.get("cat") or "").strip()
+        found = []
+        for slug in (app.state.db.cities_named(q) if q else []):
+            rows = app.state.db.city_sections(city_slug=slug)
+            total = city_totals(rows).get(slug)
+            if total and total["channels"] >= MIN_LANDING_CHANNELS:
+                found.append((total["channels"], slug, rows))
+        if not found:
+            return not_found(request, "Такого города нет")
+        _, slug, rows = max(found, key=lambda f: f[0])
+        paged = platform in CITY_TEXTS and any(r["platform"] == platform
+                                               for r in city_pages(rows))
+        target = city_url(slug, platform if paged else None)
+        if cat:
+            target += f"?cat={quote(cat, safe='')}"
+        return RedirectResponse(target, status_code=301)
 
     # ── статика дизайн-системы ───────────────────────────────────────────
     # Регистрируется до `/{platform}`, иначе раздел-заглушка перехватит адрес.
@@ -498,10 +613,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 urls.append(f"/category/{quote(slug, safe='')}")
             elif slug and platform and count >= MIN_LANDING_CHANNELS:
                 urls.append(category_url(slug, platform))
-        # Города (T-134): только пары с собственной страницей. `/city/<slug>`
-        # без площадки это редирект, в карте ему не место.
-        urls += [city_url(r["city_slug"], r["platform"])
-                 for r in city_pages(app.state.db.city_sections())]
+        # Города (T-134): только пары с собственной страницей.
+        city_rows = app.state.db.city_sections()
+        urls += [city_url(r["city_slug"], r["platform"]) for r in city_pages(city_rows)]
+        # Общая страница города (T-137), кроме городов с каналами на одной
+        # площадке: её список совпадает со страницей этой площадки.
+        urls += [city_url(c["slug"]) for c in sorted(city_totals(city_rows).values(),
+                                                     key=lambda c: c["slug"])
+                 if c["channels"] >= MIN_LANDING_CHANNELS and c["platforms"] > 1]
         xml = app.state.templates.get_template("sitemap_sections.xml").render(
             urls=urls, origin=settings.site_origin, lastmod=build.built_at.date())
         return Response(xml, media_type="application/xml")
