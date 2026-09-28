@@ -244,19 +244,18 @@
 {% endif %}
 
 <section class="panel">
-  <h2>Кто рекламировался в канале</h2>
+  {% set win = ch.adv_window_days %}
+  <h2>Кто рекламировался {% if not win or win == 180 %}за полгода{% else %}за {{ win | num }} {{ plural(win, 'день', 'дня', 'дней') }}{% endif %}</h2>
   {% if ch.advertisers %}
   {% for a in ch.advertisers %}
   <div class="adv-line">
     <b>{{ a.label }}</b>
     {% if a.inn %}· ИНН {{ a.inn }}{% endif %}
     {% if a.ogrn %}· {{ 'ОГРНИП' if a.entity_type == 'fl' else 'ОГРН' }} {{ a.ogrn }}{% endif %}
-    · {{ a.placements_count | num }} {{ plural(a.placements_count, 'размещение', 'размещения', 'размещений') }}
-    {% if a.last_placed_at %}· последнее {{ a.last_placed_at | date_ru }}{% endif %}
+    {% if a.last_placed_at %}· последний пост {{ a.last_placed_at | date_ru }}{% endif %}
   </div>
   {% endfor %}
-  <p class="sub">Рекламодатели определяются по обязательной маркировке в тексте постов за
-     {{ ch.adv_window_days | num }} дней. Показываем только открытые реквизиты из реестра.</p>
+  <p class="sub">Рекламодатель определён по маркировке рекламы в постах канала.</p>
   {% else %}
   <p class="none">Рекламных размещений с маркировкой не найдено.</p>
   {% endif %}
