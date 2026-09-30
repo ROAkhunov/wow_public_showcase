@@ -1,6 +1,6 @@
 """T-95: плашка согласия на куки и страница политики обработки данных.
 
-Плашка уведомительная: счётчик Метрики она не блокирует и своих кук не ставит —
+Плашка уведомительная: счётчики Метрики и Google Analytics она не блокирует и своих кук не ставит —
 отметка о показе живёт в localStorage браузера. Отсюда две особенности, которые
 и проверяются: в разметку плашка приезжает скрытой (показывает её скрипт, иначе
 уже закрывший её человек видел бы мигание на каждой кэшированной странице), а
@@ -26,7 +26,7 @@ def test_notice_stands_on_every_kind_of_page(live, client):
     for path in PAGES:
         body = client.get(path).text
         assert 'id="cookie-notice"' in body, path
-        assert "Сайт использует файлы cookie и Яндекс.Метрику" in body, path
+        assert "Сайт использует файлы cookie, Яндекс.Метрику и Google Analytics" in body, path
         assert 'id="cookie-notice-ok"' in body, path
 
 
@@ -40,7 +40,7 @@ def test_notice_comes_hidden_and_is_shown_by_script(live, client):
 
 
 def test_page_scripts_stay_inside_the_whitelist(live, client):
-    """Плашка — второй и последний разрешённый скрипт витрины."""
+    """Плашка — скрипт из белого списка витрины, посторонних рядом нет."""
     for path in PAGES:
         assert_only_allowed_scripts(client.get(path).text, path)
 

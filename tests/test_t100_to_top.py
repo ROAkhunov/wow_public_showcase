@@ -1,7 +1,7 @@
 """T-100: кнопка «Наверх» на длинных страницах витрины.
 
 Со дна каталога (50 строк), карточки канала или политики к фильтрам и шапке
-иначе только колесо или Home. Кнопка — третий и последний исполняемый скрипт
+иначе только колесо или Home. Кнопка — исполняемый скрипт из белого списка
 витрины, заведён осознанно решением PO 08.09 ценой правки спеки.
 
 Проверяется структура и цель якоря, а не подпись: подпись правится без задачи.
@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from conftest import assert_only_allowed_scripts
+from conftest import GA_CONFIG, GA_TAG_SRC, assert_only_allowed_scripts
 
 pytestmark = pytest.mark.integration
 
@@ -83,8 +83,8 @@ def test_the_anchor_id_is_unique_on_every_long_page(live, client):
 # ── белый список скриптов ───────────────────────────────────────────────────
 
 def test_scripts_stay_inside_the_whitelist_everywhere(live, client):
-    """Кнопка — третий разрешённый скрипт. На коротких страницах его нет, и это
-    не ошибка; счётчик Метрики по-прежнему ровно один."""
+    """Кнопка — разрешённый скрипт. На коротких страницах его нет, и это
+    не ошибка; счётчик Метрики и скрипты GA по-прежнему ровно по одному."""
     for path in LONG_PAGES + SHORT_PAGES:
         assert_only_allowed_scripts(client.get(path).text, path)
 
@@ -93,7 +93,11 @@ def test_a_second_to_top_script_would_be_caught():
     """Тихо мимо проверки задвоенный скрипт кнопки проехать не должен."""
     counter = ('<script type="text/javascript">'
                "ym(112192205, 'init', {});"
-               ' new Image().src = "https://mc.yandex.ru/metrika/tag.js";</script>')
+               ' new Image().src = "https://mc.yandex.ru/metrika/tag.js";</script>'
+               # Тег GA (T-145): без него страница падала бы от правила «GA
+               # ровно по одному», а не от задвоенной кнопки.
+               f'<script async src="{GA_TAG_SRC}"></script>'
+               f"<script>{GA_CONFIG}', {{}});</script>")
     page = (f'<body>{counter}'
             '<script data-script="to-top">1</script>'
             '<script data-script="to-top">2</script></body>')

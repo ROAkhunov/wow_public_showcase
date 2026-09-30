@@ -1,7 +1,7 @@
 """T-90: счётчик Яндекс.Метрики на всех страницах витрины.
 
-Счётчик — первый исполняемый скрипт на сайте (второй принесла плашка согласия,
-T-95). Проверяется две вещи: что он приезжает на каждый тип страницы и что
+Счётчик — первый исполняемый скрипт на сайте (дальше плашка согласия T-95,
+кнопка «Наверх» T-100 и два скрипта Google Analytics T-145). Проверяется две вещи: что он приезжает на каждый тип страницы и что
 правило шва 3 после его появления не превратилось в «скриптам можно всё».
 
 Правило живёт в `conftest.assert_only_allowed_scripts`, и его собственный
@@ -12,7 +12,7 @@ T-95). Проверяется две вещи: что он приезжает н
 """
 import pytest
 
-from conftest import (METRIKA_COUNTER, METRIKA_TAG_SRC,
+from conftest import (GA_CONFIG, GA_TAG_SRC, METRIKA_COUNTER, METRIKA_TAG_SRC,
                       assert_only_allowed_scripts)
 
 
@@ -54,6 +54,11 @@ _COUNTER = (
     f"(function(){{}})(window, document, 'script', 'https://{METRIKA_TAG_SRC}?id={METRIKA_COUNTER}', 'ym');"
     f" ym({METRIKA_COUNTER}, 'init', {{}});"
     '</script>'
+    # Тег GA (T-145) стоит на каждой странице рядом со счётчиком: без него
+    # синтетика ниже падала бы от правила «GA ровно по одному», а не по своей
+    # причине.
+    f'<script async src="{GA_TAG_SRC}"></script>'
+    f"<script>{GA_CONFIG}', {{}});</script>"
 )
 
 

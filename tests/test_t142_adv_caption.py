@@ -97,4 +97,4 @@ def test_privacy_promises_only_last_date(layer, client):
     body = text_of(client.get("/privacy").text)
     assert "число размещений" not in body
     assert "У всех рекламодателей указывается дата последнего размещения" in body
-    assert "Редакция от 28 сентября 2026 года" in body
+    assert "Редакция от 30 сентября 2026 года" in body

@@ -28,41 +28,53 @@ import pytest
 # `application/ld+json` не в счёт — это данные, а не код. Живёт одной функцией:
 # шесть расходящихся копий однажды разъедутся.
 #
-# Разрешённые опознаются по самому тегу, а не по порядку на странице: счётчик —
-# по адресу загрузки в теле скрипта, плашка — по атрибуту
-# `data-script="cookie-notice"`, кнопка «Наверх» — по `data-script="to-top"`.
-# Счётчик и плашка обязаны быть на каждой странице, кнопка «Наверх» — только на
-# длинных (каталог, карточка канала, политика), на 404/«Спасибо»/форме её нет,
-# и это не ошибка.
+# Разрешённые опознаются по самому тегу, а не по порядку на странице: счётчик
+# Метрики — по адресу загрузки в теле скрипта; тег Google Analytics (T-145) —
+# двумя скриптами: внешний загрузчик по атрибуту `src` с номером ресурса (тело
+# у него пустое), инлайн по вызову `gtag('config', '<номер>'`; плашка — по
+# атрибуту `data-script="cookie-notice"`, кнопка «Наверх» — по
+# `data-script="to-top"`. Метрика, оба скрипта GA и плашка обязаны быть на
+# каждой странице, кнопка «Наверх» — только на длинных (каталог, карточка
+# канала, политика), на 404/«Спасибо»/форме её нет, и это не ошибка.
 
 METRIKA_COUNTER = "112192205"
 METRIKA_TAG_SRC = "mc.yandex.ru/metrika/tag.js"
+GA_ID = "G-VJF4MZH5PE"
+GA_TAG_SRC = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID
+GA_CONFIG = "gtag('config', '" + GA_ID
 COOKIE_NOTICE_SCRIPT = 'data-script="cookie-notice"'
 TO_TOP_SCRIPT = 'data-script="to-top"'
 
 _SCRIPT_BLOCK = re.compile(r"<script\b([^>]*)>(.*?)</script\s*>", re.I | re.S)
 _SCRIPT_TYPE = re.compile(r"""\btype\s*=\s*["']?([^"'\s>]+)""", re.I)
+_SCRIPT_SRC = re.compile(r"""\bsrc\s*=\s*["']([^"']*)["']""", re.I)
 
 
 def assert_only_allowed_scripts(body: str, where: str = "") -> None:
     """Исполняемые `<script>` на странице — только из белого списка.
 
-    Разрешены трое: счётчик Метрики (T-90) и плашка согласия на куки (T-95) —
-    на каждой странице, кнопка «Наверх» (T-100) — на длинных, её отсутствие
-    ошибкой не считается. Исполняемым считается тег без атрибута `type` либо с
-    `type` из семейства javascript. `type="application/ld+json"` это данные, а
-    не код: такие теги пропускаются (микроразметка T-83).
+    Разрешены пятеро: счётчик Метрики (T-90), два скрипта тега Google Analytics
+    (T-145: внешний загрузчик и инлайн с `config`) и плашка согласия на куки
+    (T-95) — на каждой странице, кнопка «Наверх» (T-100) — на длинных, её
+    отсутствие ошибкой не считается. Исполняемым считается тег без атрибута
+    `type` либо с `type` из семейства javascript. `type="application/ld+json"`
+    это данные, а не код: такие теги пропускаются (микроразметка T-83).
     """
     tail = f" ({where})" if where else ""
-    metrika = notice = to_top = 0
+    metrika = ga_loader = ga_config = notice = to_top = 0
     foreign = []
     for attrs, code in _SCRIPT_BLOCK.findall(body):
         found = _SCRIPT_TYPE.search(attrs)
         kind = (found.group(1).lower() if found else "text/javascript")
         if kind not in ("text/javascript", "application/javascript", "module"):
             continue
-        if METRIKA_TAG_SRC in code:
+        src = _SCRIPT_SRC.search(attrs)
+        if src and src.group(1) == GA_TAG_SRC and not code.strip():
+            ga_loader += 1
+        elif METRIKA_TAG_SRC in code:
             metrika += 1
+        elif GA_CONFIG in code:
+            ga_config += 1
         elif COOKIE_NOTICE_SCRIPT in attrs:
             notice += 1
         elif TO_TOP_SCRIPT in attrs:
@@ -73,6 +85,10 @@ def assert_only_allowed_scripts(body: str, where: str = "") -> None:
     assert not foreign, f"на странице посторонний исполняемый script{tail}: {foreign}"
     assert metrika == 1, (
         f"счётчиков Метрики на странице {metrika}, а должен быть один{tail}")
+    assert ga_loader == 1, (
+        f"загрузчиков Google Analytics на странице {ga_loader}, а должен быть один{tail}")
+    assert ga_config == 1, (
+        f"инлайн-скриптов Google Analytics на странице {ga_config}, а должен быть один{tail}")
     assert notice <= 1, f"плашка согласия на куки задвоилась{tail}"
     assert to_top <= 1, f"скрипт кнопки «Наверх» задвоился{tail}"
     assert METRIKA_COUNTER in body, f"на странице нет номера счётчика {METRIKA_COUNTER}{tail}"
