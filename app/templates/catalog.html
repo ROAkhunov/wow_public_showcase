@@ -73,17 +73,13 @@
         <span class="plat plat--{{ c.platform }}">{{ platform_codes[c.platform] }}</span>
         {# title у всех имён, а не только у обрезанных: длину строки в шаблоне
            не измерить, а обрезка идёт в браузере (`.name > a`, T-82). #}
-        {# Хвост возврата уезжает в карточку с любой выдачи, кроме корня и его
-           пагинации. Одного признака `filters.active` мало: площадка и тематика
-           живут не в строке запроса, а в самом адресе (`/tg`,
-           `/category/<slug>/tg`), и человек, выбравший их в колонке фильтров,
-           возвращался в голый каталог — то же, на что PO и жаловался.
-
-           Корень с хвостом не ставится намеренно: `/` и `/?page=N` это дорога
-           краулера ко всем 143 тысячам карточек, а адреса с `back` для него
-           закрыты (robots). С разделов он вглубь не пойдёт, и это нормально —
-           карточки достижимы с корневой пагинации и из карты сайта. #}
-        <a href="/{{ c.platform }}/{{ c.username_lower }}{% if filters.active or base_url != '/' %}?back={{ back_url | urlencode }}{% endif %}"
+        {# Ссылка на карточку всегда чистая, с любой выдачи (T-154). До задачи
+           разделы, тематики, города и фильтры дописывали `?back=<выдача>`, а
+           адреса с `back` закрыты в robots: с этих страниц краулер видел только
+           закрытые копии карточек и вглубь не шёл. Адрес выдачи до кнопки
+           «В каталог» теперь доносит браузер: эта страница кладёт его в память
+           вкладки, карточка берёт referrer или память (`_back_link.html`). #}
+        <a href="/{{ c.platform }}/{{ c.username_lower }}"
            title="{{ c.display_name or c.username }}"><b>{{ c.display_name or c.username }}</b></a>
       </div>
       <div class="sub">{{ platform_names[c.platform] }} · {{ c.username }} ·
@@ -153,8 +149,10 @@
         {% endif %}
       </div>
       {% endif %}
+      {# `back` здесь остаётся: по нему форма возвращает человека на выдачу.
+         Краулеру ходить по ссылке незачем, отсюда `nofollow` (T-154). #}
       <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}&amp;back={{ back_url | urlencode }}"
-         title="Сообщить о неточности в данных">
+         rel="nofollow" title="Сообщить о неточности в данных">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <path d="M12 9v4"/><path d="M12 17h.01"/>
           <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
@@ -197,4 +195,5 @@
 {% endif %}
 </div>
 </div>
+{% with role = 'catalog' %}{% include "_back_link.html" %}{% endwith %}
 {% endblock %}

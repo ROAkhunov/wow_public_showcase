@@ -115,21 +115,21 @@ def test_the_list_holds_only_local_channels_of_the_city_and_platform(live, clien
 
 def test_the_list_goes_down_by_subscribers(live, client):
     body = client.get("/city/kazan/tg").text
-    assert body.index("/tg/kazan_local_1?") < body.index("/tg/kazan_local_2?")
-    assert body.index("/tg/kazan_local_9?") < body.index("/tg/kazan_local_10?")
+    assert body.index('/tg/kazan_local_1"') < body.index('/tg/kazan_local_2"')
+    assert body.index('/tg/kazan_local_9"') < body.index('/tg/kazan_local_10"')
 
 
 def test_the_list_is_paginated_like_a_section(live, make_client):
     client = make_client(page_size=4)
     assert client.get("/city/kazan/tg?page=3").status_code == 200
     assert client.get("/city/kazan/tg?page=4").status_code == 404
-    assert "/tg/kazan_local_5?" in client.get("/city/kazan/tg?page=2").text
+    assert '/tg/kazan_local_5"' in client.get("/city/kazan/tg?page=2").text
 
 
 def test_filters_work_on_the_city_page(live, client):
     body = client.get("/city/kazan/tg?subs_min=45000").text
-    assert "/tg/kazan_local_1?" in body
-    assert "/tg/kazan_local_6?" not in body
+    assert '/tg/kazan_local_1"' in body
+    assert '/tg/kazan_local_6"' not in body
 
 
 # ── тексты ───────────────────────────────────────────────────────────────────

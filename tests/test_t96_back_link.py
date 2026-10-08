@@ -9,10 +9,10 @@
 уходит: ниже 860 пикселей колонка встаёт под основную, и кнопка оказалась бы
 под всей лентой.
 
-Отдельная группа — про хвост возврата. Он живёт только на ссылках с
-отфильтрованной выдачи: адрес карточки входит в ключ кэша целиком, и хвост на
-голом каталоге завёл бы по копии карточки на каждое состояние фильтров, а
-краулеру — второе множество адресов на те же 143 тысячи страниц.
+Отдельная группа — про хвост возврата `?back=`. С T-154 каталог его больше не
+ставит ни на одну ссылку на карточку (см. `test_t154_clean_card_links.py`):
+адрес выдачи до кнопки доносит браузер. Старые адреса с хвостом при этом
+работают как раньше, и проверки ниже держат именно их.
 """
 import re
 
@@ -101,14 +101,7 @@ def test_a_foreign_address_in_the_tail_is_refused(layer, client):
         assert 'href="/"' in block
 
 
-# ── хвост возврата ставится только там, где он безвреден ─────────────────────
-
-def test_filtered_listing_hands_its_address_to_the_card(layer, client):
-    seed(layer)
-    layer.go_live()
-    body = plain(client.get("/?subs_min=25000").text)
-    assert 'href="/tg/ch3?back=/%3Fsubs_min%3D25000"' in body
-
+# ── хвост возврата: каталог его не ставит, старые адреса живут ───────────────
 
 def test_bare_catalog_links_to_cards_without_any_tail(layer, client):
     """Голый каталог это дорога краулера к 143 тысячам карточек: хвост здесь
@@ -120,13 +113,6 @@ def test_bare_catalog_links_to_cards_without_any_tail(layer, client):
     assert not [one for one in cards if "?" in one]
 
 
-def test_platform_section_hands_its_address_to_the_card(layer, client):
-    """Площадка живёт в адресе, а не в фильтрах: без хвоста человек, выбравший
-    её в колонке, возвращался в голый каталог. На эту потерю PO и жаловался."""
-    seed(layer)
-    layer.go_live()
-    cards = card_links(plain(client.get("/tg").text))
-    assert 'href="/tg/ch1?back=/tg"' in cards
 
 
 def test_paged_root_keeps_its_card_links_clean(layer, client):
@@ -149,18 +135,6 @@ def test_the_tail_is_closed_from_the_index(layer, client, make_client):
     assert "back" in body.split("Clean-param: ")[1].splitlines()[0]
 
 
-def test_category_landing_hands_its_address_to_the_card(layer, client):
-    """Тематика тоже живёт адресом, а не фильтром: пара «площадка плюс
-    тематика» с T-83 имеет собственную страницу, и возврат с карточки обязан
-    приводить обратно на неё, а не в корень каталога."""
-    for i in range(1, 13):
-        layer.channel(i, "tg", f"ch{i}", subscribers=100_000 - i * 1000)
-        layer.category(i, "Финансы", "finance")
-    layer.section("tg", "finance", name="Финансы", channels=12)
-    layer.go_live()
-    cards = card_links(plain(client.get("/category/finance/tg").text))
-    assert cards, "на посадочной странице нет карточек"
-    assert all("?back=/category/finance/tg" in one for one in cards)
 
 
 def test_the_report_link_does_not_carry_the_tail_any_further(layer, client):

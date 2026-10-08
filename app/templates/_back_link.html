@@ -1,0 +1,89 @@
+{#
+  Память выдачи для кнопки «В каталог» (T-154). Исполняемый скрипт из белого
+  списка витрины, опознаётся по `data-script="back-link"`. Включается с
+  `role='catalog'` на каждой выдаче (`catalog.html`) и с `role='card'` на
+  карточке канала; на остальных страницах его нет.
+
+  Зачем. До T-154 адрес выдачи доезжал до карточки хвостом `?back=` в ссылке.
+  Адреса с хвостом закрыты в robots, и с разделов, тематик и городов Google
+  видел только закрытые копии карточек. Теперь ссылки чистые, а выдачу до
+  кнопки доносит браузер.
+
+  Выдача кладёт свой адрес (путь и строка запроса) в `sessionStorage`: память
+  на вкладку, вчерашняя выдача в новой вкладке не всплывает. Карточка
+  выбирает адрес по порядку:
+    1. `?back=` старых адресов — его уже подставил сервер, скрипт не трогает;
+    2. `document.referrer`, если это выдача нашего сайта: работает и в новой
+       вкладке, куда `sessionStorage` не копируется;
+    3. адрес из `sessionStorage`: держит цепочку «выдача → карточка → похожий
+       канал или «Ещё» в ленте → «В каталог»»;
+    4. иначе остаётся `/` из разметки.
+  Найденное по шагам 1 и 2 карточка записывает в память сама: так цепочка
+  держится и в новой вкладке.
+
+  Любой адрес перед подстановкой проверяется по правилам `report.safe_back`:
+  только путь своего сайта, без `//host` и обратного слэша, тот же потолок
+  длины. Хранилище читается и пишется в try/catch, как у плашки куки: в
+  приватном режиме оно бросает исключение.
+#}
+{% if role == 'catalog' %}
+<script data-script="back-link">
+    // Память выдачи (T-154): адрес этой выдачи для кнопки «В каталог».
+    (function () {
+        try { sessionStorage.setItem('fomobase.listing', location.pathname + location.search); } catch (e) {}
+    })();
+</script>
+{% else %}
+<script data-script="back-link">
+    // Выбор адреса кнопки «В каталог» (T-154), порядок — в `_back_link.html`.
+    (function () {
+        var KEY = 'fomobase.listing';
+        var MAX_BACK = {{ max_back }};
+        var PLATFORMS = {{ platforms | list | tojson }};
+        var CITY_PLATFORMS = {{ city_platforms | list | tojson }};
+        var btn = document.querySelector('.back-link a');
+        if (!btn) { return; }
+        // Та же проверка, что `report.safe_back` на сервере.
+        var safe = function (raw) {
+            if (typeof raw !== 'string' || !raw || raw.length > MAX_BACK) { return null; }
+            if (/[\u0000-\u001f\u007f]/.test(raw)) { return null; }
+            if (raw.charAt(0) !== '/') { return null; }
+            var path = raw.split('\\').join('/');
+            if (path.slice(0, 2) === '//') { return null; }
+            return path;
+        };
+        // Маршруты, которые рендерят каталог (`main.py`): корень, раздел
+        // площадки, тематика и её пара с площадкой, город и его пара.
+        var one = function (list) { return '(?:' + list.join('|') + ')'; };
+        var LISTING = new RegExp('^/(?:' + one(PLATFORMS)
+            + '|category/[^/]+(?:/' + one(PLATFORMS) + ')?'
+            + '|city/[^/]+(?:/' + one(CITY_PLATFORMS) + ')?)?$');
+        var remember = function (url) {
+            try { sessionStorage.setItem(KEY, url); } catch (e) {}
+        };
+        // Шаг 1: адрес из `?back=` уже стоит в разметке.
+        if (!btn.hasAttribute('data-back-auto')) {
+            var given = safe(btn.getAttribute('href'));
+            if (given) { remember(given); }
+            return;
+        }
+        // Шаг 2: пришли с выдачи своего сайта.
+        var found = null;
+        try {
+            if (document.referrer) {
+                var ref = new URL(document.referrer);
+                if (ref.origin === location.origin && LISTING.test(ref.pathname)) {
+                    found = safe(ref.pathname + ref.search);
+                }
+            }
+        } catch (e) { found = null; }
+        if (found) {
+            remember(found);
+        } else {
+            // Шаг 3: последняя выдача этой вкладки.
+            try { found = safe(sessionStorage.getItem(KEY)); } catch (e) { found = null; }
+        }
+        if (found) { btn.setAttribute('href', found); }
+    })();
+</script>
+{% endif %}

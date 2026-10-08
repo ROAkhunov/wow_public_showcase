@@ -195,6 +195,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                  reach=fmt.reach, reach_promise=fmt.reach_promise)
     templates.env.globals.update(plural=fmt.plural, platform_names=PLATFORM_NAMES,
                                  platform_codes=PLATFORM_CODES, platforms=PLATFORMS,
+                                 city_platforms=CITY_PLATFORMS, max_back=rep.MAX_BACK,
                                  settings=settings, wow_url=wow_url)
     app.state.templates = templates
 
@@ -822,9 +823,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Блок похожих внизу карточки: до T-83 страница канала была тупиком —
         # 143 тысячи карточек связаны только вверх, и краулер добирался до
         # глубины перебором 2 700 страниц пагинации.
-        # Адрес возврата для кнопки «В каталог»: его кладёт каталог, но пришёл
-        # он из браузера, поэтому проверяется тем же `safe_back`, что и возврат
-        # формы обращений (T-73) — иначе параметр уводит на чужой домен.
+        # Адрес возврата для кнопки «В каталог» из старых ссылок с `?back=`:
+        # с T-154 каталог хвост не ставит, но адреса с ним живут в выдаче
+        # поисковиков и закладках. Пришёл он из браузера, поэтому проверяется
+        # тем же `safe_back`, что и возврат формы обращений (T-73), иначе
+        # параметр уводит на чужой домен. Пустой `back` кнопке подбирает
+        # скрипт `_back_link.html`.
         response = render(request, "channel.html", c=row, family=row["family"],
                           back=rep.safe_back(request.query_params.get("back")),
                           charts={r["id"]: sparkline(r["history"]) for r in row["family"]},

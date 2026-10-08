@@ -163,7 +163,7 @@ def test_general_city_page_is_a_page_not_a_move(live, client):
 def test_general_list_holds_local_channels_of_three_platforms_only(live, client):
     body = client.get("/city/kazan").text
     for u in ("kazan_tg_1", "kazan_tg_12", "kazan_vk_1", "kazan_vk_3"):
-        assert f"/{u.split('_')[1]}/{u}?" in body, u
+        assert f"/{u.split('_')[1]}/{u}\"" in body, u
     assert "kazan_yt_" not in body, "YT попал в общую страницу города"
     assert "kazan_author" not in body, "неместный канал попал в список"
     assert "no_city" not in body
@@ -176,7 +176,7 @@ def test_general_list_is_sorted_and_paginated_like_the_root(live, make_client):
     assert client.get("/city/moskva?page=8").status_code == 404
     first = client.get("/city/moskva").text
     # Подписчики у первых по каждой площадке одинаковые: 99 000.
-    assert "moskva_tg_1?" in first and "moskva_vk_1?" in first and "moskva_max_1?" in first
+    assert 'moskva_tg_1"' in first and 'moskva_vk_1"' in first and 'moskva_max_1"' in first
 
 
 def test_general_page_texts(live, client):
@@ -195,7 +195,7 @@ def test_general_page_has_no_numbers_paragraph(live, client):
 
 def test_general_page_filters_and_canonical(live, client):
     body = client.get("/city/moskva?subs_min=98500").text
-    assert "moskva_tg_1?" in body and "moskva_tg_2?" not in body
+    assert 'moskva_tg_1"' in body and 'moskva_tg_2"' not in body
     html = client.get("/city/kazan").text
     assert 'rel="canonical" href="https://fomobase.ru/city/kazan"' in html
 
@@ -216,16 +216,16 @@ def test_category_works_on_the_general_city_page(live, client):
     got = client.get("/city/kazan?cat=news", follow_redirects=False)
     assert got.status_code == 200
     for u in ("tg/kazan_tg_1", "tg/kazan_tg_3", "vk/kazan_vk_1"):
-        assert f"/{u}?" in got.text, u
-    assert "/tg/kazan_tg_4?" not in got.text
-    assert "/tg/moskva_tg_1?" not in got.text
+        assert f'/{u}"' in got.text, u
+    assert '/tg/kazan_tg_4"' not in got.text
+    assert '/tg/moskva_tg_1"' not in got.text
 
 
 def test_category_works_on_the_city_platform_page(live, client):
     got = client.get("/city/kazan/tg?cat=news", follow_redirects=False)
     assert got.status_code == 200
-    assert "/tg/kazan_tg_1?" in got.text and "/tg/kazan_tg_4?" not in got.text
-    assert "/vk/kazan_vk_1?" not in got.text
+    assert '/tg/kazan_tg_1"' in got.text and '/tg/kazan_tg_4"' not in got.text
+    assert '/vk/kazan_vk_1"' not in got.text
 
 
 def test_city_with_category_is_noindex_follow(live, make_client):

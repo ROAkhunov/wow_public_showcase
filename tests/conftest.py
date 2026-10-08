@@ -33,9 +33,11 @@ import pytest
 # двумя скриптами: внешний загрузчик по атрибуту `src` с номером ресурса (тело
 # у него пустое), инлайн по вызову `gtag('config', '<номер>'`; плашка — по
 # атрибуту `data-script="cookie-notice"`, кнопка «Наверх» — по
-# `data-script="to-top"`. Метрика, оба скрипта GA и плашка обязаны быть на
+# `data-script="to-top"`, память выдачи для кнопки «В каталог» (T-154) — по
+# `data-script="back-link"`. Метрика, оба скрипта GA и плашка обязаны быть на
 # каждой странице, кнопка «Наверх» — только на длинных (каталог, карточка
-# канала, политика), на 404/«Спасибо»/форме её нет, и это не ошибка.
+# канала, политика), память выдачи — только на каталоге и карточке; на
+# 404/«Спасибо»/форме их нет, и это не ошибка.
 
 METRIKA_COUNTER = "112192205"
 METRIKA_TAG_SRC = "mc.yandex.ru/metrika/tag.js"
@@ -44,6 +46,7 @@ GA_TAG_SRC = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID
 GA_CONFIG = "gtag('config', '" + GA_ID
 COOKIE_NOTICE_SCRIPT = 'data-script="cookie-notice"'
 TO_TOP_SCRIPT = 'data-script="to-top"'
+BACK_LINK_SCRIPT = 'data-script="back-link"'
 
 _SCRIPT_BLOCK = re.compile(r"<script\b([^>]*)>(.*?)</script\s*>", re.I | re.S)
 _SCRIPT_TYPE = re.compile(r"""\btype\s*=\s*["']?([^"'\s>]+)""", re.I)
@@ -53,15 +56,16 @@ _SCRIPT_SRC = re.compile(r"""\bsrc\s*=\s*["']([^"']*)["']""", re.I)
 def assert_only_allowed_scripts(body: str, where: str = "") -> None:
     """Исполняемые `<script>` на странице — только из белого списка.
 
-    Разрешены пятеро: счётчик Метрики (T-90), два скрипта тега Google Analytics
+    Разрешены шестеро: счётчик Метрики (T-90), два скрипта тега Google Analytics
     (T-145: внешний загрузчик и инлайн с `config`) и плашка согласия на куки
-    (T-95) — на каждой странице, кнопка «Наверх» (T-100) — на длинных, её
-    отсутствие ошибкой не считается. Исполняемым считается тег без атрибута
+    (T-95) — на каждой странице, кнопка «Наверх» (T-100) — на длинных, память
+    выдачи для кнопки «В каталог» (T-154) — на каталоге и карточке; отсутствие
+    двух последних ошибкой не считается. Исполняемым считается тег без атрибута
     `type` либо с `type` из семейства javascript. `type="application/ld+json"`
     это данные, а не код: такие теги пропускаются (микроразметка T-83).
     """
     tail = f" ({where})" if where else ""
-    metrika = ga_loader = ga_config = notice = to_top = 0
+    metrika = ga_loader = ga_config = notice = to_top = back_link = 0
     foreign = []
     for attrs, code in _SCRIPT_BLOCK.findall(body):
         found = _SCRIPT_TYPE.search(attrs)
@@ -79,6 +83,8 @@ def assert_only_allowed_scripts(body: str, where: str = "") -> None:
             notice += 1
         elif TO_TOP_SCRIPT in attrs:
             to_top += 1
+        elif BACK_LINK_SCRIPT in attrs:
+            back_link += 1
         else:
             foreign.append(attrs.strip() or code.strip()[:120])
 
@@ -91,6 +97,7 @@ def assert_only_allowed_scripts(body: str, where: str = "") -> None:
         f"инлайн-скриптов Google Analytics на странице {ga_config}, а должен быть один{tail}")
     assert notice <= 1, f"плашка согласия на куки задвоилась{tail}"
     assert to_top <= 1, f"скрипт кнопки «Наверх» задвоился{tail}"
+    assert back_link <= 1, f"скрипт памяти выдачи задвоился{tail}"
     assert METRIKA_COUNTER in body, f"на странице нет номера счётчика {METRIKA_COUNTER}{tail}"
 
 
