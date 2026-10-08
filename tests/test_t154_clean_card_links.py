@@ -17,7 +17,7 @@ import re
 
 import pytest
 
-from conftest import assert_only_allowed_scripts
+from conftest import assert_only_allowed_scripts, forms
 
 pytestmark = pytest.mark.integration
 
@@ -64,15 +64,16 @@ def test_no_listing_links_to_a_card_with_a_tail(layer, client):
         assert not tailed, f"{path}: ссылки на карточку с хвостом {tailed[:3]}"
 
 
-def test_report_links_in_the_catalog_are_nofollow_and_keep_their_back(layer, client):
-    """Хвост «Сообщить» нужен форме, но краулеру по нему ходить незачем."""
+def test_report_in_the_catalog_is_no_link_and_keeps_its_back(layer, client):
+    """Хвост «Неточность?» нужен форме, но краулеру по нему ходить незачем:
+    с T-155 это кнопка формы, ссылки на `/report` нет вовсе."""
     seed(layer)
     body = client.get("/category/sport?subs_min=1000").text
-    links = re.findall(r'<a class="report-link"[^>]*>', body)
-    assert links
-    for a in links:
-        assert 'rel="nofollow"' in a, a
-        assert "back=" in a, a
+    assert 'href="/report' not in body
+    found = forms(body, "/report")
+    assert found
+    for f in found:
+        assert f["fields"]["back"] == "/category/sport?subs_min=1000", f
 
 
 # ── карточка ────────────────────────────────────────────────────────────────
@@ -111,13 +112,12 @@ def test_the_picker_only_fills_an_empty_button(layer, client):
     assert "data-back-auto" not in tailed
 
 
-def test_report_link_on_the_card_is_nofollow(layer, client):
+def test_report_on_the_card_is_no_link(layer, client):
+    """«Сообщить» — кнопка формы (T-155): ссылки на `/report` краулер не видит."""
     seed(layer)
     body = client.get("/tg/ch1").text
-    links = [a for a in re.findall(r"<a [^>]*>", body) if 'href="/report?' in a]
-    assert links
-    for a in links:
-        assert 'rel="nofollow"' in a, a
+    assert 'href="/report' not in body
+    assert forms(body, "/report")
 
 
 # ── память вкладки ─────────────────────────────────────────────────────────

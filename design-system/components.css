@@ -572,6 +572,18 @@ details.desc > summary:focus-visible {
 .btn--ghost { background: var(--surface); color: var(--text); border-color: var(--line); }
 .btn--ghost:hover { border-color: var(--line-strong); }
 
+/* Переходы, закрытые в robots («Неточность?», «Сообщить», «Ещё»), — кнопки
+   GET-форм, а не ссылки (T-155): Google по ним не ходит, человек получает тот
+   же адрес. Обёртка `display: contents` не даёт форме своей коробки, и кнопка
+   встаёт в раскладку ровно туда, где стояла ссылка: растягивается в колонке
+   `.group`, держит `align-items` у `.row-actions`. У `.btn` своя рамка, фон и
+   отступы, сбрасывать их нельзя; браузер подставляет кнопке системный шрифт и
+   `line-height: normal`, их возвращаем к унаследованным, как было у ссылки
+   (`margin` не трогаем: у «Ещё» свой отступ сверху от `.more`).
+   `font: inherit` здесь не годится: перебил бы `font-size` и `font-weight`. */
+.form-link { display: contents; }
+.form-link > .btn { font-family: inherit; line-height: inherit; }
+
 .sites { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line-soft); }
 .sites-list { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }
 /* Высота по содержимому, а не жёсткие 32px: длинное имя тематики (на проде таких три,
@@ -703,9 +715,13 @@ a.sbtn { text-decoration: none; }
   gap: var(--sp-2);
 }
 .btn--sm { height: 28px; padding: 0 var(--sp-3); font-size: var(--fs-meta); white-space: nowrap; }
+/* «Неточность?» — кнопка GET-формы (T-155), выглядит как ссылка: стили
+   браузера для `<button>` снимаются целиком. `font: inherit` стоит до
+   `font-size`, иначе перебил бы его. */
 .report-link {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: var(--fs-meta); color: var(--dim);
+  font: inherit; font-size: var(--fs-meta); color: var(--dim);
+  background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
 }
 .report-link:hover { color: var(--ad); }
 

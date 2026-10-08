@@ -13,6 +13,7 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -99,6 +100,53 @@ def assert_only_allowed_scripts(body: str, where: str = "") -> None:
     assert to_top <= 1, f"скрипт кнопки «Наверх» задвоился{tail}"
     assert back_link <= 1, f"скрипт памяти выдачи задвоился{tail}"
     assert METRIKA_COUNTER in body, f"на странице нет номера счётчика {METRIKA_COUNTER}{tail}"
+
+
+class _FormParser(HTMLParser):
+    """Собирает формы страницы: атрибуты, скрытые поля, кнопки и их текст."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.forms: list[dict] = []
+        self._form: dict | None = None
+        self._button: dict | None = None
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "form":
+            self._form = {"attrs": a, "fields": {}, "buttons": []}
+            self.forms.append(self._form)
+        elif self._form is None:
+            return
+        elif tag == "input" and a.get("name"):
+            self._form["fields"][a["name"]] = a.get("value") or ""
+        elif tag == "button":
+            self._button = {"attrs": a, "text": ""}
+            self._form["buttons"].append(self._button)
+
+    def handle_endtag(self, tag):
+        if tag == "form":
+            self._form = None
+        elif tag == "button" and self._button is not None:
+            self._button["text"] = " ".join(self._button["text"].split())
+            self._button = None
+
+    def handle_data(self, data):
+        if self._button is not None:
+            self._button["text"] += data
+
+
+def forms(body: str, action: str | None = None) -> list[dict]:
+    """Формы страницы с раскодированными значениями полей (T-155).
+
+    `action` сравнивается по пути, без якоря: у формы «Ещё» якорь лежит в нём.
+    Каждая форма — `{"attrs", "fields", "buttons"}`, кнопка — `{"attrs", "text"}`.
+    """
+    p = _FormParser()
+    p.feed(body)
+    if action is None:
+        return p.forms
+    return [f for f in p.forms if (f["attrs"].get("action") or "").split("#")[0] == action]
 
 
 ROOT = Path(__file__).resolve().parent.parent

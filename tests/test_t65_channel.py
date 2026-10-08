@@ -5,12 +5,20 @@
 приёмки, а не смена рамок.
 
 Лента при этом пагинируется (решение PO 20.08, отменяет «пагинации ленты нет» от
-11.08): 10 постов и кнопка «Ещё» обычной ссылкой. Клиентского JS на сайте нет,
+11.08): 10 постов и кнопка «Ещё» — переход на следующий адрес (с T-155 это
+кнопка GET-формы, а не ссылка: по `?posts=N` ходил Google). Клиентского JS на сайте нет,
 поэтому «прогрузить ещё» означает открыть следующий адрес.
 """
 import pytest
 
-from conftest import assert_only_allowed_scripts
+from conftest import assert_only_allowed_scripts, forms
+
+
+def more_form(body):
+    """Форма «Ещё» своей ленты, если она есть (T-155)."""
+    found = [f for f in forms(body) if "posts" in f["fields"]]
+    assert len(found) <= 1, found
+    return found[0] if found else None
 
 pytestmark = pytest.mark.integration
 
@@ -88,7 +96,11 @@ def test_feed_shows_ten_posts_and_offers_more(layer, client):
 
     body = client.get("/tg/talky").text
     assert body.count("Публикация номер") == 10
-    assert "?posts=2#post-11" in body, "кнопка «Ещё» без якоря на новый пост вернёт на верх страницы"
+    more = more_form(body)
+    assert more, "кнопки «Ещё» нет"
+    assert more["fields"] == {"posts": "2"}
+    assert more["attrs"]["action"] == "/tg/talky#post-11", (
+        "кнопка «Ещё» без якоря на новый пост вернёт на верх страницы")
 
 
 def test_second_page_of_the_feed_continues_the_same_channel(layer, client):
@@ -107,7 +119,9 @@ def test_last_page_of_the_feed_offers_nothing_more(layer, client):
     layer.channel(1, "tg", "talky")
     feed_of(layer, 1, 12)
     layer.go_live()
-    assert "posts=2" not in client.get("/tg/talky?posts=2").text
+    # Подстрока `posts=2` на странице есть и законно: в скрытом `back` формы
+    # «Сообщить». Ищется сама форма «Ещё».
+    assert more_form(client.get("/tg/talky?posts=2").text) is None
 
 
 def test_feed_anchor_lands_on_the_first_new_post_own_channel_only(layer, client):
@@ -164,8 +178,8 @@ def test_sibling_feed_sends_the_reader_to_the_siblings_own_page(layer, client):
     layer.go_live()
 
     body = client.get("/tg/main_channel").text
-    assert "/vk/vk_page?posts=2" not in body
-    assert '/vk/vk_page' in body
+    assert more_form(body) is None, "у соседа нет формы «Ещё» на следующую страницу"
+    assert 'href="/vk/vk_page"' in body
 
 
 def test_channel_page_has_no_script_but_metrika(layer, client):

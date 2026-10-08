@@ -18,6 +18,8 @@ import re
 
 import pytest
 
+from conftest import forms
+
 pytestmark = pytest.mark.integration
 
 
@@ -143,7 +145,7 @@ def test_the_report_link_does_not_carry_the_tail_any_further(layer, client):
     потолок длины, за которым возврат молча становится пустым."""
     layer.channel(1, "tg", "lonely")
     layer.go_live()
-    body = plain(client.get("/tg/lonely?back=/%3Fsubs_min%3D25000").text)
-    report = body.split('href="/report?')[1].split('"')[0]
-    assert "back=/tg/lonely%23feed" in report
-    assert "subs_min" not in report
+    body = client.get("/tg/lonely?back=/%3Fsubs_min%3D25000").text
+    [report] = forms(body, "/report")      # кнопка формы с T-155, не ссылка
+    assert report["fields"]["back"] == "/tg/lonely#feed"
+    assert "subs_min" not in str(report["fields"])

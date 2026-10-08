@@ -6,6 +6,8 @@
 """
 import pytest
 
+from conftest import forms
+
 pytestmark = pytest.mark.integration
 
 
@@ -42,9 +44,11 @@ def test_place_button_in_catalog_row_only_with_a_slug(layer, client):
 def test_report_link_in_every_row(layer, client):
     layer.channel(1, "tg", "example_channel")
     layer.go_live()
-    body = client.get("/").text.replace("&amp;", "&")
-    assert "/report?platform=tg&channel=example_channel" in body
-    assert "Неточность?" in body
+    body = client.get("/").text
+    [report] = forms(body, "/report")      # кнопка формы с T-155, не ссылка
+    assert report["fields"]["platform"] == "tg"
+    assert report["fields"]["channel"] == "example_channel"
+    assert report["buttons"][0]["text"] == "Неточность?"
 
 
 # ── площадка и тематика в колонке фильтров ───────────────────────────────────

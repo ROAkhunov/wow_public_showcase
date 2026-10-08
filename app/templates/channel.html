@@ -286,14 +286,19 @@
     </article>
     {% endfor %}
   </div>
-  {# «Ещё» — ссылка на следующий адрес, а не подгрузка: клиентского JS на сайте
+  {# «Ещё» — переход на следующий адрес, а не подгрузка: клиентского JS на сайте
      нет. Лента накопительная (T-108), и якорь ведёт не на секцию, а на первую
      новую карточку: иначе после перезагрузки страницы новые десять постов под
      заголовком выглядят как те же старые. У соседа «Ещё» ведёт на его
-     собственную страницу: адрес у него уже есть, новые плодить незачем. #}
+     собственную страницу: адрес у него уже есть, новые плодить незачем.
+     Своё «Ещё» — кнопка GET-формы, а не ссылка (T-155): по `?posts=N` ходил
+     Google и упирался в `Disallow`. Якорь лежит в `action`: GET-отправка
+     заменяет только строку запроса, и адрес выходит прежний `?posts=N#post-M`. #}
   {% if own and feed_page < c.feed_pages %}
-    <a class="btn btn--ghost more" rel="nofollow"
-       href="/{{ ch.platform }}/{{ ch.username_lower }}?posts={{ feed_page + 1 }}#post-{{ feed_page * 10 + 1 }}">Ещё</a>
+    <form class="form-link" method="get" action="/{{ ch.platform }}/{{ ch.username_lower }}#post-{{ feed_page * 10 + 1 }}">
+      <input type="hidden" name="posts" value="{{ feed_page + 1 }}">
+      <button class="btn btn--ghost more" type="submit">Ещё</button>
+    </form>
   {% elif not own %}
     <a class="btn btn--ghost more"
        href="/{{ ch.platform }}/{{ ch.username_lower }}">Все публикации канала</a>
@@ -355,7 +360,15 @@
   <div class="group">
     <b>Нашли неточность?</b>
     <p class="sub">Подписчики, охваты или рекламодатели указаны неверно, напишите, поправим.</p>
-    <a class="btn btn--ghost" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}&amp;back={{ back_url | urlencode }}" rel="nofollow">Сообщить</a>
+    {# Кнопка GET-формы, а не ссылка (T-155): адрес `/report?…` закрыт в
+       robots, и ссылка на него только копила «Заблокировано в robots.txt».
+       `back` сырой, кодирует браузер; `urlencode` дал бы двойное кодирование. #}
+    <form class="form-link" method="get" action="/report">
+      <input type="hidden" name="platform" value="{{ c.platform }}">
+      <input type="hidden" name="channel" value="{{ c.username_lower }}">
+      <input type="hidden" name="back" value="{{ back_url }}">
+      <button class="btn btn--ghost" type="submit">Сообщить</button>
+    </form>
   </div>
   <div class="updated">Последнее обновление {{ built_at | date_ru }}</div>
 </aside>

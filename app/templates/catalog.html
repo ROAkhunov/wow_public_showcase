@@ -149,16 +149,24 @@
         {% endif %}
       </div>
       {% endif %}
-      {# `back` здесь остаётся: по нему форма возвращает человека на выдачу.
-         Краулеру ходить по ссылке незачем, отсюда `nofollow` (T-154). #}
-      <a class="report-link" href="/report?platform={{ c.platform }}&amp;channel={{ c.username_lower }}&amp;back={{ back_url | urlencode }}"
-         rel="nofollow" title="Сообщить о неточности в данных">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M12 9v4"/><path d="M12 17h.01"/>
-          <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
-        </svg>
-        Неточность?
-      </a>
+      {# Кнопка GET-формы, а не ссылка (T-155): по ссылке `/report?…` ходил
+         Google, упирался в `Disallow` и копил «Заблокировано в robots.txt».
+         Форму он не отправляет, человек получает тот же адрес. `back` — сырой
+         адрес выдачи: браузер кодирует поля сам, `urlencode` дал бы `%2F…`,
+         и `safe_back` такой возврат отверг бы. У кнопки нет `name`, иначе она
+         уехала бы лишним параметром в адрес. #}
+      <form class="form-link" method="get" action="/report">
+        <input type="hidden" name="platform" value="{{ c.platform }}">
+        <input type="hidden" name="channel" value="{{ c.username_lower }}">
+        <input type="hidden" name="back" value="{{ back_url }}">
+        <button class="report-link" type="submit" title="Сообщить о неточности в данных">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 9v4"/><path d="M12 17h.01"/>
+            <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+          </svg>
+          Неточность?
+        </button>
+      </form>
     </div>
   </div>
   {% else %}

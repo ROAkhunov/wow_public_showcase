@@ -11,7 +11,7 @@ import re
 import pytest
 
 from app.report import safe_back
-from conftest import assert_only_allowed_scripts
+from conftest import assert_only_allowed_scripts, forms
 
 CATALOG_BACK = "/?subs_min=1000&sort=subs&page=2"
 
@@ -55,7 +55,10 @@ def test_query_tail_is_kept_whole():
 def test_catalog_row_carries_current_listing_into_the_form(client, live):
     r = client.get("/?subs_min=1000")
     assert r.status_code == 200
-    assert "back=/%3Fsubs_min%3D1000" in r.text
+    # С T-155 «Неточность?» — кнопка формы: адрес выдачи лежит в скрытом
+    # `back` как есть, кодирует его браузер при отправке.
+    [report] = forms(r.text, "/report")
+    assert report["fields"]["back"] == "/?subs_min=1000"
 
 
 def test_cancel_returns_to_the_same_listing(client, live):

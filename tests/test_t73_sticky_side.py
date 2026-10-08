@@ -6,9 +6,11 @@
 доезжает через форму до страницы «спасибо» и не разводит там две кнопки в одно
 место.
 """
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 
 import pytest
+
+from conftest import forms
 
 pytestmark = pytest.mark.integration
 
@@ -27,12 +29,12 @@ def talky(layer):
 
 
 def _report_link(body: str) -> str:
-    """Адрес возврата из ссылки «Сообщить» правой колонки, раскодированный."""
-    import re
-    found = re.search(r'href="(/report\?[^"]*)"[^>]*>Сообщить</a>', body)
-    assert found, "ссылки «Сообщить» нет на странице канала"
-    href = found.group(1).replace("&amp;", "&")
-    return unquote(href.split("back=", 1)[1])
+    """Адрес возврата из формы «Сообщить» правой колонки, раскодированный
+    (с T-155 это кнопка формы, а не ссылка)."""
+    found = [f for f in forms(body, "/report")
+             if any(b["text"] == "Сообщить" for b in f["buttons"])]
+    assert found, "кнопки «Сообщить» нет на странице канала"
+    return found[0]["fields"]["back"]
 
 
 # ── ссылка «Сообщить» несёт страницу ленты целиком ───────────────────────────
