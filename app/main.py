@@ -54,6 +54,10 @@ CATEGORIES_PINNED = 12
 #: посадочная страница (T-83). Замер на проде 04.09: пар с данными 157, из них
 #: 132 переваливают этот порог. Ниже порога страница была бы тонкой, а таких
 #: краулеру лучше не показывать вовсе — адрес отвечает 404.
+#: Тот же порог у страницы тематики без площадки (T-156): ниже него страница
+#: открывается людям по ссылке из карточки, но идёт с `noindex, follow` и в
+#: карту сайта не попадает. На дампе 08.10 у 12 тематик из 60 меньше десяти
+#: каналов, у семи ровно один.
 MIN_LANDING_CHANNELS = 10
 
 #: сколько похожих каналов стоит в подвале карточки.
@@ -399,6 +403,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 if row["platform"] and row["category_slug"]
                 and row["channels"] >= MIN_LANDING_CHANNELS}
 
+    def thick_category(slug: str) -> bool:
+        """Набрала ли тематика каналов на собственную страницу в индексе."""
+        row = app.state.db.section("", slug)
+        return bool(row) and row["channels"] >= MIN_LANDING_CHANNELS
+
     def category_url(slug: str, platform: str) -> str:
         return f"/category/{quote(slug, safe='')}/{platform}"
 
@@ -426,6 +435,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if (chosen, slug) in landing_pairs():
                 return RedirectResponse(category_url(slug, chosen), status_code=301)
             return RedirectResponse(f"/{chosen}?cat={quote(slug)}", status_code=301)
+        # Тонкая тематика (T-156) людям нужна, индексу нет.
+        if not thick_category(slug):
+            request.state.robots = FOLLOW_ONLY
         return catalog_page(
             request, title=name, subtitle=f"Каналы в категории «{name}»",
             base_url=f"/category/{quote(slug)}", category=slug)
@@ -558,9 +570,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # каталог-заглушка перехватил бы и robots.txt, и карту сайта.
     @app.get("/robots.txt", response_class=PlainTextResponse)
     def robots(request: Request):
+        # ShapBot (T-156): 30 тысяч запросов в час, не поисковик, robots.txt
+        # не читает. Закрывает его 403 в nginx, блок здесь для порядка.
+        shapbot = "User-agent: ShapBot\nDisallow: /\n\n"
         if settings.noindex:
             body = ("# Витрина закрыта от индексации до подтверждения владельца.\n"
-                    "User-agent: *\nDisallow: /\n")
+                    f"{shapbot}User-agent: *\nDisallow: /\n")
         else:
             # Запреты поимённо по ключам, а не шаблоном на любую строку
             # запроса: шаблон накрыл бы `?page`, то есть единственный путь
@@ -576,7 +591,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # нужен один адрес. Краулеру он не нужен: обход идёт корневой
             # пагинацией и картой сайта, где ссылки чистые.
             clean = "&".join((*RANGES, *FLAGS, "cat", "sort", "posts", "back"))
-            body = (f"User-agent: *\nAllow: /\n{closed}"
+            body = (f"{shapbot}User-agent: *\nAllow: /\n{closed}"
                     f"Disallow: /report\nDisallow: /report/thanks\n"
                     f"Disallow: /privacy\n"
                     f"Clean-param: {clean}\n\n"
@@ -610,7 +625,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 continue
             if platform and not slug:
                 urls.append(f"/{platform}")
-            elif slug and not platform:
+            elif slug and not platform and count >= MIN_LANDING_CHANNELS:
                 urls.append(f"/category/{quote(slug, safe='')}")
             elif slug and platform and count >= MIN_LANDING_CHANNELS:
                 urls.append(category_url(slug, platform))

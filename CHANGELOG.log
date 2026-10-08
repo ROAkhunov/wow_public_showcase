@@ -1,3 +1,21 @@
+2026-10-08 — T-156: тонкие тематики вне индекса, ShapBot закрыт
+Задача: по аудиту индексации 08.10 убрать из индекса и карты сайта тематики меньше чем на 10
+каналов и закрыть ShapBot (не поисковик, ~30 тысяч запросов в час, robots.txt не читает).
+Результат:
+  ◦ `/category/<slug>` с числом каналов меньше MIN_LANDING_CHANNELS (10, тот же порог, что у пары
+    «площадка + тематика») открывается как раньше, но с `X-Robots-Tag: noindex, follow`, и в
+    `sitemap-sections.xml` её нет; число берётся из `section("", slug)`, как и в карте;
+  ◦ robots.txt: блок `User-agent: ShapBot` + `Disallow: /` в обеих ветках, открытой и закрытой;
+  ◦ nginx: `map $http_user_agent $fomobase_blocked_bot` (`~*ShapBot`) в
+    `deploy/nginx-fomobase-cache.conf`, `if ($fomobase_blocked_bot) { return 403; }` на уровне
+    server в `deploy/nginx-fomobase.ru.conf`, выше всех location (403 и на robots.txt). В
+    `/etc/nginx` правка кладётся на раскатке, здесь только файлы репозитория;
+  ◦ тесты: новый `test_t156_sitemap_cleanup.py` (9 и 10 каналов: заголовок и карта; закрытый
+    сайт остаётся `noindex, nofollow`; ShapBot в robots обеих веток; карта и 403 в конфигах nginx);
+    `test_t61_pages`: «нет запрета на весь сайт» проверяется по группе `User-agent: *`;
+  ◦ спека (копия и оригинал в PM-репозитории): правка 08.10 у `/category/<slug>`.
+Файлы: 7
+
 2026-10-08 — T-155: «Неточность?», «Сообщить» и «Ещё» кнопками форм
 Задача: убрать со страниц, которые читает Google, ссылки на `/report` и `?posts=N`: они упирались
 в `Disallow` и копили «Заблокировано в robots.txt». Человек получает тот же адрес и тот же вид.

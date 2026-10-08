@@ -253,8 +253,10 @@ def test_switch_off_opens_indexing_but_keeps_deep_pages_closed(layer, make_clien
     robots = client.get("/robots.txt")
     # Проверяется отсутствие запрета на весь сайт, а не отсутствие запретов
     # вообще: с T-65 в файле есть построчные `Disallow` на ключи фильтров, и
-    # подстрока «Disallow: /» теперь встречается законно.
-    assert "Disallow: /\n" not in robots.text
+    # подстрока «Disallow: /» теперь встречается законно. С T-156 полный
+    # запрет есть у ShapBot, поэтому смотрится только группа `User-agent: *`.
+    everyone = robots.text.split("User-agent: *\n", 1)[1].split("\n\n", 1)[0]
+    assert "Disallow: /\n" not in everyone + "\n"
     assert "Sitemap:" in robots.text
 
 
