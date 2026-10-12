@@ -1,3 +1,16 @@
+2026-10-12 — T-157: robots.txt с кэшем на сутки
+Задача: по аудиту индексации 12.10 отдавать robots.txt с `max-age` на сутки: под `no-cache`
+Googlebot перечитывал его до 179 раз в день (6–17 % всего обхода).
+Результат:
+  ◦ `map $uri $fomobase_cache_control` в `deploy/nginx-fomobase-cache.conf`: `/robots.txt` получает
+    `public, max-age=86400`, всё остальное `no-cache`, как было;
+  ◦ `deploy/nginx-fomobase.ru.conf`, `location /`: `add_header Cache-Control` берёт значение из
+    карты. robots.txt остаётся в том же location, под кэшем nginx: `use_stale` на рестарте и
+    HEAD→GET сохраняются; 403 для ShapBot и прочие location не тронуты;
+  ◦ код приложения и тело robots.txt не менялись. В `/etc/nginx` правка кладётся на раскатке,
+    здесь только файлы репозитория.
+Файлы: 3
+
 2026-10-08 — T-156: тонкие тематики вне индекса, ShapBot закрыт
 Задача: по аудиту индексации 08.10 убрать из индекса и карты сайта тематики меньше чем на 10
 каналов и закрыть ShapBot (не поисковик, ~30 тысяч запросов в час, robots.txt не читает).
