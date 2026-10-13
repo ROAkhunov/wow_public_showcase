@@ -15,7 +15,7 @@ from html.parser import HTMLParser
 
 import pytest
 
-from conftest import assert_only_allowed_scripts
+from conftest import assert_only_allowed_scripts, chips
 
 #: (slug, имя, родительный падеж, местных каналов по площадкам).
 #: Сумма по tg, vk, max: Москва 67, дальше 21…13 (первая десятка вместе с
@@ -88,9 +88,6 @@ def live(layer):
 
 # ── разбор колонки ───────────────────────────────────────────────────────────
 
-CHIP = re.compile(r'<a class="chip( on)?" href="([^"]*)">([^<]*)</a>')
-
-
 def desktop(html: str) -> str:
     """Десктопная копия колонки: на странице их две, `d` и `m`."""
     return html.split('<aside class="side-desktop">', 1)[1].split("</aside>", 1)[0]
@@ -107,21 +104,40 @@ def city_group(html: str) -> str | None:
 
 
 def city_chips(html: str) -> tuple[list[tuple], list[tuple]]:
-    """Чипы блока «Город»: (видимые, под «Показать все»), каждый (on, href, имя)."""
+    """Чипы блока «Город»: (видимые, под «Показать все»), каждый
+    (on, адрес по клику, имя). У чипа-кнопки (T-158) адрес собран, как его
+    соберёт браузер."""
     group = city_group(html)
     assert group is not None, "блока «Город» нет"
     head, _, tail = group.partition("<details")
-    visible = [(bool(on), href, name) for on, href, name in CHIP.findall(head)]
-    rest = [(bool(on), href, name) for on, href, name in CHIP.findall(tail)]
+    visible = [(c["on"], c["target"], c["text"]) for c in chips(head)]
+    rest = [(c["on"], c["target"], c["text"]) for c in chips(tail)]
     return visible, rest
 
 
-def names(chips):
-    return [name for _, _, name in chips]
+def names(found):
+    return [name for _, _, name in found]
 
 
-def href_of(chips, name):
-    return next(href for _, href, n in chips if n == name)
+def named(fragment: str, name: str) -> dict:
+    return next(c for c in chips(fragment) if c["text"] == name)
+
+
+def link_of(fragment: str, name: str) -> str:
+    """Адрес чипа-ссылки: на открытый адрес чип остаётся `<a href>` (T-158)."""
+    c = named(fragment, name)
+    assert c["tag"] == "a", c
+    return c["attrs"]["href"]
+
+
+def button_of(fragment: str, name: str) -> tuple[str, str]:
+    """(formaction, тематика) чипа-кнопки: адрес с `?cat=` закрыт в robots.txt,
+    ссылки на него нет (T-158)."""
+    c = named(fragment, name)
+    assert c["tag"] == "button", c
+    assert "href" not in c["attrs"], c
+    assert c["attrs"].get("name") == "cat", c
+    return c["attrs"]["formaction"], c["attrs"]["value"]
 
 
 def h1(html: str) -> str:
@@ -296,28 +312,29 @@ def test_all_cities_is_on_when_no_city_is_chosen(live, client):
 
 
 def test_city_chip_keeps_platform_and_category(live, client):
-    visible, _ = city_chips(client.get("/tg?cat=sport").text)
-    assert href_of(visible, "Казань") == "/city/kazan/tg?cat=sport"
-    visible, _ = city_chips(client.get("/").text)
-    assert href_of(visible, "Казань") == "/city/kazan"
-    visible, _ = city_chips(client.get("/category/sport").text)
-    assert href_of(visible, "Казань") == "/city/kazan?cat=sport"
-    visible, _ = city_chips(client.get("/category/news/tg").text)
-    assert href_of(visible, "Казань") == "/city/kazan/tg?cat=news"
+    # Тематика едет полем кнопки (T-158), площадка остаётся в пути.
+    group = city_group(client.get("/tg?cat=sport").text)
+    assert button_of(group, "Казань") == ("/city/kazan/tg", "sport")
+    group = city_group(client.get("/").text)
+    assert link_of(group, "Казань") == "/city/kazan"
+    group = city_group(client.get("/category/sport").text)
+    assert button_of(group, "Казань") == ("/city/kazan", "sport")
+    group = city_group(client.get("/category/news/tg").text)
+    assert button_of(group, "Казань") == ("/city/kazan/tg", "news")
 
 
 def test_city_chip_drops_ranges_and_sort(live, client):
-    visible, _ = city_chips(client.get("/tg?subs_min=100&sort=views").text)
-    assert href_of(visible, "Казань") == "/city/kazan/tg"
+    group = city_group(client.get("/tg?subs_min=100&sort=views").text)
+    assert link_of(group, "Казань") == "/city/kazan/tg"
 
 
 def test_all_cities_leads_to_the_same_address_without_the_city(live, client):
-    visible, _ = city_chips(client.get("/city/kazan/tg?cat=sport").text)
-    assert href_of(visible, "Все города") == "/tg?cat=sport"
-    visible, _ = city_chips(client.get("/city/kazan").text)
-    assert href_of(visible, "Все города") == "/"
-    visible, _ = city_chips(client.get("/city/kazan/tg").text)
-    assert href_of(visible, "Все города") == "/tg"
+    group = city_group(client.get("/city/kazan/tg?cat=sport").text)
+    assert button_of(group, "Все города") == ("/tg", "sport")
+    group = city_group(client.get("/city/kazan").text)
+    assert link_of(group, "Все города") == "/"
+    group = city_group(client.get("/city/kazan/tg").text)
+    assert link_of(group, "Все города") == "/tg"
 
 
 # ── п. 3: поиск города ───────────────────────────────────────────────────────
@@ -418,19 +435,30 @@ def test_catalog_pages_keep_the_no_client_code_rule(live, client):
 
 # ── п. 4: чипы площадок и тематик на странице города ─────────────────────────
 
-def platform_group(html: str) -> list[tuple]:
+def platform_chips(html: str) -> list[dict]:
     side = desktop(html)
     start = side.find('<span class="ds-label">Площадка</span>')
     end = side.find('<div class="group">', start)
-    return [(bool(on), href) for on, href, _ in CHIP.findall(
-        re.sub(r'<span class="dot[^>]*>[^<]*</span>', "", side[start:end]))]
+    return chips(side[start:end])
 
 
-def topic_hrefs(html: str) -> list[str]:
+def platform_group(html: str) -> list[tuple]:
+    """Чипы площадок: (on, адрес по клику)."""
+    return [(c["on"], c["target"]) for c in platform_chips(html)]
+
+
+def topic_group(html: str) -> str:
     side = desktop(html)
     start = side.find('<span class="ds-label">Тематика</span>')
     end = side.find('<span class="ds-label">Город</span>', start)
-    return [href for _, href, _ in CHIP.findall(side[start:end])]
+    return side[start:end]
+
+
+def topic_buttons(html: str) -> set[tuple[str, str]]:
+    """(formaction, тематика) всех чипов тематик; ссылок среди них быть не должно."""
+    found = chips(topic_group(html))
+    assert {c["tag"] for c in found} == {"button"}, found
+    return {(c["attrs"]["formaction"], c["attrs"]["value"]) for c in found}
 
 
 def test_platform_chips_on_a_city_page_stay_in_the_city(live, client):
@@ -445,21 +473,25 @@ def test_platform_chips_below_threshold_and_youtube_are_hidden(live, client):
 
 
 def test_platform_chips_on_a_city_page_keep_the_category(live, client):
-    chips = platform_group(client.get("/city/moskva?cat=sport").text)
-    assert (False, "/city/moskva/vk?cat=sport") in chips
-    assert (True, "/city/moskva?cat=sport") in chips
+    found = platform_chips(client.get("/city/moskva?cat=sport").text)
+    got = {(c["on"], c["attrs"].get("formaction"), c["attrs"].get("value"))
+           for c in found if c["tag"] == "button"}
+    assert len(got) == len(found), "чип площадки с тематикой остался ссылкой"
+    assert (False, "/city/moskva/vk", "sport") in got
+    assert (True, "/city/moskva", "sport") in got
 
 
 def test_topic_chips_on_a_city_page_stay_in_the_city(live, client):
-    assert set(topic_hrefs(client.get("/city/kazan/tg").text)) == {
-        "/city/kazan/tg?cat=news", "/city/kazan/tg?cat=sport"}
-    assert set(topic_hrefs(client.get("/city/kazan").text)) == {
-        "/city/kazan?cat=news", "/city/kazan?cat=sport"}
+    assert topic_buttons(client.get("/city/kazan/tg").text) == {
+        ("/city/kazan/tg", "news"), ("/city/kazan/tg", "sport")}
+    assert topic_buttons(client.get("/city/kazan").text) == {
+        ("/city/kazan", "news"), ("/city/kazan", "sport")}
 
 
 def test_topic_chips_off_the_city_are_as_before(live, client):
-    assert "/category/news/tg" in topic_hrefs(client.get("/tg").text)
-    assert "/tg?cat=sport" in topic_hrefs(client.get("/tg").text)
+    group = topic_group(client.get("/tg").text)
+    assert link_of(group, "Новости") == "/category/news/tg"
+    assert button_of(group, "Спорт") == ("/tg", "sport")
 
 
 # ── п. 5: карта сайта ────────────────────────────────────────────────────────

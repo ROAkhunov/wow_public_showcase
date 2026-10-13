@@ -596,6 +596,17 @@ details.desc > summary:focus-visible {
   font-size: var(--fs-meta); line-height: 1.2; background: var(--surface);
 }
 .chip:hover { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-dark); }
+/* Чип-кнопка GET-формы (T-158) выглядит как чип-ссылка: снимаются умолчания
+   `<button>`, которых `.chip` не задаёт. Цвет наследуется, как у ссылки, текст
+   длинного имени при переносе ровняется по левому краю, а не по центру.
+   `font: inherit` нельзя: специфичность здесь выше `.chip`, шорткат затёр бы
+   `font-size` и `line-height: 1.2`, и чип сменил бы высоту. `:hover` и `.on`
+   по специфичности выше и цвет перекрывают как прежде. */
+button.chip {
+  font-family: inherit; font-weight: inherit; color: inherit;
+  margin: 0; text-align: left; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
 .chip .dot, .sn-row .dot {
   width: 14px; height: 14px; flex-shrink: 0; border-radius: 4px;
   display: grid; place-items: center;

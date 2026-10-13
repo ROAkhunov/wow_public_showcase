@@ -10,7 +10,7 @@ import re
 
 import pytest
 
-from conftest import assert_only_allowed_scripts
+from conftest import assert_only_allowed_scripts, chips
 
 
 def paths_in_sitemap(xml: str) -> list[str]:
@@ -185,12 +185,17 @@ def test_category_parameter_and_other_filters_stay(live, client):
 # ── колонка фильтров ─────────────────────────────────────────────────────────
 # Перевёрнуто T-137 (п. 4): чипы площадок и тематик на странице города больше
 # не уводят с города. Площадка ниже порога не показывается вовсе.
+# T-158: чип с `?cat=` теперь кнопка формы, адрес по клику тот же.
 
 def test_filter_chips_stay_in_the_city(live, client):
     body = client.get("/city/kazan/tg").text
-    assert 'href="/city/kazan/tg?cat=finance"' in body
-    assert 'href="/tg?cat=finance"' not in body
-    assert 'href="/city/kazan/vk"' not in body, "пара ниже порога в чипах площадок"
+    found = chips(body)
+    targets = {c["target"] for c in found}
+    finance = [c for c in found if c["target"] == "/city/kazan/tg?cat=finance"]
+    assert finance and all(c["tag"] == "button" for c in finance)
+    assert all(c["attrs"]["value"] == "finance" for c in finance)
+    assert "/tg?cat=finance" not in targets, "тематика увела с города"
+    assert "/city/kazan/vk" not in targets, "пара ниже порога в чипах площадок"
     assert 'href="/city/kazan"' in body
 
 

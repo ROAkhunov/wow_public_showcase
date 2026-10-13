@@ -15,7 +15,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import pytest
 
@@ -147,6 +147,56 @@ def forms(body: str, action: str | None = None) -> list[dict]:
     if action is None:
         return p.forms
     return [f for f in p.forms if (f["attrs"].get("action") or "").split("#")[0] == action]
+
+
+class _ChipParser(HTMLParser):
+    """Чипы колонки фильтров: ссылки `a.chip` и кнопки `button.chip` (T-158).
+
+    Текст чипа без квадрата площадки (`span.dot`): у чипа площадки там код
+    «TG», и имя стало бы «TGTelegram»."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.chips: list[dict] = []
+        self._chip: dict | None = None
+        self._dot = 0
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        classes = (a.get("class") or "").split()
+        if tag in ("a", "button") and "chip" in classes:
+            self._chip = {"tag": tag, "on": "on" in classes, "attrs": a, "text": ""}
+            self.chips.append(self._chip)
+        elif self._chip is not None and tag == "span" and "dot" in classes:
+            self._dot += 1
+
+    def handle_endtag(self, tag):
+        if tag == "span" and self._dot:
+            self._dot -= 1
+        elif tag in ("a", "button") and self._chip is not None:
+            self._chip["text"] = " ".join(self._chip["text"].split())
+            self._chip = None
+
+    def handle_data(self, data):
+        if self._chip is not None and not self._dot:
+            self._chip["text"] += data
+
+
+def chips(fragment: str) -> list[dict]:
+    """Чипы куска разметки по порядку: `{"tag", "on", "attrs", "text", "target"}`.
+
+    `target` — адрес, который откроется по клику: у ссылки это `href`, у
+    кнопки его собирает браузер, как при отправке GET-формы: `formaction`,
+    `?`, поле `name=value` в кодировке формы (T-158)."""
+    p = _ChipParser()
+    p.feed(fragment)
+    for c in p.chips:
+        a = c["attrs"]
+        if c["tag"] == "a":
+            c["target"] = a.get("href")
+        else:
+            c["target"] = a.get("formaction", "") + "?" + urlencode({a["name"]: a["value"]})
+    return p.chips
 
 
 ROOT = Path(__file__).resolve().parent.parent

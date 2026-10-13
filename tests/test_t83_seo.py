@@ -15,7 +15,7 @@ import re
 
 import pytest
 
-from conftest import assert_only_allowed_scripts
+from conftest import assert_only_allowed_scripts, chips
 
 LD = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
 
@@ -258,12 +258,18 @@ def test_parameter_version_hands_the_index_over_to_the_landing(live, client):
 def test_filter_column_leads_to_the_landing_where_it_exists(live, client):
     html = client.get("/tg").text
     assert 'href="/category/finance/tg"' in html
-    assert 'href="/tg?cat=finance"' not in html
+    # Ни ссылкой, ни кнопкой формы (T-158) на параметр колонка не ведёт.
+    assert "/tg?cat=finance" not in {c["target"] for c in chips(html)}
 
 
 def test_filter_column_keeps_the_parameter_for_a_thin_pair(live, client):
+    """Тонкая пара живёт параметром. С T-158 чип на `?cat=` — кнопка формы:
+    адрес закрыт в robots.txt, ссылка на него только жгла бы обход."""
     html = client.get("/vk").text
-    assert 'href="/vk?cat=finance"' in html
+    thin = [c for c in chips(html) if c["target"] == "/vk?cat=finance"]
+    assert thin and all(c["tag"] == "button" for c in thin)
+    assert all(c["attrs"]["formaction"] == "/vk" and c["attrs"]["value"] == "finance"
+               for c in thin)
     assert 'href="/category/finance/vk"' not in html
 
 
