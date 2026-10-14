@@ -644,8 +644,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Номер принимается строкой и проверяется руками: на `/sitemap-abc.xml`
     # валидатор FastAPI ответил бы своим JSON с кодом 422, а краулеру на
     # неизвестный адрес нужна страница 404.
-    @app.get("/sitemap-{number}.xml")
-    def sitemap_chunk(request: Request, number: str):
+    def channels_file(request: Request, number: str) -> Response:
         n = positive_int(number)
         if n is None or n > sitemap_chunks():
             return not_found(request, "Такого файла карты сайта нет")
@@ -653,6 +652,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         xml = app.state.templates.get_template("sitemap.xml").render(
             rows=rows, origin=settings.site_origin)
         return Response(xml, media_type="application/xml")
+
+    # Файлы карточек под этим именем с T-159: Search Console 12.10 запомнил
+    # `sitemap-2.xml` как «Не получено» и не перечитывает его, новое имя
+    # читается с чистого листа. Регистрируется до `/sitemap-{number}.xml`:
+    # тот разобрал бы «channels-1» как номер и ответил 404.
+    @app.get("/sitemap-channels-{number}.xml")
+    def sitemap_channels(request: Request, number: str):
+        return channels_file(request, number)
+
+    # Старые имена файлов карточек (до T-159). В индексе их нет, но Google их
+    # помнит, поэтому отдают прежнее содержимое, а не 404 и не редирект.
+    # Убрать, когда в Search Console (Файлы Sitemap) не останется строк
+    # `sitemap-{n}.xml`.
+    @app.get("/sitemap-{number}.xml")
+    def sitemap_chunk(request: Request, number: str):
+        return channels_file(request, number)
 
     # ── форма «Сообщить о неточности» (T-67) ─────────────────────────────
     # Регистрируются до `/{platform}`, иначе `/report` разобрался бы как
